@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function LoginPage() {
   const login = useAppStore((s) => s.login);
+  const { locale, setLocale } = useAppStore();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('alex@acmecorp.com');
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,13 +28,22 @@ export function LoginPage() {
     if (email && password) {
       login(email, password);
     } else {
-      setError('Please enter your credentials');
+      setError(t.login.enterCredentials);
     }
     setIsLoading(false);
   };
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
+      {/* Language toggle */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 right-4 z-20 text-xs font-bold h-8 px-3"
+        onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+      >
+        {locale.toUpperCase()}
+      </Button>
       {/* Left panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[oklch(0.17_0.02_155)] via-[oklch(0.20_0.04_155)] to-[oklch(0.15_0.06_160)] items-center justify-center p-12">
         {/* Animated background shapes */}
@@ -64,19 +76,19 @@ export function LoginPage() {
               <span className="text-2xl font-bold text-white tracking-tight">TeamFlow</span>
             </div>
             <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
-              Manage projects.<br />
-              <span className="text-[oklch(0.65_0.16_160)]">Empower teams.</span>
+              {t.login.leftTitle1}<br />
+              <span className="text-[oklch(0.65_0.16_160)]">{t.login.leftTitle2}</span>
             </h1>
             <p className="text-lg text-white/60 mb-8 leading-relaxed">
-              The all-in-one workspace for teams that ship. Plan, track, and collaborate — all in one place.
+              {t.login.leftSubtitle}
             </p>
 
             {/* Feature highlights */}
             <div className="space-y-4">
               {[
-                { icon: '⚡', title: 'Real-time Collaboration', desc: 'Work together seamlessly across timezones' },
-                { icon: '📊', title: 'Smart Analytics', desc: 'Data-driven insights for better decisions' },
-                { icon: '🔄', title: 'Powerful Automations', desc: 'Automate the mundane, focus on what matters' },
+                { icon: '⚡', title: t.login.feature1Title, desc: t.login.feature1Desc },
+                { icon: '📊', title: t.login.feature2Title, desc: t.login.feature2Desc },
+                { icon: '🔄', title: t.login.feature3Title, desc: t.login.feature3Desc },
               ].map((feature, i) => (
                 <motion.div
                   key={i}
@@ -118,13 +130,13 @@ export function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">Welcome back</h2>
-            <p className="text-muted-foreground">Enter your credentials to access your workspace</p>
+            <h2 className="text-2xl font-bold mb-2">{t.login.welcomeBack}</h2>
+            <p className="text-muted-foreground">{t.login.subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.login.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -136,9 +148,9 @@ export function LoginPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.login.password}</Label>
                 <button type="button" className="text-xs text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium">
-                  Forgot password?
+                  {t.login.forgotPassword}
                 </button>
               </div>
               <Input
@@ -172,10 +184,10 @@ export function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  {t.login.signingIn}
                 </div>
               ) : (
-                'Sign in'
+                t.login.signIn
               )}
             </Button>
           </form>
@@ -186,7 +198,7 @@ export function LoginPage() {
                 <div className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="px-4 bg-background text-muted-foreground">or continue with</span>
+                <span className="px-4 bg-background text-muted-foreground">{t.login.orContinueWith}</span>
               </div>
             </div>
 
@@ -210,9 +222,9 @@ export function LoginPage() {
           </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {t.login.noAccount}{' '}
             <button className="text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium">
-              Create one
+              {t.login.createOne}
             </button>
           </p>
         </motion.div>
