@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Hash,
   Lock,
@@ -20,11 +21,18 @@ import {
   MessageSquare,
   ChevronDown,
   Plus,
+  Bold,
+  Italic,
+  Code2,
+  Phone,
+  Video,
+  Pin,
 } from 'lucide-react';
 import { mockChannels, mockMessages, mockUsers } from '@/lib/mock-data';
 import type { Channel, Message } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 // Helper functions
 function getUserById(id: string) {
@@ -71,21 +79,53 @@ function formatShortTime(timestamp: string) {
   });
 }
 
-// Status color indicator
-function StatusDot({ status }: { status: string }) {
+// Status color indicator with online status
+function OnlineStatusDot({ status, size = 'sm' }: { status: string; size?: 'sm' | 'md' }) {
+  const sizeClasses = size === 'sm' ? 'h-2.5 w-2.5 border-2' : 'h-3.5 w-3.5 border-[2.5px]';
   const colors: Record<string, string> = {
-    online: 'bg-emerald-500',
-    away: 'bg-amber-500',
-    busy: 'bg-red-500',
-    offline: 'bg-slate-400',
+    online: 'bg-emerald-500 border-background',
+    away: 'bg-amber-500 border-background',
+    busy: 'bg-red-500 border-background',
+    offline: 'bg-slate-400 dark:bg-slate-500 border-background',
   };
   return (
     <span
       className={cn(
-        'inline-block h-2.5 w-2.5 rounded-full border-2 border-background',
-        colors[status] || 'bg-slate-400'
+        'inline-block rounded-full shadow-sm',
+        sizeClasses,
+        colors[status] || 'bg-slate-400 border-background'
       )}
     />
+  );
+}
+
+// Typing indicator animation
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2">
+      <div className="flex items-center gap-1.5">
+        <Avatar className="h-6 w-6">
+          <AvatarFallback className="text-[8px] bg-muted">SC</AvatarFallback>
+        </Avatar>
+        <div className="flex items-center gap-0.5 px-3 py-2 rounded-2xl bg-muted/60">
+          <motion.span
+            className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+          />
+          <motion.span
+            className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
+          />
+          <motion.span
+            className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -94,10 +134,12 @@ function ChannelListItem({
   channel,
   isActive,
   onClick,
+  membersLabel,
 }: {
   channel: Channel;
   isActive: boolean;
   onClick: () => void;
+  membersLabel?: string;
 }) {
   const isDirect = channel.type === 'direct';
   const status = isDirect ? getUserStatus(channel.members[1] || channel.members[0]) : null;
@@ -106,32 +148,23 @@ function ChannelListItem({
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors text-left',
+        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left',
         isActive
-          ? 'bg-[oklch(0.55_0.15_160)/0.12] text-foreground font-medium'
+          ? 'bg-[oklch(0.55_0.15_160)/0.12] text-foreground font-medium shadow-sm'
           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
       )}
     >
       {isDirect ? (
         <div className="relative shrink-0">
-          <Avatar className="h-5 w-5">
-            <AvatarFallback className="text-[8px] bg-muted">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-[9px] bg-muted">
               {getUserInitials(channel.members[1] || channel.members[0])}
             </AvatarFallback>
           </Avatar>
           {status && (
-            <span
-              className={cn(
-                'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
-                status === 'online'
-                  ? 'bg-emerald-500'
-                  : status === 'away'
-                  ? 'bg-amber-500'
-                  : status === 'busy'
-                  ? 'bg-red-500'
-                  : 'bg-slate-400'
-              )}
-            />
+            <span className="absolute -bottom-0.5 -right-0.5">
+              <OnlineStatusDot status={status} size="sm" />
+            </span>
           )}
         </div>
       ) : channel.type === 'project' ? (
@@ -140,10 +173,10 @@ function ChannelListItem({
         <Hash className="h-4 w-4 shrink-0 text-muted-foreground/70" />
       )}
       <span className="truncate flex-1">
-        {isDirect ? channel.name : channel.name}
+        {channel.name}
       </span>
       {channel.unread > 0 && (
-        <Badge className="h-4 min-w-[18px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)]">
+        <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
           {channel.unread}
         </Badge>
       )}
@@ -151,8 +184,8 @@ function ChannelListItem({
   );
 }
 
-// Message bubble
-function MessageBubble({ message, showHeader }: { message: Message; showHeader: boolean }) {
+// Message bubble with proper alignment
+function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message; showHeader: boolean; isOwnMessage: boolean }) {
   const sender = getUserById(message.senderId);
 
   return (
@@ -168,20 +201,25 @@ function MessageBubble({ message, showHeader }: { message: Message; showHeader: 
       {/* Avatar */}
       <div className="shrink-0 pt-0.5">
         {showHeader ? (
-          <Avatar className="h-8 w-8">
-            <AvatarFallback
-              className="text-[10px] font-medium"
-              style={{
-                backgroundColor: sender
-                  ? `oklch(0.7 ${0.08 + (sender.name.charCodeAt(0) % 5) * 0.02} ${140 + (sender.name.charCodeAt(1) % 40)})`
-                  : undefined,
-              }}
-            >
-              {getUserInitials(message.senderId)}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-9 w-9 shadow-sm">
+              <AvatarFallback
+                className="text-[10px] font-semibold"
+                style={{
+                  backgroundColor: sender
+                    ? `oklch(0.7 ${0.08 + (sender.name.charCodeAt(0) % 5) * 0.02} ${140 + (sender.name.charCodeAt(1) % 40)})`
+                    : undefined,
+                }}
+              >
+                {getUserInitials(message.senderId)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="absolute -bottom-0.5 -right-0.5">
+              <OnlineStatusDot status={getUserStatus(message.senderId)} size="sm" />
+            </span>
+          </div>
         ) : (
-          <div className="w-8 flex items-center justify-center">
+          <div className="w-9 flex items-center justify-center">
             <span className="text-[9px] text-muted-foreground/0 group-hover:text-muted-foreground transition-colors">
               {formatShortTime(message.timestamp)}
             </span>
@@ -193,7 +231,7 @@ function MessageBubble({ message, showHeader }: { message: Message; showHeader: 
       <div className="flex-1 min-w-0">
         {showHeader && (
           <div className="flex items-baseline gap-2 mb-0.5">
-            <span className="text-sm font-semibold">{getUserName(message.senderId)}</span>
+            <span className="text-sm font-bold">{getUserName(message.senderId)}</span>
             <span className="text-[10px] text-muted-foreground">
               {formatMessageTime(message.timestamp)}
             </span>
@@ -208,12 +246,12 @@ function MessageBubble({ message, showHeader }: { message: Message; showHeader: 
               <button
                 key={idx}
                 className={cn(
-                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs border transition-colors',
-                  'hover:border-[oklch(0.55_0.15_160)/40] hover:bg-[oklch(0.55_0.15_160)/8]'
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150',
+                  'hover:border-[oklch(0.55_0.15_160)/40] hover:bg-[oklch(0.55_0.15_160)/8] hover:shadow-sm'
                 )}
               >
                 <span className="text-xs">{reaction.emoji}</span>
-                <span className="text-[10px] font-medium text-muted-foreground">
+                <span className="text-[10px] font-semibold text-muted-foreground">
                   {reaction.users.length}
                 </span>
               </button>
@@ -240,10 +278,12 @@ const item = {
 };
 
 export function MessagesView() {
+  const { t } = useTranslation();
   const [selectedChannel, setSelectedChannel] = useState<string>('ch-1');
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [showTyping, setShowTyping] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const channel = mockChannels.find((c) => c.id === selectedChannel);
@@ -269,6 +309,14 @@ export function MessagesView() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedChannel]);
 
+  // Simulate typing indicator toggling
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowTyping((prev) => !prev);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleChannelSelect = (channelId: string) => {
     setSelectedChannel(channelId);
     setShowMobileChat(true);
@@ -281,7 +329,7 @@ export function MessagesView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] border rounded-xl overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-6rem)] border rounded-xl overflow-hidden bg-background shadow-sm">
       {/* Channel Sidebar */}
       <div
         className={cn(
@@ -291,11 +339,11 @@ export function MessagesView() {
         )}
       >
         {/* Sidebar Header */}
-        <div className="p-3 space-y-3">
+        <div className="p-3 space-y-3 border-b">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">Messages</h2>
+            <h2 className="text-sm font-bold">{t.messages.title}</h2>
             {totalUnread > 0 && (
-              <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)]">
+              <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
                 {totalUnread}
               </Badge>
             )}
@@ -303,8 +351,8 @@ export function MessagesView() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search channels..."
-              className="pl-8 h-8 text-xs"
+              placeholder={t.messages.searchChannels}
+              className="pl-8 h-8 text-xs bg-background"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -312,14 +360,14 @@ export function MessagesView() {
         </div>
 
         {/* Channel List */}
-        <ScrollArea className="flex-1 px-2">
+        <ScrollArea className="flex-1 px-2 py-1">
           <motion.div variants={container} initial="hidden" animate="show">
             {/* Team Channels */}
             {filterChannels(teamChannels).length > 0 && (
-              <div className="mb-3">
-                <button className="flex items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+              <div className="mb-2">
+                <button className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                   <ChevronDown className="h-3 w-3" />
-                  Team Channels
+                  {t.messages.teamChannels}
                 </button>
                 <div className="space-y-0.5">
                   {filterChannels(teamChannels).map((ch) => (
@@ -337,10 +385,10 @@ export function MessagesView() {
 
             {/* Project Channels */}
             {filterChannels(projectChannels).length > 0 && (
-              <div className="mb-3">
-                <button className="flex items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+              <div className="mb-2">
+                <button className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                   <ChevronDown className="h-3 w-3" />
-                  Project Channels
+                  {t.messages.projectChannels}
                 </button>
                 <div className="space-y-0.5">
                   {filterChannels(projectChannels).map((ch) => (
@@ -358,10 +406,10 @@ export function MessagesView() {
 
             {/* Direct Messages */}
             {filterChannels(directChannels).length > 0 && (
-              <div className="mb-3">
-                <button className="flex items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+              <div className="mb-2">
+                <button className="flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                   <ChevronDown className="h-3 w-3" />
-                  Direct Messages
+                  {t.messages.directMessages}
                 </button>
                 <div className="space-y-0.5">
                   {filterChannels(directChannels).map((ch) => (
@@ -391,7 +439,7 @@ export function MessagesView() {
           <>
             {/* Channel Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -402,11 +450,14 @@ export function MessagesView() {
                 </Button>
                 {channel.type === 'direct' ? (
                   <div className="relative">
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="text-[7px] bg-muted">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[8px] bg-muted">
                         {getUserInitials(channel.members[1] || channel.members[0])}
                       </AvatarFallback>
                     </Avatar>
+                    <span className="absolute -bottom-0.5 -right-0.5">
+                      <OnlineStatusDot status={getUserStatus(channel.members[1] || channel.members[0])} size="sm" />
+                    </span>
                   </div>
                 ) : channel.type === 'project' ? (
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -415,26 +466,67 @@ export function MessagesView() {
                 )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold truncate">{channel.name}</h3>
+                    <h3 className="text-sm font-bold truncate">{channel.name}</h3>
                     {channel.unread > 0 && (
                       <Badge className="h-4 min-w-[16px] px-1 text-[8px] bg-[oklch(0.55_0.15_160)] text-white">
                         {channel.unread} new
                       </Badge>
                     )}
                   </div>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {channel.type === 'direct'
+                      ? `Active now · ${channel.members.length} ${t.messages.members}`
+                      : `${channel.members.length} ${t.messages.members}`}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground mr-2">
+              <div className="flex items-center gap-0.5">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Voice Call</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Video className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Video Call</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Pin className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Pinned Messages</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <AtSign className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Mentions</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Search</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground ml-2 bg-muted/50 px-2 py-1 rounded-md">
                   <Users className="h-3.5 w-3.5" />
                   <span>{channel.members.length}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <AtSign className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <Search className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 
@@ -446,13 +538,13 @@ export function MessagesView() {
                     {/* Channel intro */}
                     <div className="px-4 mb-6">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-2xl bg-[oklch(0.55_0.15_160)/12] flex items-center justify-center">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.15_160)/20] to-[oklch(0.55_0.15_160)/5] flex items-center justify-center shadow-sm">
                           {channel.type === 'direct' ? (
-                            <MessageSquare className="h-6 w-6 text-[oklch(0.55_0.15_160)]" />
+                            <MessageSquare className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
                           ) : channel.type === 'project' ? (
-                            <Lock className="h-6 w-6 text-[oklch(0.55_0.15_160)]" />
+                            <Lock className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
                           ) : (
-                            <Hash className="h-6 w-6 text-[oklch(0.55_0.15_160)]" />
+                            <Hash className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
                           )}
                         </div>
                         <div>
@@ -479,18 +571,37 @@ export function MessagesView() {
                           new Date(prevMsg.timestamp).getTime() >
                           300000; // 5 minutes gap
 
+                      const isOwnMessage = msg.senderId === 'u-1';
+
                       return (
                         <MessageBubble
                           key={msg.id}
                           message={msg}
                           showHeader={showHeader}
+                          isOwnMessage={isOwnMessage}
                         />
                       );
                     })}
+
+                    {/* Typing indicator */}
+                    <AnimatePresence>
+                      {showTyping && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <TypingIndicator />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                    <MessageSquare className="h-10 w-10 mb-3 opacity-40" />
+                    <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-3">
+                      <MessageSquare className="h-8 w-8 opacity-30" />
+                    </div>
                     <p className="text-sm font-medium">No messages yet</p>
                     <p className="text-xs mt-1">Start the conversation!</p>
                   </div>
@@ -500,45 +611,91 @@ export function MessagesView() {
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="p-3 border-t bg-background shrink-0">
-              <div className="flex items-center gap-2 p-2 rounded-lg border bg-background focus-within:border-[oklch(0.55_0.15_160)/40] focus-within:ring-1 focus-within:ring-[oklch(0.55_0.15_160)/20] transition-all">
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground">
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Input
-                  placeholder={`Message ${channel.type === 'direct' ? channel.name : '#' + channel.name}...`}
-                  className="border-0 shadow-none focus-visible:ring-0 h-7 text-sm px-1"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <AtSign className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <Smile className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="h-7 w-7 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shrink-0"
-                    onClick={handleSendMessage}
-                    disabled={!messageInput.trim()}
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                  </Button>
+            <div className="px-3 pb-3 pt-1 shrink-0">
+              <div className="flex flex-col rounded-xl border bg-background focus-within:border-[oklch(0.55_0.15_160)/40] focus-within:ring-2 focus-within:ring-[oklch(0.55_0.15_160)/15] transition-all shadow-sm">
+                {/* Formatting toolbar */}
+                <div className="flex items-center gap-0.5 px-2 pt-2 pb-1 border-b border-transparent">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <Bold className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Bold</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <Italic className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Italic</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <Code2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Code</TooltipContent>
+                    </Tooltip>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Attach file</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                          <AtSign className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Mention</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Input row */}
+                <div className="flex items-center gap-2 px-2 py-1.5">
+                  <Input
+                    placeholder={t.messages.messageInput}
+                    className="border-0 shadow-none focus-visible:ring-0 h-7 text-sm px-1 flex-1"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      className={cn(
+                        'h-7 w-7 shrink-0 transition-all duration-200',
+                        messageInput.trim()
+                          ? 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim()}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <p className="text-[9px] text-muted-foreground mt-1.5 px-2">
-                Press <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">Enter</kbd> to send,{' '}
+                Press <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">Enter</kbd> to {t.messages.send.toLowerCase()},{' '}
                 <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">Shift+Enter</kbd> for new line
               </p>
             </div>

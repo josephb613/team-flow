@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { PageId, Workspace, Notification } from './types';
+import type { Locale } from './i18n';
 
 interface AppState {
   // Navigation
@@ -10,6 +11,7 @@ interface AppState {
   workspaces: Workspace[];
   activeWorkspaceId: string;
   setActiveWorkspace: (id: string) => void;
+  addWorkspace: (workspace: Workspace) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -25,6 +27,10 @@ interface AppState {
   notifications: Notification[];
   notificationCenterOpen: boolean;
   setNotificationCenterOpen: (open: boolean) => void;
+  notificationPanelOpen: boolean;
+  setNotificationPanelOpen: (open: boolean) => void;
+  markAllNotificationsRead: () => void;
+  markNotificationRead: (id: string) => void;
 
   // Favorites
   favorites: string[];
@@ -34,6 +40,20 @@ interface AppState {
   taskViewMode: 'list' | 'kanban' | 'my_tasks';
   setTaskViewMode: (mode: 'list' | 'kanban' | 'my_tasks') => void;
 
+  // i18n / Locale
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+
+  // Task detail drawer
+  taskDetailOpen: boolean;
+  setTaskDetailOpen: (open: boolean) => void;
+  selectedTask: Record<string, unknown> | null;
+  setSelectedTask: (task: Record<string, unknown> | null) => void;
+
+  // Create workspace dialog
+  createWorkspaceDialogOpen: boolean;
+  setCreateWorkspaceDialogOpen: (open: boolean) => void;
+
   // Auth
   isAuthenticated: boolean;
   currentUser: {
@@ -41,6 +61,7 @@ interface AppState {
     name: string;
     email: string;
     avatar: string;
+    role: string;
   } | null;
   login: (email: string, password: string) => void;
   logout: () => void;
@@ -80,6 +101,7 @@ export const useAppStore = create<AppState>((set) => ({
   ],
   activeWorkspaceId: 'ws-1',
   setActiveWorkspace: (id) => set({ activeWorkspaceId: id, activePage: 'dashboard' }),
+  addWorkspace: (workspace) => set((s) => ({ workspaces: [...s.workspaces, workspace] })),
 
   // Sidebar
   sidebarCollapsed: false,
@@ -99,7 +121,7 @@ export const useAppStore = create<AppState>((set) => ({
       title: 'New task assigned',
       message: 'You have been assigned "Design homepage mockup"',
       read: false,
-      timestamp: '2025-01-20T10:30:00Z',
+      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     },
     {
       id: 'n2',
@@ -107,15 +129,15 @@ export const useAppStore = create<AppState>((set) => ({
       title: 'New comment',
       message: 'Sarah commented on "API Integration"',
       read: false,
-      timestamp: '2025-01-20T09:15:00Z',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n3',
       type: 'deadline',
       title: 'Deadline approaching',
       message: 'Sprint 4 ends in 2 days',
-      read: true,
-      timestamp: '2025-01-19T16:00:00Z',
+      read: false,
+      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n4',
@@ -123,7 +145,7 @@ export const useAppStore = create<AppState>((set) => ({
       title: 'Mentioned in discussion',
       message: '@you in #general channel',
       read: true,
-      timestamp: '2025-01-19T14:20:00Z',
+      timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n5',
@@ -131,11 +153,63 @@ export const useAppStore = create<AppState>((set) => ({
       title: 'Workspace invitation',
       message: 'You were invited to join "Marketing Team"',
       read: false,
-      timestamp: '2025-01-18T11:00:00Z',
+      timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n6',
+      type: 'system',
+      title: 'System update',
+      message: 'TeamFlow v2.4 is now available with new features',
+      read: true,
+      timestamp: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n7',
+      type: 'assignment',
+      title: 'New task assigned',
+      message: 'You have been assigned "Review pull request #142"',
+      read: true,
+      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n8',
+      type: 'comment',
+      title: 'Reply to your comment',
+      message: 'Mike replied to your comment on "Database migration"',
+      read: true,
+      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n9',
+      type: 'deadline',
+      title: 'Overdue task',
+      message: 'Task "Write unit tests" is 1 day overdue',
+      read: false,
+      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n10',
+      type: 'mention',
+      title: 'Mentioned in wiki',
+      message: '@you in "Architecture Decisions" page',
+      read: true,
+      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ],
   notificationCenterOpen: false,
   setNotificationCenterOpen: (open) => set({ notificationCenterOpen: open }),
+  notificationPanelOpen: false,
+  setNotificationPanelOpen: (open) => set({ notificationPanelOpen: open }),
+  markAllNotificationsRead: () =>
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, read: true })),
+    })),
+  markNotificationRead: (id) =>
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      ),
+    })),
 
   // Favorites
   favorites: ['dashboard', 'tasks', 'messages'],
@@ -150,6 +224,20 @@ export const useAppStore = create<AppState>((set) => ({
   taskViewMode: 'kanban',
   setTaskViewMode: (mode) => set({ taskViewMode: mode }),
 
+  // i18n / Locale
+  locale: 'fr',
+  setLocale: (locale) => set({ locale }),
+
+  // Task detail drawer
+  taskDetailOpen: false,
+  setTaskDetailOpen: (open) => set({ taskDetailOpen: open }),
+  selectedTask: null,
+  setSelectedTask: (task) => set({ selectedTask: task, taskDetailOpen: task !== null }),
+
+  // Create workspace dialog
+  createWorkspaceDialogOpen: false,
+  setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
+
   // Auth
   isAuthenticated: false,
   currentUser: null,
@@ -161,6 +249,7 @@ export const useAppStore = create<AppState>((set) => ({
         name: 'Alex Thompson',
         email: 'alex@acmecorp.com',
         avatar: '',
+        role: 'Admin',
       },
     }),
   logout: () => set({ isAuthenticated: false, currentUser: null }),

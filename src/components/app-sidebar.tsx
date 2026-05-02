@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -139,7 +140,7 @@ const allNavItems: NavItemConfig[] = [
   { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages', badge: 11 },
   { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings', badge: 4 },
   { icon: <FileText className="h-4 w-4" />, label: 'Files', pageId: 'files' },
-  { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki & Notes', pageId: 'wiki' },
+  { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki', pageId: 'wiki' },
   { icon: <Activity className="h-4 w-4" />, label: 'Activity', pageId: 'activity' },
   { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
   { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
@@ -163,8 +164,15 @@ export function AppSidebar() {
     mobileSidebarOpen,
     setMobileSidebarOpen,
   } = useAppStore();
+  const { t } = useTranslation();
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+
+  // Helper to get translated nav label by pageId
+  const getNavLabel = (pageId: string): string => {
+    const key = pageId as keyof typeof t.nav;
+    return t.nav[key] || pageId;
+  };
 
   // Filter out favorited items from section listings to avoid duplication
   const mainItems = allNavItems.filter((i) => mainPageIds.has(i.pageId) && !favorites.includes(i.pageId));
@@ -205,7 +213,7 @@ export function AppSidebar() {
                       {activeWorkspace?.name || 'Workspace'}
                     </div>
                     <div className="text-[10px] text-sidebar-foreground/40">
-                      {mockUsers.length} members
+                      {mockUsers.length} {t.sidebar.members}
                     </div>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
@@ -214,7 +222,7 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-56">
-            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Workspaces</div>
+            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">{t.sidebar.workspaces}</div>
             {workspaces.map((ws) => (
               <DropdownMenuItem
                 key={ws.id}
@@ -234,13 +242,16 @@ export function AppSidebar() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-[oklch(0.55_0.15_160)]">
+            <DropdownMenuItem
+              className="text-[oklch(0.55_0.15_160)] cursor-pointer"
+              onClick={() => useAppStore.getState().setCreateWorkspaceDialogOpen(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Create workspace
+              {t.sidebar.createWorkspace}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-[oklch(0.55_0.15_160)]">
               <LogOut className="h-4 w-4 mr-2" />
-              Join workspace
+              {t.sidebar.joinWorkspace}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -254,7 +265,7 @@ export function AppSidebar() {
             className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/50"
           >
             <Search className="h-3.5 w-3.5" />
-            <span>Search...</span>
+            <span>{t.sidebar.search}</span>
             <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
           </button>
         </div>
@@ -267,13 +278,13 @@ export function AppSidebar() {
         {/* Favorites */}
         {favoriteItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>Pinned</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.pinned}</SectionLabel>
             <div className="space-y-0.5">
               {favoriteItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
-                  label={item.label}
+                  label={getNavLabel(item.pageId)}
                   pageId={item.pageId}
                   badge={item.badge}
                   active={activePage === item.pageId}
@@ -289,13 +300,13 @@ export function AppSidebar() {
         {/* Main Navigation */}
         {mainItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>Main</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.main}</SectionLabel>
             <div className="space-y-0.5">
               {mainItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
-                  label={item.label}
+                  label={getNavLabel(item.pageId)}
                   pageId={item.pageId}
                   badge={item.badge}
                   active={activePage === item.pageId}
@@ -310,13 +321,13 @@ export function AppSidebar() {
         {/* Collaboration */}
         {collabItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>Collaborate</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.collaborate}</SectionLabel>
             <div className="space-y-0.5">
               {collabItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
-                  label={item.label}
+                  label={getNavLabel(item.pageId)}
                   pageId={item.pageId}
                   badge={item.badge}
                   active={activePage === item.pageId}
@@ -331,7 +342,7 @@ export function AppSidebar() {
         {/* Channels (for messages) */}
         {!sidebarCollapsed && (
           <>
-            <SectionLabel>Channels</SectionLabel>
+            <SectionLabel>{t.sidebar.channels}</SectionLabel>
             <div className="space-y-0.5">
               {channels.map((ch) => (
                 <button
@@ -358,13 +369,13 @@ export function AppSidebar() {
         {/* Management */}
         {manageItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>Manage</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.manage}</SectionLabel>
             <div className="space-y-0.5">
               {manageItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
-                  label={item.label}
+                  label={getNavLabel(item.pageId)}
                   pageId={item.pageId}
                   active={activePage === item.pageId}
                   collapsed={sidebarCollapsed}
@@ -382,7 +393,7 @@ export function AppSidebar() {
       <div className="px-2 py-2 flex-shrink-0">
         <NavItem
           icon={<Settings className="h-4 w-4" />}
-          label="Settings"
+          label={t.nav.settings}
           pageId="settings"
           active={activePage === 'settings'}
           collapsed={sidebarCollapsed}
@@ -412,7 +423,7 @@ export function AppSidebar() {
               </TooltipProvider>
             ))}
             <span className="text-[10px] text-sidebar-foreground/40 ml-2">
-              {onlineUsers.length} online
+              {onlineUsers.length} {t.sidebar.online}
             </span>
           </div>
         </div>
