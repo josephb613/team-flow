@@ -22,6 +22,7 @@ import {
   Bell,
   PanelLeftClose,
   PanelLeft,
+  Menu,
   Command,
   Moon,
   Sun,
@@ -44,6 +45,7 @@ export function TopBar() {
     setNotificationCenterOpen,
     currentUser,
     logout,
+    setMobileSidebarOpen,
   } = useAppStore();
   const { resolvedTheme, setTheme } = useTheme();
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -68,13 +70,24 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 border-b bg-background/80 backdrop-blur-md">
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger menu */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden h-8 w-8"
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        {/* Desktop sidebar toggle */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="hidden lg:flex h-8 w-8"
                 onClick={toggleSidebar}
               >
                 {sidebarCollapsed ? (
@@ -90,12 +103,12 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        <h1 className="text-lg font-semibold hidden sm:block">
+        <h1 className="text-lg font-semibold">
           {pageNames[activePage] || 'Dashboard'}
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {/* Search bar */}
         <Button
           variant="outline"
@@ -208,7 +221,7 @@ export function TopBar() {
                   {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden sm:block text-sm font-medium">
+              <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
                 {currentUser?.name || 'Alex Thompson'}
               </span>
             </Button>
