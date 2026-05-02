@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -38,16 +37,22 @@ import {
   Settings,
   Search,
   Star,
-  Pin,
   ChevronDown,
   Plus,
   Hash,
-  ChevronRight,
   LogOut,
+  X,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { mockChannels, mockUsers } from '@/lib/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
+
+interface NavItemConfig {
+  icon: React.ReactNode;
+  label: string;
+  pageId: PageId;
+  badge?: number;
+}
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -61,8 +66,6 @@ interface NavItemProps {
 }
 
 function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, onClick }: NavItemProps) {
-  const toggleFavorite = useAppStore((s) => s.toggleFavorite);
-
   const content = (
     <button
       onClick={onClick}
@@ -93,7 +96,7 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
             </Badge>
           )}
           {isFavorite && (
-            <Star className="h-3 w-3 text-amber-400 fill-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Star className="h-3 w-3 text-amber-400 fill-amber-400 opacity-60" />
           )}
         </>
       )}
@@ -128,6 +131,26 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
   );
 }
 
+const allNavItems: NavItemConfig[] = [
+  { icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', pageId: 'dashboard' },
+  { icon: <CheckSquare className="h-4 w-4" />, label: 'Tasks', pageId: 'tasks', badge: 5 },
+  { icon: <FolderKanban className="h-4 w-4" />, label: 'Projects', pageId: 'projects', badge: 6 },
+  { icon: <Calendar className="h-4 w-4" />, label: 'Calendar', pageId: 'calendar' },
+  { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages', badge: 11 },
+  { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings', badge: 4 },
+  { icon: <FileText className="h-4 w-4" />, label: 'Files', pageId: 'files' },
+  { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki & Notes', pageId: 'wiki' },
+  { icon: <Activity className="h-4 w-4" />, label: 'Activity', pageId: 'activity' },
+  { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
+  { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
+  { icon: <BarChart3 className="h-4 w-4" />, label: 'Reports', pageId: 'reports' },
+  { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
+];
+
+const mainPageIds: Set<string> = new Set(['dashboard', 'tasks', 'projects', 'calendar']);
+const collabPageIds: Set<string> = new Set(['messages', 'meetings', 'files', 'wiki']);
+const managePageIds: Set<string> = new Set(['activity', 'members', 'teams', 'reports', 'automations']);
+
 export function AppSidebar() {
   const {
     activePage,
@@ -137,40 +160,25 @@ export function AppSidebar() {
     setActiveWorkspace,
     sidebarCollapsed,
     favorites,
-    toggleFavorite,
     mobileSidebarOpen,
     setMobileSidebarOpen,
   } = useAppStore();
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
-  const mainNavItems: { icon: React.ReactNode; label: string; pageId: PageId; badge?: number }[] = [
-    { icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', pageId: 'dashboard' },
-    { icon: <CheckSquare className="h-4 w-4" />, label: 'Tasks', pageId: 'tasks', badge: 5 },
-    { icon: <FolderKanban className="h-4 w-4" />, label: 'Projects', pageId: 'projects', badge: 6 },
-    { icon: <Calendar className="h-4 w-4" />, label: 'Calendar', pageId: 'calendar' },
-  ];
-
-  const collabItems: { icon: React.ReactNode; label: string; pageId: PageId; badge?: number }[] = [
-    { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages', badge: 11 },
-    { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings', badge: 4 },
-    { icon: <FileText className="h-4 w-4" />, label: 'Files', pageId: 'files' },
-    { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki & Notes', pageId: 'wiki' },
-  ];
-
-  const manageItems: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
-    { icon: <Activity className="h-4 w-4" />, label: 'Activity', pageId: 'activity' },
-    { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
-    { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
-    { icon: <BarChart3 className="h-4 w-4" />, label: 'Reports', pageId: 'reports' },
-    { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
-  ];
-
-  const favoriteItems = [...mainNavItems, ...collabItems, ...manageItems].filter((item) =>
-    favorites.includes(item.pageId)
-  );
+  // Filter out favorited items from section listings to avoid duplication
+  const mainItems = allNavItems.filter((i) => mainPageIds.has(i.pageId) && !favorites.includes(i.pageId));
+  const collabItems = allNavItems.filter((i) => collabPageIds.has(i.pageId) && !favorites.includes(i.pageId));
+  const manageItems = allNavItems.filter((i) => managePageIds.has(i.pageId) && !favorites.includes(i.pageId));
+  const favoriteItems = allNavItems.filter((i) => favorites.includes(i.pageId));
 
   const channels = mockChannels.slice(0, 4);
+  const onlineUsers = mockUsers.filter((u) => u.status === 'online');
+
+  const handleNavClick = (pageId: PageId) => {
+    setActivePage(pageId);
+    setMobileSidebarOpen(false);
+  };
 
   const sidebarContent = (
     <div className="flex flex-col h-screen bg-sidebar text-sidebar-foreground">
@@ -185,7 +193,7 @@ export function AppSidebar() {
               )}
             >
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm"
                 style={{ backgroundColor: activeWorkspace?.color || '#10b981' }}
               >
                 {activeWorkspace?.icon || '🏢'}
@@ -243,23 +251,23 @@ export function AppSidebar() {
         <div className="px-3 pb-2">
           <button
             onClick={() => useAppStore.getState().setSearchOpen(true)}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent transition-colors border border-sidebar-border"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/50"
           >
             <Search className="h-3.5 w-3.5" />
             <span>Search...</span>
-            <kbd className="ml-auto text-[10px] border border-sidebar-border rounded px-1">⌘K</kbd>
+            <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
           </button>
         </div>
       )}
 
-      <Separator className="bg-sidebar-border" />
+      <Separator className="bg-sidebar-border/50" />
 
       {/* Scrollable Navigation */}
       <ScrollArea className="flex-1 px-2 py-1">
         {/* Favorites */}
         {favoriteItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>Favorites</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>Pinned</SectionLabel>
             <div className="space-y-0.5">
               {favoriteItems.map((item) => (
                 <NavItem
@@ -271,7 +279,7 @@ export function AppSidebar() {
                   active={activePage === item.pageId}
                   collapsed={sidebarCollapsed}
                   isFavorite={true}
-                  onClick={() => setActivePage(item.pageId)}
+                  onClick={() => handleNavClick(item.pageId)}
                 />
               ))}
             </div>
@@ -279,40 +287,46 @@ export function AppSidebar() {
         )}
 
         {/* Main Navigation */}
-        <SectionLabel collapsed={sidebarCollapsed}>Main</SectionLabel>
-        <div className="space-y-0.5">
-          {mainNavItems.map((item) => (
-            <NavItem
-              key={item.pageId}
-              icon={item.icon}
-              label={item.label}
-              pageId={item.pageId}
-              badge={item.badge}
-              active={activePage === item.pageId}
-              collapsed={sidebarCollapsed}
-              isFavorite={favorites.includes(item.pageId)}
-              onClick={() => setActivePage(item.pageId)}
-            />
-          ))}
-        </div>
+        {mainItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>Main</SectionLabel>
+            <div className="space-y-0.5">
+              {mainItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={item.label}
+                  pageId={item.pageId}
+                  badge={item.badge}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Collaboration */}
-        <SectionLabel collapsed={sidebarCollapsed}>Collaborate</SectionLabel>
-        <div className="space-y-0.5">
-          {collabItems.map((item) => (
-            <NavItem
-              key={item.pageId}
-              icon={item.icon}
-              label={item.label}
-              pageId={item.pageId}
-              badge={item.badge}
-              active={activePage === item.pageId}
-              collapsed={sidebarCollapsed}
-              isFavorite={favorites.includes(item.pageId)}
-              onClick={() => setActivePage(item.pageId)}
-            />
-          ))}
-        </div>
+        {collabItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>Collaborate</SectionLabel>
+            <div className="space-y-0.5">
+              {collabItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={item.label}
+                  pageId={item.pageId}
+                  badge={item.badge}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Channels (for messages) */}
         {!sidebarCollapsed && (
@@ -322,7 +336,7 @@ export function AppSidebar() {
               {channels.map((ch) => (
                 <button
                   key={ch.id}
-                  onClick={() => setActivePage('messages')}
+                  onClick={() => handleNavClick('messages')}
                   className={cn(
                     'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors',
                     'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
@@ -342,26 +356,29 @@ export function AppSidebar() {
         )}
 
         {/* Management */}
-        <SectionLabel collapsed={sidebarCollapsed}>Manage</SectionLabel>
-        <div className="space-y-0.5">
-          {manageItems.map((item) => (
-            <NavItem
-              key={item.pageId}
-              icon={item.icon}
-              label={item.label}
-              pageId={item.pageId}
-              active={activePage === item.pageId}
-              collapsed={sidebarCollapsed}
-              isFavorite={favorites.includes(item.pageId)}
-              onClick={() => setActivePage(item.pageId)}
-            />
-          ))}
-        </div>
+        {manageItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>Manage</SectionLabel>
+            <div className="space-y-0.5">
+              {manageItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={item.label}
+                  pageId={item.pageId}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </ScrollArea>
 
-      <Separator className="bg-sidebar-border" />
+      <Separator className="bg-sidebar-border/50" />
 
-      {/* Settings & User */}
+      {/* Settings */}
       <div className="px-2 py-2 flex-shrink-0">
         <NavItem
           icon={<Settings className="h-4 w-4" />}
@@ -369,7 +386,7 @@ export function AppSidebar() {
           pageId="settings"
           active={activePage === 'settings'}
           collapsed={sidebarCollapsed}
-          onClick={() => setActivePage('settings')}
+          onClick={() => handleNavClick('settings')}
         />
       </div>
 
@@ -377,7 +394,7 @@ export function AppSidebar() {
       {!sidebarCollapsed && (
         <div className="px-3 pb-3">
           <div className="flex items-center gap-1">
-            {mockUsers.filter((u) => u.status === 'online').slice(0, 5).map((user) => (
+            {onlineUsers.slice(0, 5).map((user) => (
               <TooltipProvider key={user.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -395,7 +412,7 @@ export function AppSidebar() {
               </TooltipProvider>
             ))}
             <span className="text-[10px] text-sidebar-foreground/40 ml-2">
-              +{mockUsers.filter((u) => u.status === 'online').length - 5 > 0 ? mockUsers.filter((u) => u.status === 'online').length - 5 : ''} online
+              {onlineUsers.length} online
             </span>
           </div>
         </div>
@@ -408,7 +425,7 @@ export function AppSidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-40 transition-all duration-300',
+          'hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 border-r border-sidebar-border/30',
           sidebarCollapsed ? 'w-[68px]' : 'w-[260px]'
         )}
       >
@@ -423,7 +440,7 @@ export function AppSidebar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
               onClick={() => setMobileSidebarOpen(false)}
             />
             <motion.aside
@@ -431,8 +448,15 @@ export function AppSidebar() {
               animate={{ x: 0 }}
               exit={{ x: -260 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 w-[260px] z-50"
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] z-50 shadow-2xl"
             >
+              {/* Close button for mobile */}
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
               {sidebarContent}
             </motion.aside>
           </>
