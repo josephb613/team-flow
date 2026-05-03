@@ -303,10 +303,21 @@ export function DashboardView() {
     .slice(0, 3);
 
   // Active projects (not completed) from fetched data
-  const activeProjectsList = projects.filter((p: DataRecord) => p.status !== 'completed');
+  // Normalize project data to ensure all required fields exist (API data may lack some fields)
+  const normalizedProjects = projects.map((p: DataRecord) => ({
+    ...p,
+    members: (p.members as string[] || []),
+    progress: (p.progress as number) ?? Math.round(((p as DataRecord).tasks ? ((p as DataRecord).tasks as DataRecord[]).filter((t: DataRecord) => t.status === 'done').length / Math.max(((p as DataRecord).tasks as DataRecord[]).length, 1) * 100 : 0)),
+  }));
+  const activeProjectsList = normalizedProjects.filter((p: DataRecord) => p.status !== 'completed');
 
   // Scheduled meetings
+  // Normalize meeting data to ensure attendees field exists
   const scheduledMeetings = meetings
+    .map((m: DataRecord) => ({
+      ...m,
+      attendees: (m.attendees as string[] || []),
+    }))
     .filter((m: DataRecord) => m.status === 'scheduled')
     .slice(0, 4);
 
@@ -814,8 +825,8 @@ export function DashboardView() {
                             )}
                           </div>
                           <div className="flex items-center gap-1 mt-2">
-                            {(meeting.attendees as string[]).slice(0, 3).map((id: string) => (
-                              <Avatar key={id} className="h-5 w-5 ring-2 ring-background">
+                            {(meeting.attendees as string[]).slice(0, 3).map((id: string, i: number) => (
+                              <Avatar key={id || i} className="h-5 w-5 ring-2 ring-background">
                                 <AvatarFallback className={`text-[7px] font-semibold ${getUserColor(id)}`}>
                                   {getUserInitials(id)}
                                 </AvatarFallback>
@@ -1000,8 +1011,8 @@ export function DashboardView() {
 
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex -space-x-1.5">
-                        {(project.members as string[]).slice(0, 3).map((id: string) => (
-                          <Avatar key={id} className="h-5 w-5 ring-2 ring-background">
+                        {(project.members as string[]).slice(0, 3).map((id: string, i: number) => (
+                          <Avatar key={id || i} className="h-5 w-5 ring-2 ring-background">
                             <AvatarFallback className={`text-[7px] font-semibold ${getUserColor(id)}`}>
                               {getUserInitials(id)}
                             </AvatarFallback>

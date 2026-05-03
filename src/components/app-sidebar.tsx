@@ -39,11 +39,13 @@ import {
   Search,
   Star,
   ChevronDown,
+  ChevronRight,
   Plus,
   Hash,
   LogOut,
   X,
   Keyboard,
+  Clock,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { mockChannels, mockUsers } from '@/lib/mock-data';
@@ -77,12 +79,16 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 group relative overflow-hidden',
+        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group relative overflow-hidden min-h-[44px]',
         active
           ? 'bg-gradient-to-r from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] text-[oklch(0.65_0.16_160)] font-medium'
           : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
+      {/* Favorite amber left border indicator */}
+      {isFavorite && !active && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[1px] h-4 bg-amber-400/60 rounded-r-full" />
+      )}
       {/* Active left bar indicator */}
       {active && (
         <motion.div
@@ -92,7 +98,7 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
         />
       )}
       {/* Hover left border animation */}
-      {!active && hovered && (
+      {!active && hovered && !isFavorite && (
         <motion.div
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
@@ -141,13 +147,24 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
   return content;
 }
 
-function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
+function SectionLabel({ children, collapsed, onClick, chevron }: { children: React.ReactNode; collapsed?: boolean; onClick?: () => void; chevron?: boolean }) {
   if (collapsed) return null;
   return (
     <div className="px-3 pt-4 pb-1">
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/30">
-        {children}
-      </span>
+      <button
+        onClick={onClick}
+        className={cn(
+          'text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/30 flex items-center gap-1 w-full',
+          onClick && 'hover:text-sidebar-foreground/50 transition-colors'
+        )}
+      >
+        <span>{children}</span>
+        {chevron && (
+          <ChevronRight className={cn(
+            'h-3 w-3 transition-transform duration-200',
+          )} />
+        )}
+      </button>
     </div>
   );
 }
@@ -183,10 +200,14 @@ export function AppSidebar() {
     favorites,
     mobileSidebarOpen,
     setMobileSidebarOpen,
+    recentItems,
+    setCreateTaskDialogOpen,
+    setCreateProjectDialogOpen,
   } = useAppStore();
   const { t } = useTranslation();
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+  const [channelsCollapsed, setChannelsCollapsed] = useState(false);
 
   // Helper to get translated nav label by pageId
   const getNavLabel = (pageId: string): string => {
@@ -202,17 +223,25 @@ export function AppSidebar() {
 
   const channels = mockChannels.slice(0, 4);
   const onlineUsers = mockUsers.filter((u) => u.status === 'online');
+  const awayUsers = mockUsers.filter((u) => u.status === 'away');
   const extraOnlineCount = onlineUsers.length > 5 ? onlineUsers.length - 5 : 0;
+
+  // Recent items (last 3, matching nav items)
+  const recentNavItems = recentItems
+    .slice(0, 3)
+    .map((pageId) => allNavItems.find((i) => i.pageId === pageId))
+    .filter(Boolean) as NavItemConfig[];
 
   const handleNavClick = (pageId: PageId) => {
     setActivePage(pageId);
+    useAppStore.getState().addRecentItem(pageId);
     setMobileSidebarOpen(false);
   };
 
   const sidebarContent = (
     <div className="flex flex-col h-screen bg-sidebar text-sidebar-foreground">
-      {/* Workspace Switcher */}
-      <div className="px-3 py-3 flex-shrink-0">
+      {/* Workspace Switcher - with gradient background */}
+      <div className="px-3 py-3 flex-shrink-0 bg-gradient-to-b from-sidebar-accent/50 to-transparent">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -241,7 +270,7 @@ export function AppSidebar() {
                         {activeWorkspace?.name || 'Workspace'}
                       </span>
                       <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)]">
-                        Pro
+                        {t.topbar.pro}
                       </span>
                     </div>
                     <div className="text-[10px] text-sidebar-foreground/40">
@@ -307,6 +336,62 @@ export function AppSidebar() {
         </div>
       )}
 
+      {/* Quick Actions */}
+      {!sidebarCollapsed && (
+        <div className="px-3 pb-2">
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] border border-sidebar-border/20"
+                    onClick={() => setCreateTaskDialogOpen(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    {t.sidebar.quickTask}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickTask}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-amber-500 hover:bg-amber-500/10 border border-sidebar-border/20"
+                    onClick={() => setCreateProjectDialogOpen(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    {t.sidebar.quickProject}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickProject}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-rose-500 hover:bg-rose-500/10 border border-sidebar-border/20"
+                    onClick={() => setActivePage('meetings')}
+                  >
+                    <Plus className="h-3 w-3" />
+                    {t.sidebar.quickMeeting}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickMeeting}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      )}
+
       <Separator className="bg-sidebar-border/50" />
 
       {/* Scrollable Navigation */}
@@ -328,6 +413,36 @@ export function AppSidebar() {
                   isFavorite={true}
                   onClick={() => handleNavClick(item.pageId)}
                 />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Recent Section */}
+        {recentNavItems.length > 0 && !sidebarCollapsed && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-3 w-3" />
+                {t.sidebar.recent}
+              </span>
+            </SectionLabel>
+            <div className="space-y-0.5">
+              {recentNavItems.map((item) => (
+                <button
+                  key={`recent-${item.pageId}`}
+                  onClick={() => handleNavClick(item.pageId)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 min-h-[36px]',
+                    activePage === item.pageId
+                      ? 'bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)]'
+                      : 'text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  )}
+                >
+                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span className="flex-1 text-left truncate">{getNavLabel(item.pageId)}</span>
+                  <Clock className="h-3 w-3 text-sidebar-foreground/20" />
+                </button>
               ))}
             </div>
           </>
@@ -375,40 +490,63 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Channels (for messages) */}
+        {/* Channels (collapsible) */}
         {!sidebarCollapsed && (
           <>
-            <SectionLabel>{t.sidebar.channels}</SectionLabel>
-            <div className="space-y-0.5">
-              {channels.map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => handleNavClick('messages')}
-                  className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 group',
-                    'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                  )}
+            <SectionLabel
+              chevron
+              onClick={() => setChannelsCollapsed(!channelsCollapsed)}
+            >
+              <span className="flex items-center gap-1.5">
+                {t.sidebar.channels}
+                <ChevronDown className={cn(
+                  'h-3 w-3 transition-transform duration-200',
+                  channelsCollapsed && '-rotate-90'
+                )} />
+              </span>
+            </SectionLabel>
+            <AnimatePresence initial={false}>
+              {!channelsCollapsed && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
                 >
-                  <span className="relative">
-                    <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
-                    <span className="absolute -right-0.5 -top-0.5 w-1 h-1 rounded-full bg-[oklch(0.55_0.15_160/0)] group-hover:bg-[oklch(0.55_0.15_160/0.6)] transition-colors duration-200" />
-                  </span>
-                  <span className="flex-1 text-left truncate">{ch.name}</span>
-                  {ch.unread > 0 && (
-                    <Badge className="h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
-                      {ch.unread}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-              {/* New channel button */}
-              <button
-                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/50"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="truncate">{t.sidebar.channels === 'Channels' ? 'New channel' : 'Nouveau canal'}</span>
-              </button>
-            </div>
+                  <div className="space-y-0.5">
+                    {channels.map((ch) => (
+                      <button
+                        key={ch.id}
+                        onClick={() => handleNavClick('messages')}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 group min-h-[36px]',
+                          'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                        )}
+                      >
+                        <span className="relative">
+                          <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
+                          <span className="absolute -right-0.5 -top-0.5 w-1 h-1 rounded-full bg-[oklch(0.55_0.15_160/0)] group-hover:bg-[oklch(0.55_0.15_160/0.6)] transition-colors duration-200" />
+                        </span>
+                        <span className="flex-1 text-left truncate">{ch.name}</span>
+                        {ch.unread > 0 && (
+                          <Badge className="h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
+                            {ch.unread}
+                          </Badge>
+                        )}
+                      </button>
+                    ))}
+                    {/* New channel button */}
+                    <button
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/50 min-h-[36px]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span className="truncate">{t.sidebar.newChannel}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
 
@@ -458,7 +596,7 @@ export function AppSidebar() {
               <button
                 onClick={() => useAppStore.getState().setShortcutsHelpOpen(true)}
                 className={cn(
-                  'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30',
+                  'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 min-h-[36px]',
                   sidebarCollapsed && 'justify-center px-0'
                 )}
               >
@@ -478,7 +616,7 @@ export function AppSidebar() {
 
       <Separator className="bg-sidebar-border/50" />
 
-      {/* Online users indicator */}
+      {/* Online users indicator with status text */}
       {!sidebarCollapsed && (
         <div className="px-3 pb-3 pt-2">
           <div className="flex items-center">
@@ -517,7 +655,7 @@ export function AppSidebar() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              {onlineUsers.length} {t.sidebar.online}
+              {onlineUsers.length} {t.sidebar.onlineCount}{awayUsers.length} {t.sidebar.awayCount}
             </span>
           </div>
         </div>
@@ -549,9 +687,9 @@ export function AppSidebar() {
               onClick={() => setMobileSidebarOpen(false)}
             />
             <motion.aside
-              initial={{ x: -260 }}
+              initial={{ x: -280 }}
               animate={{ x: 0 }}
-              exit={{ x: -260 }}
+              exit={{ x: -280 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] z-50 shadow-2xl"
             >

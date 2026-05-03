@@ -711,3 +711,50 @@ TeamFlow is a comprehensive collaborative project management web application.
 4. **Mobile responsive fine-tuning** — Test and polish all views for small screens
 5. **Drag-and-drop within kanban columns** — Allow reordering tasks within a status column
 6. **User profile editing** — Connect settings profile section to database
+
+---
+Task ID: 15-a
+Agent: Sidebar & Mobile Polish Agent
+Task: Visual polish for sidebar, top bar, main layout, and mobile responsiveness
+
+Work Log:
+
+**Sidebar Enhancement (`src/components/app-sidebar.tsx`):**
+1. Added gradient background to workspace switcher area (`bg-gradient-to-b from-sidebar-accent/50 to-transparent`)
+2. Added Quick Actions section with 3 color-coded icon buttons: +Task (teal), +Project (amber), +Meeting (rose) that open respective dialogs
+3. Added subtle 1px amber/golden left border indicator on favorited (non-active) nav items
+4. Added RECENT section showing last 3 recently visited pages with Clock icon, using recentItems from Zustand store; integrated addRecentItem on nav click
+5. Made channels section collapsible with animated chevron (Framer Motion AnimatePresence for smooth height transition)
+6. Updated online users section to show "X online, Y away" text format
+7. Increased touch targets to min-h-[44px] for nav items and min-h-[36px] for channels/shortcuts
+8. Used t.topbar.pro translation key for Pro badge in workspace switcher
+9. Fixed hardcoded "New channel" text to use t.sidebar.newChannel i18n key
+
+**TopBar Enhancement (`src/components/top-bar.tsx`):**
+1. Replaced flat border-bottom with gradient line: `bg-gradient-to-r from-[oklch(0.55_0.15_160/0.4)] via-[oklch(0.55_0.15_160/0.1)] to-transparent`
+2. Widened search bar from w-60 to w-72 on desktop with animated focus ring (ring-2 ring-[oklch] + Framer Motion width animation)
+3. Added small "Pro" badge next to workspace name in breadcrumbs with teal accent styling
+4. Added "What's new" Sparkles button with amber color scheme and tooltip showing "TeamFlow v2.4 — See what's new"
+5. Added notification hover dropdown (Popover) showing last 3 notifications with type-specific icons, unread indicators, and "View all" button
+6. Mobile responsive: action buttons show icons only on small screens, separate mobile user avatar button, language toggle adapts
+
+**Main Layout Enhancement (`src/components/main-app.tsx`):**
+1. Added dot-pattern CSS class to main content area for subtle background texture
+2. Replaced flat footer border with gradient line: `bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent`
+3. Added BackToTopButton component: floating teal button that appears on scroll (Framer Motion fade-in), smooth scroll to top
+4. Added MobileFAB component: floating action button (lg:hidden) at bottom-right with expand/collapse animation showing +Task, +Project, +Meeting actions
+
+**i18n Translations (`src/lib/i18n/translations.ts`):**
+- Added sidebar.quickActions, sidebar.quickTask, sidebar.quickProject, sidebar.quickMeeting
+- Added sidebar.recent, sidebar.onlineCount, sidebar.awayCount, sidebar.newChannel
+- Added topbar.pro, topbar.whatsNew, topbar.whatsNewTooltip
+- Added footer.backToTop
+- All keys added for both FR and EN
+
+Stage Summary:
+- Sidebar enhanced with gradient switcher, quick actions, favorites indicator, recent section, collapsible channels, online status text, better touch targets
+- Top bar enhanced with gradient border, wider search with focus animation, Pro badge, What's new button, notification hover preview, mobile responsiveness
+- Main layout enhanced with dot-pattern background, gradient footer border, back-to-top button, mobile FAB
+- Full i18n support for all new text in FR and EN
+- 0 lint errors
+- App compiling and serving successfully on port 3000
