@@ -24,6 +24,14 @@ export const translations = {
       feature2Desc: 'Des insights basés sur les données pour de meilleures décisions',
       feature3Title: 'Automatisations puissantes',
       feature3Desc: 'Automatisez le banal, concentrez-vous sur l\'essentiel',
+      rememberMe: 'Se souvenir de moi',
+      testimonialText: 'TeamFlow a transformé notre façon de collaborer. Nos livraisons sont 2x plus rapides et notre équipe n\'a jamais été aussi synchronisée.',
+      testimonialName: 'Marie Dupont',
+      testimonialRole: 'Directrice Produit, NovaTech',
+      statTeams: 'Équipes',
+      statTasks: 'Tâches terminées',
+      statUptime: 'Disponibilité',
+      statCountries: 'Pays',
     },
 
     // Sidebar
@@ -375,6 +383,9 @@ export const translations = {
       createNewTask: 'Créer une nouvelle tâche',
       createNewProject: 'Créer un nouveau projet',
       scheduleMeeting: 'Planifier une réunion',
+      tasks: 'Tâches',
+      projects: 'Projets',
+      members: 'Membres',
     },
 
     // Create Task Dialog
@@ -500,6 +511,14 @@ export const translations = {
       feature2Desc: 'Data-driven insights for better decisions',
       feature3Title: 'Powerful Automations',
       feature3Desc: 'Automate the mundane, focus on what matters',
+      rememberMe: 'Remember me',
+      testimonialText: 'TeamFlow transformed how we collaborate. Our deliveries are 2x faster and our team has never been more in sync.',
+      testimonialName: 'Sarah Mitchell',
+      testimonialRole: 'VP of Product, NovaTech',
+      statTeams: 'Teams',
+      statTasks: 'Tasks Completed',
+      statUptime: 'Uptime',
+      statCountries: 'Countries',
     },
     sidebar: {
       pinned: 'Pinned',
@@ -815,6 +834,9 @@ export const translations = {
       createNewTask: 'Create new task',
       createNewProject: 'Create new project',
       scheduleMeeting: 'Schedule meeting',
+      tasks: 'Tasks',
+      projects: 'Projects',
+      members: 'Members',
     },
     createTask: {
       title: 'Create New Task',

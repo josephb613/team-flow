@@ -19,6 +19,7 @@ import { SettingsView } from '@/components/views/settings-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
+import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { cn } from '@/lib/utils';
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -64,6 +65,9 @@ export function MainApp() {
 
       {/* Notification Panel (slide-out overlay) */}
       <NotificationPanel />
+
+      {/* Task Detail Drawer */}
+      <TaskDetailDrawer />
 
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog />
