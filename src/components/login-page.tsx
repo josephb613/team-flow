@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Star } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Animated counter component for stats
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
@@ -65,6 +66,7 @@ export function LoginPage() {
 
     if (email && password) {
       login(email, password);
+      toast.success(t.toast.welcomeBack);
     } else {
       setError(t.login.enterCredentials);
     }

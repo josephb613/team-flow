@@ -601,3 +601,113 @@ Stage Summary:
 - 0 lint errors
 - App compiling and serving successfully on port 3000
 - Chat service running on port 3003
+
+---
+Task ID: 12-a
+Agent: Sidebar & TopBar Polish Agent
+Task: Visual polish for sidebar and top bar components
+
+Work Log:
+
+**Sidebar Polish (`src/components/app-sidebar.tsx`):**
+
+1. **Workspace Switcher Enhancement**:
+   - Added gradient border line below workspace switcher: `bg-gradient-to-r from-[oklch(0.55_0.15_160/0.3)] via-[oklch(0.55_0.15_160/0.1)] to-transparent h-px`
+   - Added "Pro" pill badge next to workspace name when not collapsed: inline-flex with teal accent background
+   - Added subtle ring around workspace icon when collapsed using boxShadow technique
+
+2. **Search Button Enhancement**:
+   - Applied glass effect: `bg-sidebar-accent/30` background with `border-sidebar-border/30`
+   - Added tiny sparkle icon (✦) before search icon
+
+3. **Nav Items Enhancement**:
+   - Active nav item: Changed from flat color to gradient background: `bg-gradient-to-r from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)]`
+   - Hover nav item: Added Framer Motion left border animation (scaleY 0→1 on 2px bar) using useState for hover state tracking
+   - Added subtle icon animation on hover: `group-hover:scale-110 transition-transform duration-150`
+
+4. **Channels Section Enhancement**:
+   - Added "New channel" button with Plus icon at end of channels list
+   - Channel items have hover accent dot that appears on hover (tiny dot next to Hash icon transitions from transparent to teal)
+
+5. **Online Users Section Enhancement**:
+   - Added pulsing green dot (animate-ping + static dot) next to "X en ligne" text
+   - Stacked user avatars with -ml-1.5 (approximately -6px) overlap instead of gap-1
+   - Added "+N" indicator when more than 5 users are online
+
+6. **Shortcuts Hint Enhancement**:
+   - Replaced emoji ⌨️ with Keyboard icon from lucide-react
+   - Added subtle border with `border-sidebar-border/30`
+   - Added small separator line above it (mx-3 border-t)
+
+7. **Settings Button Enhancement**:
+   - Settings button now shows active teal indicator like other nav items (inherited from NavItem component which was updated with gradient active state)
+
+8. **Collapsed State Improvements**:
+   - Workspace icon has subtle ring with workspace color when collapsed (boxShadow technique)
+   - Nav item tooltips refined with `sideOffset={8}` and `font-medium` for better readability
+
+**TopBar Polish (`src/components/top-bar.tsx`):**
+
+1. **Search Bar Enhancement**:
+   - Added `shadow-sm` and `bg-muted/30` for subtle inner shadow/glow effect
+   - Added tiny sparkle icon (✦) before "Search" text with muted color
+
+2. **Quick Create Button Enhancement**:
+   - Added teal accent ring on hover: `hover:ring-2 hover:ring-[oklch(0.55_0.15_160/0.3)] transition-all`
+
+3. **User Menu Enhancement**:
+   - Added tiny online status dot (emerald-500) next to user avatar
+   - Added subtle separator before user menu: `ml-1.5 pl-1.5 border-l border-border`
+
+4. **Notification Bell Enhancement**:
+   - When there are unread notifications, bell icon has subtle shake animation using Framer Motion
+   - Animation: rotate sequence [0, -8, 8, -4, 4, 0] over 0.6s, repeating every 4 seconds
+   - Only animates when unreadCount > 0
+
+Stage Summary:
+- Sidebar enhanced with 8 polish items (gradient borders, glass effects, hover animations, pulsing dots, overlapping avatars, +N indicator, keyboard icon, refined tooltips)
+- TopBar enhanced with 4 polish items (sparkle search, teal ring on create, online dot + separator on user menu, shake animation on bell)
+- All text continues using i18n (useTranslation)
+- Maintained teal/emerald color scheme (no blue/indigo)
+- 0 lint errors
+- App compiling and serving successfully on port 3000
+
+---
+
+# Cron Review Round 2 — 2025-05-03
+
+## Current Project Status
+
+TeamFlow is a comprehensive collaborative project management web application.
+
+**Tech Stack**: Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion, Zustand, Prisma (SQLite), Socket.IO
+
+**Features**: 14 views (Dashboard, Tasks, Projects, Calendar, Messages, Meetings, Files, Wiki, Activity, Members, Teams, Reports, Automations, Settings), login page, sidebar, top bar, search dialog (⌘K), notification panel, workspace creation dialog, task detail drawer, create task/project dialogs, keyboard shortcuts system, toast notifications (sonner), connection status indicator, page transitions, footer, real-time WebSocket chat, drag-and-drop kanban board, dark mode, i18n (FR/EN)
+
+**Status**: Stable — 0 lint errors, 0 compilation errors, dev server running on :3000, chat service on :3003
+
+## Completed This Round
+1. **Dialog Integration**: CreateTaskDialog and CreateProjectDialog now store-controlled with toast feedback (sonner)
+2. **Keyboard Shortcuts**: Full system with visual help dialog (⌘K search, ⌘N new task, ⌘⇧N new project, ⌘\ sidebar, ⌘⇧I notifications, 1-8 nav, ? help)
+3. **Sidebar Polish**: Gradient workspace switcher, Pro badge, glass search button, gradient active nav, hover border animations, new channel button, stacked avatars with +N, pulsing online dot, keyboard shortcuts hint
+4. **TopBar Polish**: Search shadow + sparkle, teal ring on quick-create, online dot on user avatar, separator, notification bell shake animation
+5. **Dashboard API Integration**: Connected to /api/tasks, /api/projects, /api/users with loading skeleton cards and error banner with retry
+6. **Enhanced Search**: Recent items section, quick actions (toggle theme, show shortcuts), sparkle icon, teal focus border
+7. **Connection Status Indicator**: Periodic health check every 30s, amber banner when offline with retry button
+8. **Notification Panel Enhancement**: Per-type icons/colors, hover action buttons (mark read, dismiss), filter tabs (All/Unread/Mentions), styled date headers
+9. **Task Drawer Enhancement**: Priority badges, status toggle dropdown with toast, subtask progress bar, comments section, activity log timeline, action buttons
+10. **Page Transitions & Footer**: AnimatePresence fade/slide transitions, AppFooter with version/copyright/shortcuts hint
+11. **New CSS Utilities**: dot-pattern, teal-glow, animate-float, skeleton-shimmer, animate-accent-border, drag-handle
+
+## Unresolved Issues / Risks
+1. **Agent-browser localhost access**: Headless Chrome cannot reach localhost in sandbox. QA relies on curl and code review.
+2. **Chat service persistence**: Messages stored in memory only, lost on restart
+3. **Dev server stability**: Process may die between commands; needs persistent start method
+
+## Priority Recommendations for Next Phase
+1. **File upload functionality** — Connect Files view to actual upload/download via API
+2. **Real-time notifications via WebSocket** — Push new notifications to connected clients
+3. **More views connected to Prisma API** — Tasks, Projects views should use database data
+4. **Mobile responsive fine-tuning** — Test and polish all views for small screens
+5. **Drag-and-drop within kanban columns** — Allow reordering tasks within a status column
+6. **User profile editing** — Connect settings profile section to database

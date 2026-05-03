@@ -62,6 +62,8 @@ export function TopBar() {
     notifications,
     setNotificationPanelOpen,
     setCreateWorkspaceDialogOpen,
+    setCreateTaskDialogOpen,
+    setCreateProjectDialogOpen,
     currentUser,
     logout,
     setMobileSidebarOpen,
@@ -166,15 +168,16 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-1.5">
-        {/* Search bar */}
+        {/* Search bar - enhanced with sparkle icon and subtle glow */}
         <Button
           variant="outline"
           className={cn(
             'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
-            'w-60 justify-start'
+            'w-60 justify-start shadow-sm bg-muted/30'
           )}
           onClick={() => setSearchOpen(true)}
         >
+          <span className="text-[10px] text-muted-foreground/50">✦</span>
           <Search className="h-4 w-4" />
           <span className="text-sm">{t.topbar.search}</span>
           <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
@@ -191,7 +194,7 @@ export function TopBar() {
           <Search className="h-4 w-4" />
         </Button>
 
-        {/* Quick create dropdown */}
+        {/* Quick create dropdown - enhanced with teal ring on hover */}
         <DropdownMenu>
           <TooltipProvider>
             <Tooltip>
@@ -200,7 +203,7 @@ export function TopBar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 hover:ring-2 hover:ring-[oklch(0.55_0.15_160/0.3)] transition-all"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -217,14 +220,14 @@ export function TopBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('tasks')}
+              onClick={() => setCreateTaskDialogOpen(true)}
             >
               <CheckSquare className="h-4 w-4 mr-2 text-[oklch(0.55_0.15_160)]" />
               {t.topbar.newTask}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('projects')}
+              onClick={() => setCreateProjectDialogOpen(true)}
             >
               <FolderKanban className="h-4 w-4 mr-2 text-amber-500" />
               {t.topbar.newProject}
@@ -282,7 +285,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Notifications - now opens the slide-out panel */}
+        {/* Notifications - enhanced with subtle shake animation when unread */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -292,7 +295,19 @@ export function TopBar() {
                 className="h-9 w-9 relative"
                 onClick={() => setNotificationPanelOpen(true)}
               >
-                <Bell className="h-4 w-4" />
+                <motion.div
+                  animate={unreadCount > 0 ? {
+                    rotate: [0, -8, 8, -4, 4, 0],
+                  } : { rotate: 0 }}
+                  transition={unreadCount > 0 ? {
+                    duration: 0.6,
+                    repeat: Infinity,
+                    repeatDelay: 4,
+                    ease: 'easeInOut',
+                  } : undefined}
+                >
+                  <Bell className="h-4 w-4" />
+                </motion.div>
                 {unreadCount > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
@@ -310,15 +325,19 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* User menu */}
+        {/* User menu - enhanced with online dot and separator */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-9 gap-2 px-2 ml-0.5">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
-                </AvatarFallback>
-              </Avatar>
+            <Button variant="ghost" className="h-9 gap-2 px-2 ml-1.5 pl-1.5 border-l border-border">
+              <div className="relative">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
+                    {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online status dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background" />
+              </div>
               <div className="hidden sm:flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight max-w-[120px] truncate">
                   {currentUser?.name || 'Alex Thompson'}

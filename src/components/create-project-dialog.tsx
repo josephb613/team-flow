@@ -1,18 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useAppStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const colorOptions = [
@@ -22,45 +23,49 @@ const colorOptions = [
 const iconOptions = ['🌐', '📱', '⚡', '📢', '📊', '🔒', '🎨', '🚀', '📋', '🏠'];
 
 export function CreateProjectDialog() {
-  const [open, setOpen] = useState(false);
+  const { createProjectDialogOpen, setCreateProjectDialogOpen } = useAppStore();
+  const { t } = useTranslation();
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [color, setColor] = useState('#10b981');
   const [icon, setIcon] = useState('📋');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Creating project:', { name, description, color, icon });
+  const resetForm = () => {
     setName('');
     setDescription('');
     setColor('#10b981');
     setIcon('📋');
-    setOpen(false);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setCreateProjectDialogOpen(open);
+    if (!open) resetForm();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Creating project:', { name, description, color, icon });
+    toast.success(t.toast.projectCreated);
+    setCreateProjectDialogOpen(false);
+    resetForm();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          size="sm"
-          className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
-        >
-          <Plus className="h-4 w-4 mr-1.5" /> New Project
-        </Button>
-      </DialogTrigger>
+    <Dialog open={createProjectDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[480px] p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle className="text-lg">Create New Project</DialogTitle>
+          <DialogTitle className="text-lg">{t.createProject.title}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-2">
             <Label htmlFor="project-name" className="text-sm font-medium">
-              Project Name <span className="text-destructive">*</span>
+              {t.createProject.projectName} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="project-name"
-              placeholder="My Awesome Project"
+              placeholder={t.createProject.projectNamePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-10"
@@ -70,11 +75,11 @@ export function CreateProjectDialog() {
 
           <div className="space-y-2">
             <Label htmlFor="project-desc" className="text-sm font-medium">
-              Description
+              {t.createProject.description}
             </Label>
             <Textarea
               id="project-desc"
-              placeholder="What is this project about?"
+              placeholder={t.createProject.descriptionPlaceholder}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[80px] resize-none"
@@ -83,7 +88,7 @@ export function CreateProjectDialog() {
 
           {/* Icon Picker */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Icon</Label>
+            <Label className="text-sm font-medium">{t.createProject.icon}</Label>
             <div className="flex flex-wrap gap-2">
               {iconOptions.map((i) => (
                 <button
@@ -105,7 +110,7 @@ export function CreateProjectDialog() {
 
           {/* Color Picker */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Color</Label>
+            <Label className="text-sm font-medium">{t.createProject.color}</Label>
             <div className="flex flex-wrap gap-2">
               {colorOptions.map((c) => (
                 <button
@@ -134,23 +139,23 @@ export function CreateProjectDialog() {
                 {icon}
               </div>
               <div>
-                <p className="text-sm font-medium">{name || 'Project Name'}</p>
-                <p className="text-xs text-muted-foreground">{description || 'Project description'}</p>
+                <p className="text-sm font-medium">{name || t.createProject.projectNamePlaceholder}</p>
+                <p className="text-xs text-muted-foreground">{description || t.createProject.descriptionPlaceholder}</p>
               </div>
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              {t.createProject.cancel}
             </Button>
             <Button
               type="submit"
               className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
               disabled={!name.trim()}
             >
-              Create Project
+              {t.createProject.create}
             </Button>
           </div>
         </form>

@@ -43,10 +43,12 @@ import {
   Hash,
   LogOut,
   X,
+  Keyboard,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { mockChannels, mockUsers } from '@/lib/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 
 interface NavItemConfig {
   icon: React.ReactNode;
@@ -67,16 +69,21 @@ interface NavItemProps {
 }
 
 function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, onClick }: NavItemProps) {
+  const [hovered, setHovered] = useState(false);
+
   const content = (
     <button
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
-        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 group relative',
+        'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 group relative overflow-hidden',
         active
-          ? 'bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.65_0.16_160)] font-medium'
+          ? 'bg-gradient-to-r from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] text-[oklch(0.65_0.16_160)] font-medium'
           : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
+      {/* Active left bar indicator */}
       {active && (
         <motion.div
           layoutId="sidebar-active"
@@ -84,7 +91,20 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       )}
-      <span className={cn('flex-shrink-0', active ? 'text-[oklch(0.55_0.15_160)]' : '')}>{icon}</span>
+      {/* Hover left border animation */}
+      {!active && hovered && (
+        <motion.div
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          exit={{ scaleY: 0 }}
+          transition={{ duration: 0.15 }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[oklch(0.55_0.15_160/0.4)] rounded-r-full"
+        />
+      )}
+      <span className={cn(
+        'flex-shrink-0 transition-transform duration-150 group-hover:scale-110',
+        active ? 'text-[oklch(0.55_0.15_160)]' : ''
+      )}>{icon}</span>
       {!collapsed && (
         <>
           <span className="flex-1 text-left truncate">{label}</span>
@@ -109,7 +129,7 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="flex items-center gap-2">
+          <TooltipContent side="right" sideOffset={8} className="flex items-center gap-2 font-medium">
             {label}
             {isFavorite && <Star className="h-3 w-3 text-amber-400 fill-amber-400" />}
           </TooltipContent>
@@ -182,6 +202,7 @@ export function AppSidebar() {
 
   const channels = mockChannels.slice(0, 4);
   const onlineUsers = mockUsers.filter((u) => u.status === 'online');
+  const extraOnlineCount = onlineUsers.length > 5 ? onlineUsers.length - 5 : 0;
 
   const handleNavClick = (pageId: PageId) => {
     setActivePage(pageId);
@@ -201,16 +222,27 @@ export function AppSidebar() {
               )}
             >
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm"
-                style={{ backgroundColor: activeWorkspace?.color || '#10b981' }}
+                className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm',
+                  sidebarCollapsed && 'ring-2 ring-offset-1 ring-offset-sidebar'
+                )}
+                style={{
+                  backgroundColor: activeWorkspace?.color || '#10b981',
+                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeWorkspace?.color || '#10b981'}40` } : {}),
+                }}
               >
                 {activeWorkspace?.icon || '🏢'}
               </div>
               {!sidebarCollapsed && (
                 <>
                   <div className="flex-1 text-left min-w-0">
-                    <div className="text-sm font-semibold truncate">
-                      {activeWorkspace?.name || 'Workspace'}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold truncate">
+                        {activeWorkspace?.name || 'Workspace'}
+                      </span>
+                      <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)]">
+                        Pro
+                      </span>
                     </div>
                     <div className="text-[10px] text-sidebar-foreground/40">
                       {mockUsers.length} {t.sidebar.members}
@@ -257,13 +289,17 @@ export function AppSidebar() {
         </DropdownMenu>
       </div>
 
+      {/* Gradient border under workspace switcher */}
+      <div className="bg-gradient-to-r from-[oklch(0.55_0.15_160/0.3)] via-[oklch(0.55_0.15_160/0.1)] to-transparent h-px" />
+
       {/* Search (in sidebar) */}
       {!sidebarCollapsed && (
-        <div className="px-3 pb-2">
+        <div className="px-3 py-2">
           <button
             onClick={() => useAppStore.getState().setSearchOpen(true)}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/50"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
           >
+            <span className="text-sidebar-foreground/30 text-[10px]">✦</span>
             <Search className="h-3.5 w-3.5" />
             <span>{t.sidebar.search}</span>
             <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
@@ -349,11 +385,14 @@ export function AppSidebar() {
                   key={ch.id}
                   onClick={() => handleNavClick('messages')}
                   className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors',
+                    'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 group',
                     'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                   )}
                 >
-                  <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
+                  <span className="relative">
+                    <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
+                    <span className="absolute -right-0.5 -top-0.5 w-1 h-1 rounded-full bg-[oklch(0.55_0.15_160/0)] group-hover:bg-[oklch(0.55_0.15_160/0.6)] transition-colors duration-200" />
+                  </span>
                   <span className="flex-1 text-left truncate">{ch.name}</span>
                   {ch.unread > 0 && (
                     <Badge className="h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
@@ -362,6 +401,13 @@ export function AppSidebar() {
                   )}
                 </button>
               ))}
+              {/* New channel button */}
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="truncate">{t.sidebar.channels === 'Channels' ? 'New channel' : 'Nouveau canal'}</span>
+              </button>
             </div>
           </>
         )}
@@ -401,28 +447,76 @@ export function AppSidebar() {
         />
       </div>
 
+      {/* Separator above shortcuts hint */}
+      <div className="mx-3 border-t border-sidebar-border/30" />
+
+      {/* Keyboard Shortcuts hint */}
+      <div className="px-3 py-2 flex-shrink-0">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => useAppStore.getState().setShortcutsHelpOpen(true)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30',
+                  sidebarCollapsed && 'justify-center px-0'
+                )}
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                {!sidebarCollapsed && (
+                  <>
+                    <span>{t.shortcuts.title}</span>
+                    <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">?</kbd>
+                  </>
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>{t.shortcuts.title}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      <Separator className="bg-sidebar-border/50" />
+
       {/* Online users indicator */}
       {!sidebarCollapsed && (
-        <div className="px-3 pb-3">
-          <div className="flex items-center gap-1">
-            {onlineUsers.slice(0, 5).map((user) => (
-              <TooltipProvider key={user.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="relative">
-                      <Avatar className="h-6 w-6 border-2 border-sidebar">
-                        <AvatarFallback className="text-[8px] bg-sidebar-accent text-sidebar-foreground">
-                          {user.name.split(' ').map((n) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>{user.name}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-            <span className="text-[10px] text-sidebar-foreground/40 ml-2">
+        <div className="px-3 pb-3 pt-2">
+          <div className="flex items-center">
+            {/* Stacked avatars with overlap */}
+            <div className="flex items-center">
+              {onlineUsers.slice(0, 5).map((user, idx) => (
+                <TooltipProvider key={user.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative" style={{ marginLeft: idx === 0 ? 0 : '-6px', zIndex: 5 - idx }}>
+                        <Avatar className="h-6 w-6 border-2 border-sidebar">
+                          <AvatarFallback className="text-[8px] bg-sidebar-accent text-sidebar-foreground">
+                            {user.name.split(' ').map((n) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{user.name}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+              {/* +N indicator for more users */}
+              {extraOnlineCount > 0 && (
+                <div
+                  className="relative flex items-center justify-center h-6 w-6 rounded-full bg-sidebar-accent text-[9px] font-medium text-sidebar-foreground/60 border-2 border-sidebar"
+                  style={{ marginLeft: '-6px', zIndex: 0 }}
+                >
+                  +{extraOnlineCount}
+                </div>
+              )}
+            </div>
+            <span className="text-[10px] text-sidebar-foreground/40 ml-2 flex items-center gap-1.5">
+              {/* Pulsing green dot */}
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
               {onlineUsers.length} {t.sidebar.online}
             </span>
           </div>
