@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PageId, Workspace, Notification } from './types';
+import type { PageId, Workspace, Notification, TaskStatus } from './types';
 import type { Locale } from './i18n';
 
 interface AppState {
@@ -31,6 +31,7 @@ interface AppState {
   setNotificationPanelOpen: (open: boolean) => void;
   markAllNotificationsRead: () => void;
   markNotificationRead: (id: string) => void;
+  removeNotification: (id: string) => void;
 
   // Favorites
   favorites: string[];
@@ -49,10 +50,27 @@ interface AppState {
   setTaskDetailOpen: (open: boolean) => void;
   selectedTask: Record<string, unknown> | null;
   setSelectedTask: (task: Record<string, unknown> | null) => void;
+  updateTaskStatus: (taskId: string, status: TaskStatus) => void;
 
   // Create workspace dialog
   createWorkspaceDialogOpen: boolean;
   setCreateWorkspaceDialogOpen: (open: boolean) => void;
+
+  // Create task dialog
+  createTaskDialogOpen: boolean;
+  setCreateTaskDialogOpen: (open: boolean) => void;
+
+  // Create project dialog
+  createProjectDialogOpen: boolean;
+  setCreateProjectDialogOpen: (open: boolean) => void;
+
+  // Shortcuts help dialog
+  shortcutsHelpOpen: boolean;
+  setShortcutsHelpOpen: (open: boolean) => void;
+
+  // Recent items
+  recentItems: string[];
+  addRecentItem: (pageId: string) => void;
 
   // Auth
   isAuthenticated: boolean;
@@ -210,6 +228,10 @@ export const useAppStore = create<AppState>((set) => ({
         n.id === id ? { ...n, read: true } : n
       ),
     })),
+  removeNotification: (id) =>
+    set((s) => ({
+      notifications: s.notifications.filter((n) => n.id !== id),
+    })),
 
   // Favorites
   favorites: ['dashboard', 'tasks', 'messages'],
@@ -233,10 +255,37 @@ export const useAppStore = create<AppState>((set) => ({
   setTaskDetailOpen: (open) => set({ taskDetailOpen: open }),
   selectedTask: null,
   setSelectedTask: (task) => set({ selectedTask: task, taskDetailOpen: task !== null }),
+  updateTaskStatus: (taskId, status) =>
+    set((s) => {
+      if (!s.selectedTask) return s;
+      const task = s.selectedTask as Record<string, unknown> & { id: string; status: TaskStatus };
+      if (task.id !== taskId) return s;
+      return { selectedTask: { ...task, status } };
+    }),
 
   // Create workspace dialog
   createWorkspaceDialogOpen: false,
   setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
+
+  // Create task dialog
+  createTaskDialogOpen: false,
+  setCreateTaskDialogOpen: (open) => set({ createTaskDialogOpen: open }),
+
+  // Create project dialog
+  createProjectDialogOpen: false,
+  setCreateProjectDialogOpen: (open) => set({ createProjectDialogOpen: open }),
+
+  // Shortcuts help dialog
+  shortcutsHelpOpen: false,
+  setShortcutsHelpOpen: (open) => set({ shortcutsHelpOpen: open }),
+
+  // Recent items
+  recentItems: ['dashboard', 'tasks', 'messages'],
+  addRecentItem: (pageId) =>
+    set((s) => {
+      const filtered = s.recentItems.filter((id) => id !== pageId);
+      return { recentItems: [pageId, ...filtered].slice(0, 8) };
+    }),
 
   // Auth
   isAuthenticated: false,

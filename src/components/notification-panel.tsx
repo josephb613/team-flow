@@ -1,25 +1,29 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
   Bell,
-  CheckCircle2,
-  AtSign,
-  CalendarClock,
+  CheckSquare,
   MessageSquare,
+  Clock,
+  AtSign,
   Mail,
-  Settings2,
+  Info,
   X,
   CheckCheck,
+  Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import type { Notification } from '@/lib/types';
+
+type FilterTab = 'all' | 'unread' | 'mentions';
 
 function getRelativeTime(timestamp: string, t: ReturnType<typeof useTranslation>['t']): string {
   const now = new Date();
@@ -38,17 +42,17 @@ function getRelativeTime(timestamp: string, t: ReturnType<typeof useTranslation>
 function getNotificationIcon(type: Notification['type']) {
   switch (type) {
     case 'assignment':
-      return <CheckCircle2 className="h-4 w-4" />;
+      return <CheckSquare className="h-4 w-4" />;
     case 'comment':
       return <MessageSquare className="h-4 w-4" />;
     case 'deadline':
-      return <CalendarClock className="h-4 w-4" />;
+      return <Clock className="h-4 w-4" />;
     case 'mention':
       return <AtSign className="h-4 w-4" />;
     case 'invitation':
       return <Mail className="h-4 w-4" />;
     case 'system':
-      return <Settings2 className="h-4 w-4" />;
+      return <Info className="h-4 w-4" />;
     default:
       return <Bell className="h-4 w-4" />;
   }
@@ -57,15 +61,15 @@ function getNotificationIcon(type: Notification['type']) {
 function getNotificationBorderColor(type: Notification['type']) {
   switch (type) {
     case 'assignment':
-      return 'border-l-[oklch(0.55_0.15_160)]';
+      return 'border-l-teal-500';
     case 'comment':
-      return 'border-l-sky-500';
+      return 'border-l-cyan-500';
     case 'deadline':
       return 'border-l-amber-500';
     case 'mention':
-      return 'border-l-violet-500';
+      return 'border-l-pink-500';
     case 'invitation':
-      return 'border-l-rose-500';
+      return 'border-l-emerald-500';
     case 'system':
       return 'border-l-slate-400';
     default:
@@ -76,17 +80,17 @@ function getNotificationBorderColor(type: Notification['type']) {
 function getNotificationIconBg(type: Notification['type']) {
   switch (type) {
     case 'assignment':
-      return 'bg-[oklch(0.55_0.15_160/0.12)] text-[oklch(0.55_0.15_160)]';
+      return 'bg-teal-500/12 text-teal-500';
     case 'comment':
-      return 'bg-sky-500/10 text-sky-500';
+      return 'bg-cyan-500/12 text-cyan-500';
     case 'deadline':
-      return 'bg-amber-500/10 text-amber-500';
+      return 'bg-amber-500/12 text-amber-500';
     case 'mention':
-      return 'bg-violet-500/10 text-violet-500';
+      return 'bg-pink-500/12 text-pink-500';
     case 'invitation':
-      return 'bg-rose-500/10 text-rose-500';
+      return 'bg-emerald-500/12 text-emerald-500';
     case 'system':
-      return 'bg-slate-400/10 text-slate-500';
+      return 'bg-slate-400/12 text-slate-500';
     default:
       return 'bg-muted text-muted-foreground';
   }
@@ -122,20 +126,22 @@ function groupNotifications(notifications: Notification[]) {
 function NotificationItem({
   notification,
   onMarkRead,
+  onRemove,
   t,
 }: {
   notification: Notification;
   onMarkRead: (id: string) => void;
+  onRemove: (id: string) => void;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+      exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0, padding: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'flex items-start gap-3 p-3 rounded-lg border-l-[3px] cursor-pointer transition-colors',
+        'group relative flex items-start gap-3 p-3 rounded-lg border-l-[3px] cursor-pointer transition-colors',
         getNotificationBorderColor(notification.type),
         !notification.read
           ? 'bg-muted/40 hover:bg-muted/60'
@@ -154,7 +160,7 @@ function NotificationItem({
             {notification.title}
           </span>
           {!notification.read && (
-            <div className="w-2 h-2 rounded-full bg-[oklch(0.55_0.15_160)] flex-shrink-0 mt-1.5" />
+            <div className="w-2 h-2 rounded-full bg-teal-500 flex-shrink-0 mt-1.5" />
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
@@ -163,6 +169,36 @@ function NotificationItem({
         <span className="text-[10px] text-muted-foreground/60 mt-1 block">
           {getRelativeTime(notification.timestamp, t)}
         </span>
+      </div>
+
+      {/* Hover action buttons */}
+      <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        {!notification.read && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-teal-500/10 hover:text-teal-500"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkRead(notification.id);
+              toast.success(t.notificationPanel.markedAsRead);
+            }}
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(notification.id);
+            toast.success(t.notificationPanel.dismissed);
+          }}
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
     </motion.div>
   );
@@ -175,17 +211,38 @@ export function NotificationPanel() {
     notifications,
     markAllNotificationsRead,
     markNotificationRead,
+    removeNotification,
   } = useAppStore();
   const { t } = useTranslation();
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const grouped = groupNotifications(notifications);
+  const mentionCount = notifications.filter((n) => n.type === 'mention').length;
+
+  const filteredNotifications = useMemo(() => {
+    switch (activeFilter) {
+      case 'unread':
+        return notifications.filter((n) => !n.read);
+      case 'mentions':
+        return notifications.filter((n) => n.type === 'mention');
+      default:
+        return notifications;
+    }
+  }, [notifications, activeFilter]);
+
+  const grouped = groupNotifications(filteredNotifications);
 
   const groupLabels: Record<string, string> = {
     today: t.notificationPanel.today,
     yesterday: t.notificationPanel.yesterday,
     earlier: t.notificationPanel.earlier,
   };
+
+  const filterTabs: { key: FilterTab; label: string; count: number }[] = [
+    { key: 'all', label: t.notificationPanel.all, count: notifications.length },
+    { key: 'unread', label: t.notificationPanel.unread, count: unreadCount },
+    { key: 'mentions', label: t.notificationPanel.mentions, count: mentionCount },
+  ];
 
   return (
     <AnimatePresence>
@@ -212,8 +269,8 @@ export function NotificationPanel() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-[oklch(0.55_0.15_160/0.12)] p-2">
-                  <Bell className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                <div className="rounded-lg bg-teal-500/12 p-2">
+                  <Bell className="h-4 w-4 text-teal-500" />
                 </div>
                 <div>
                   <h2 className="text-base font-semibold">{t.notificationPanel.title}</h2>
@@ -229,8 +286,11 @@ export function NotificationPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.08)]"
-                    onClick={markAllNotificationsRead}
+                    className="h-8 gap-1.5 text-xs text-teal-500 hover:text-teal-500 hover:bg-teal-500/8"
+                    onClick={() => {
+                      markAllNotificationsRead();
+                      toast.success(t.notificationPanel.allMarkedRead);
+                    }}
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     {t.notificationPanel.markAllRead}
@@ -247,53 +307,86 @@ export function NotificationPanel() {
               </div>
             </div>
 
-            {/* Notification count bar */}
-            {unreadCount > 0 && (
-              <div className="px-5 py-2 bg-[oklch(0.55_0.15_160/0.05)] border-b flex-shrink-0">
-                <Badge className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                  {unreadCount} {t.topbar.new}
-                </Badge>
+            {/* Filter Tabs */}
+            <div className="px-5 py-2.5 border-b flex-shrink-0">
+              <div className="flex items-center gap-1">
+                {filterTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveFilter(tab.key)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                      activeFilter === tab.key
+                        ? 'bg-teal-500/12 text-teal-600 dark:text-teal-400'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {tab.label}
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
+                        activeFilter === tab.key
+                          ? 'bg-teal-500/20 text-teal-600 dark:text-teal-400'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Notification List */}
             <ScrollArea className="flex-1">
-              {grouped.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 px-4">
-                  <div className="rounded-2xl bg-muted/30 p-4 mb-3">
-                    <Bell className="h-8 w-8 text-muted-foreground/40" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">{t.notificationPanel.noNotifications}</p>
-                </div>
-              ) : (
-                <div className="p-4 space-y-4">
-                  {grouped.map((group) => (
-                    <div key={group.label}>
-                      <div className="flex items-center gap-2 mb-2 px-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          {groupLabels[group.label]}
-                        </span>
-                        <Badge variant="secondary" className="h-5 text-[10px] px-1.5">
-                          {group.items.length}
-                        </Badge>
+              <AnimatePresence mode="popLayout">
+                {grouped.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-20 px-4"
+                  >
+                    <div className="relative mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <Bell className="h-8 w-8 text-teal-500" />
                       </div>
-                      <div className="space-y-1.5">
-                        {group.items.map((notif) => (
-                          <NotificationItem
-                            key={notif.id}
-                            notification={notif}
-                            onMarkRead={markNotificationRead}
-                            t={t}
-                          />
-                        ))}
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
+                        <Check className="h-2.5 w-2.5 text-white" />
                       </div>
-                      {group.label !== grouped[grouped.length - 1]?.label && (
-                        <Separator className="mt-4" />
-                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <p className="text-sm font-semibold text-foreground">{t.notificationPanel.allCaughtUp}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t.notificationPanel.allCaughtUpSubtitle}</p>
+                  </motion.div>
+                ) : (
+                  <div className="p-4 space-y-4">
+                    {grouped.map((group) => (
+                      <div key={group.label}>
+                        <div className="flex items-center gap-2 mb-2.5 bg-muted/30 px-3 py-1.5 rounded-lg">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            {groupLabels[group.label]}
+                          </span>
+                          <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-semibold">
+                            {group.items.length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1.5">
+                          <AnimatePresence mode="popLayout">
+                            {group.items.map((notif) => (
+                              <NotificationItem
+                                key={notif.id}
+                                notification={notif}
+                                onMarkRead={markNotificationRead}
+                                onRemove={removeNotification}
+                                t={t}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </AnimatePresence>
             </ScrollArea>
           </motion.div>
         </>

@@ -311,3 +311,97 @@
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Dot grid pattern for subtle backgrounds */
+.dot-pattern {
+  background-image: radial-gradient(circle, oklch(0.55 0.15 160 / 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.dark .dot-pattern {
+  background-image: radial-gradient(circle, oklch(0.6 0.16 160 / 0.06) 1px, transparent 1px);
+}
+
+/* Glow effect for active elements */
+.teal-glow {
+  box-shadow: 0 0 20px oklch(0.55 0.15 160 / 0.15), 0 0 40px oklch(0.55 0.15 160 / 0.05);
+}
+
+.dark .teal-glow {
+  box-shadow: 0 0 20px oklch(0.6 0.16 160 / 0.2), 0 0 40px oklch(0.6 0.16 160 / 0.08);
+}
+
+/* Subtle floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse ring for notifications */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.animate-pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid oklch(0.55 0.15 160);
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Smooth border radius transition */
+.smooth-radius {
+  transition: border-radius 0.3s ease;
+}
+
+/* Skeleton loading shimmer */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.96 0.005 155) 25%,
+    oklch(0.93 0.01 155) 50%,
+    oklch(0.96 0.005 155) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.24 0.02 155) 25%,
+    oklch(0.28 0.03 155) 50%,
+    oklch(0.24 0.02 155) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Accent border animation */
+@keyframes accent-border-pulse {
+  0%, 100% { border-color: oklch(0.55 0.15 160 / 0.3); }
+  50% { border-color: oklch(0.55 0.15 160 / 0.6); }
+}
+
+.animate-accent-border {
+  animation: accent-border-pulse 2s ease-in-out infinite;
+}
+
+/* Drag handle pattern */
+.drag-handle {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 4px 4px;
+  opacity: 0.3;
+}

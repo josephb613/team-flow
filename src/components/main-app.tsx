@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DashboardView } from '@/components/views/dashboard-view';
 import { TasksView } from '@/components/views/tasks-view';
@@ -19,8 +20,16 @@ import { SettingsView } from '@/components/views/settings-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
+import { CreateTaskDialog } from '@/components/create-task-dialog';
+import { CreateProjectDialog } from '@/components/create-project-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
+import { ShortcutsDialog } from '@/components/shortcuts-dialog';
+import { ConnectionStatus } from '@/components/connection-status';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart } from 'lucide-react';
 
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -39,13 +48,55 @@ const viewMap: Record<string, React.ComponentType> = {
   settings: SettingsView,
 };
 
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const pageTransition = {
+  type: 'tween',
+  ease: 'easeInOut',
+  duration: 0.2,
+};
+
+function AppFooter() {
+  const { t } = useTranslation();
+  return (
+    <footer className="border-t bg-background/50 backdrop-blur-sm px-4 md:px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center gap-3">
+        <span className="font-medium text-foreground/60">TeamFlow</span>
+        <span className="text-muted-foreground/40">v2.4.0</span>
+        <span className="hidden sm:inline text-muted-foreground/40">•</span>
+        <span className="hidden sm:inline">{t.footer.rights}</span>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="hidden md:flex items-center gap-1">
+          {t.footer.madeWith} <Heart className="h-3 w-3 text-rose-500 fill-rose-500" /> {t.footer.byTeam}
+        </span>
+        <button
+          onClick={() => useAppStore.getState().setShortcutsHelpOpen(true)}
+          className="flex items-center gap-1 hover:text-foreground/80 transition-colors"
+        >
+          <kbd className="bg-muted border border-border rounded px-1 py-0.5 text-[10px] font-mono">?</kbd>
+          <span className="hidden sm:inline">{t.footer.shortcuts}</span>
+        </button>
+      </div>
+    </footer>
+  );
+}
+
 export function MainApp() {
   const activePage = useAppStore((s) => s.activePage);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
 
+  useKeyboardShortcuts();
+
   const ActiveView = viewMap[activePage] || DashboardView;
 
   return (
+    <>
+    <ConnectionStatus />
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
       <AppSidebar />
@@ -59,8 +110,20 @@ export function MainApp() {
       >
         <TopBar />
         <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <ActiveView />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePage}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+            >
+              <ActiveView />
+            </motion.div>
+          </AnimatePresence>
         </main>
+        <AppFooter />
       </div>
 
       {/* Notification Panel (slide-out overlay) */}
@@ -71,6 +134,19 @@ export function MainApp() {
 
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog />
+
+      {/* Create Task Dialog */}
+      <CreateTaskDialog />
+
+      {/* Create Project Dialog */}
+      <CreateProjectDialog />
+
+      {/* Keyboard Shortcuts Dialog */}
+      <ShortcutsDialog />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
+    </>
   );
 }
