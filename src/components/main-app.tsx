@@ -29,7 +29,8 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart } from 'lucide-react';
+import { Heart, ArrowUp, Plus, CheckSquare, FolderKanban, Video } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -63,7 +64,9 @@ const pageTransition = {
 function AppFooter() {
   const { t } = useTranslation();
   return (
-    <footer className="border-t bg-background/50 backdrop-blur-sm px-4 md:px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+    <footer className="relative bg-background/50 backdrop-blur-sm px-4 md:px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+      {/* Gradient top border */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
       <div className="flex items-center gap-3">
         <span className="font-medium text-foreground/60">TeamFlow</span>
         <span className="text-muted-foreground/40">v2.4.0</span>
@@ -83,6 +86,115 @@ function AppFooter() {
         </button>
       </div>
     </footer>
+  );
+}
+
+function BackToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const mainEl = document.getElementById('main-content-area');
+      if (mainEl) {
+        setVisible(mainEl.scrollTop > 400);
+      }
+    };
+
+    const mainEl = document.getElementById('main-content-area');
+    if (mainEl) {
+      mainEl.addEventListener('scroll', handleScroll, { passive: true });
+      return () => mainEl.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
+  const scrollToTop = () => {
+    const mainEl = document.getElementById('main-content-area');
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          transition={{ duration: 0.2 }}
+          onClick={scrollToTop}
+          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-[oklch(0.55_0.15_160)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.55_0.15_160/0.9)] transition-shadow flex items-center justify-center"
+          aria-label="Back to top"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function MobileFAB() {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="lg:hidden fixed bottom-6 right-6 z-50">
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-16 right-0 flex flex-col gap-2 items-end"
+          >
+            <button
+              onClick={() => {
+                useAppStore.getState().setCreateTaskDialogOpen(true);
+                setOpen(false);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
+            >
+              <CheckSquare className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+              <span>{t.sidebar.quickTask}</span>
+            </button>
+            <button
+              onClick={() => {
+                useAppStore.getState().setCreateProjectDialogOpen(true);
+                setOpen(false);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
+            >
+              <FolderKanban className="h-4 w-4 text-amber-500" />
+              <span>{t.sidebar.quickProject}</span>
+            </button>
+            <button
+              onClick={() => {
+                useAppStore.getState().setActivePage('meetings');
+                setOpen(false);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
+            >
+              <Video className="h-4 w-4 text-rose-500" />
+              <span>{t.sidebar.quickMeeting}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.button
+        onClick={() => setOpen(!open)}
+        whileTap={{ scale: 0.9 }}
+        className={cn(
+          'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
+          open
+            ? 'bg-rose-500 text-white rotate-45'
+            : 'bg-[oklch(0.55_0.15_160)] text-white'
+        )}
+      >
+        <Plus className="h-6 w-6" />
+      </motion.button>
+    </div>
   );
 }
 
@@ -109,22 +221,34 @@ export function MainApp() {
         )}
       >
         <TopBar />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={pageTransition}
-            >
-              <ActiveView />
-            </motion.div>
-          </AnimatePresence>
+        <main
+          id="main-content-area"
+          className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
+        >
+          {/* Subtle dot-pattern background overlay */}
+          <div className="relative z-10">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                <ActiveView />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </main>
         <AppFooter />
       </div>
+
+      {/* Back to top button */}
+      <BackToTopButton />
+
+      {/* Mobile FAB */}
+      <MobileFAB />
 
       {/* Notification Panel (slide-out overlay) */}
       <NotificationPanel />

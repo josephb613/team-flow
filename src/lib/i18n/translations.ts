@@ -48,6 +48,14 @@ export const translations = {
       members: 'membres',
       online: 'en ligne',
       settings: 'Paramètres',
+      quickActions: 'Actions rapides',
+      quickTask: 'Tâche',
+      quickProject: 'Projet',
+      quickMeeting: 'Réunion',
+      recent: 'Récent',
+      onlineCount: 'en ligne, ',
+      awayCount: 'absents',
+      newChannel: 'Nouveau canal',
     },
 
     // Navigation
@@ -85,6 +93,9 @@ export const translations = {
       newProject: 'Nouveau projet',
       scheduleMeeting: 'Planifier une réunion',
       admin: 'Admin',
+      pro: 'Pro',
+      whatsNew: 'Nouveautés',
+      whatsNewTooltip: 'TeamFlow v2.4 — Voir les nouveautés',
     },
 
     // Dashboard
@@ -547,6 +558,7 @@ export const translations = {
       madeWith: 'Fait avec',
       byTeam: 'par l\'équipe TeamFlow',
       shortcuts: 'Raccourcis',
+      backToTop: 'Retour en haut',
     },
   },
 
@@ -594,6 +606,14 @@ export const translations = {
       members: 'members',
       online: 'online',
       settings: 'Settings',
+      quickActions: 'Quick Actions',
+      quickTask: 'Task',
+      quickProject: 'Project',
+      quickMeeting: 'Meeting',
+      recent: 'Recent',
+      onlineCount: 'online, ',
+      awayCount: 'away',
+      newChannel: 'New channel',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -627,6 +647,9 @@ export const translations = {
       newProject: 'New Project',
       scheduleMeeting: 'Schedule Meeting',
       admin: 'Admin',
+      pro: 'Pro',
+      whatsNew: 'What\'s new',
+      whatsNewTooltip: 'TeamFlow v2.4 — See what\'s new',
     },
     dashboard: {
       title: 'Dashboard',
@@ -1047,6 +1070,7 @@ export const translations = {
       madeWith: 'Made with',
       byTeam: 'by the TeamFlow team',
       shortcuts: 'Shortcuts',
+      backToTop: 'Back to top',
     },
   },
 } as const;
