@@ -20,32 +20,33 @@ import {
   Users,
   MessageSquare,
   ChevronDown,
-  Plus,
   Bold,
   Italic,
   Code2,
   Phone,
   Video,
   Pin,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
-import { mockChannels, mockMessages, mockUsers } from '@/lib/mock-data';
+import { mockChannels, mockUsers } from '@/lib/mock-data';
 import type { Channel, Message } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { useChatSocket } from '@/hooks/use-chat-socket';
+import type { ChatMessage } from '@/hooks/use-chat-socket';
+import { useAppStore } from '@/lib/store';
 
 // Helper functions
 function getUserById(id: string) {
   return mockUsers.find((u) => u.id === id);
 }
 
-function getUserInitials(id: string) {
+function getUserInitials(id: string, name?: string) {
+  if (name) return name.split(' ').map((n) => n[0]).join('');
   const user = getUserById(id);
   return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return getUserById(id)?.name || 'Unknown';
 }
 
 function getUserStatus(id: string) {
@@ -100,14 +101,15 @@ function OnlineStatusDot({ status, size = 'sm' }: { status: string; size?: 'sm' 
 }
 
 // Typing indicator animation
-function TypingIndicator() {
+function TypingIndicator({ userName }: { userName: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2">
       <div className="flex items-center gap-1.5">
-        <Avatar className="h-6 w-6">
-          <AvatarFallback className="text-[8px] bg-muted">SC</AvatarFallback>
-        </Avatar>
-        <div className="flex items-center gap-0.5 px-3 py-2 rounded-2xl bg-muted/60">
+        <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center text-[8px] text-white font-bold shadow-sm">
+          {userName.split(' ').map((n) => n[0]).join('')}
+        </div>
+        <div className="flex items-center gap-1 px-3 py-2 rounded-2xl bg-muted/60">
+          <span className="text-xs text-muted-foreground mr-1">{userName}</span>
           <motion.span
             className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
             animate={{ y: [0, -4, 0] }}
@@ -184,9 +186,18 @@ function ChannelListItem({
   );
 }
 
-// Message bubble with proper alignment
-function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message; showHeader: boolean; isOwnMessage: boolean }) {
-  const sender = getUserById(message.senderId);
+// Message bubble that works with both local Message type and ChatMessage from WebSocket
+function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message | ChatMessage; showHeader: boolean; isOwnMessage: boolean }) {
+  const senderId = 'senderId' in message ? message.senderId : '';
+  const senderName = 'senderName' in message ? message.senderName : (getUserById(senderId)?.name || 'Unknown');
+  const content = message.content;
+  const timestamp = message.timestamp;
+  const reactions = message.reactions || [];
+
+  // Determine avatar initials
+  const initials = senderName !== 'Unknown'
+    ? senderName.split(' ').map((n) => n[0]).join('')
+    : getUserInitials(senderId);
 
   return (
     <motion.div
@@ -206,22 +217,20 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
               <AvatarFallback
                 className="text-[10px] font-semibold"
                 style={{
-                  backgroundColor: sender
-                    ? `oklch(0.7 ${0.08 + (sender.name.charCodeAt(0) % 5) * 0.02} ${140 + (sender.name.charCodeAt(1) % 40)})`
-                    : undefined,
+                  backgroundColor: `oklch(0.7 ${0.08 + (senderName.charCodeAt(0) % 5) * 0.02} ${140 + (senderName.charCodeAt(1) % 40)})`,
                 }}
               >
-                {getUserInitials(message.senderId)}
+                {initials}
               </AvatarFallback>
             </Avatar>
             <span className="absolute -bottom-0.5 -right-0.5">
-              <OnlineStatusDot status={getUserStatus(message.senderId)} size="sm" />
+              <OnlineStatusDot status={getUserStatus(senderId)} size="sm" />
             </span>
           </div>
         ) : (
           <div className="w-9 flex items-center justify-center">
             <span className="text-[9px] text-muted-foreground/0 group-hover:text-muted-foreground transition-colors">
-              {formatShortTime(message.timestamp)}
+              {formatShortTime(timestamp)}
             </span>
           </div>
         )}
@@ -231,18 +240,18 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
       <div className="flex-1 min-w-0">
         {showHeader && (
           <div className="flex items-baseline gap-2 mb-0.5">
-            <span className="text-sm font-bold">{getUserName(message.senderId)}</span>
+            <span className="text-sm font-bold">{senderName}</span>
             <span className="text-[10px] text-muted-foreground">
-              {formatMessageTime(message.timestamp)}
+              {formatMessageTime(timestamp)}
             </span>
           </div>
         )}
-        <p className="text-sm leading-relaxed break-words">{message.content}</p>
+        <p className="text-sm leading-relaxed break-words">{content}</p>
 
         {/* Reactions */}
-        {message.reactions.length > 0 && (
+        {reactions.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
-            {message.reactions.map((reaction, idx) => (
+            {reactions.map((reaction, idx) => (
               <button
                 key={idx}
                 className={cn(
@@ -279,15 +288,24 @@ const item = {
 
 export function MessagesView() {
   const { t } = useTranslation();
+  const currentUser = useAppStore((s) => s.currentUser);
   const [selectedChannel, setSelectedChannel] = useState<string>('ch-1');
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
-  const [showTyping, setShowTyping] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // WebSocket integration
+  const {
+    messages: wsMessages,
+    sendMessage,
+    emitTyping,
+    typingUsers,
+    connectedUsers,
+    isConnected,
+  } = useChatSocket(selectedChannel);
+
   const channel = mockChannels.find((c) => c.id === selectedChannel);
-  const messages = mockMessages[selectedChannel] || [];
 
   // Group channels by type
   const teamChannels = mockChannels.filter((c) => c.type === 'team');
@@ -304,18 +322,10 @@ export function MessagesView() {
 
   const totalUnread = mockChannels.reduce((sum, c) => sum + c.unread, 0);
 
-  // Auto-scroll to bottom on channel change
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedChannel]);
-
-  // Simulate typing indicator toggling
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setShowTyping((prev) => !prev);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [wsMessages, selectedChannel]);
 
   const handleChannelSelect = (channelId: string) => {
     setSelectedChannel(channelId);
@@ -324,6 +334,7 @@ export function MessagesView() {
 
   const handleSendMessage = () => {
     if (messageInput.trim()) {
+      sendMessage(messageInput);
       setMessageInput('');
     }
   };
@@ -342,11 +353,37 @@ export function MessagesView() {
         <div className="p-3 space-y-3 border-b">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold">{t.messages.title}</h2>
-            {totalUnread > 0 && (
-              <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
-                {totalUnread}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Connection status */}
+              {isConnected ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1 text-[10px] text-emerald-500">
+                        <Wifi className="h-3 w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Connected</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-1 text-[10px] text-amber-500">
+                        <WifiOff className="h-3 w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Connecting...</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {totalUnread > 0 && (
+                <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
+                  {totalUnread}
+                </Badge>
+              )}
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -525,7 +562,7 @@ export function MessagesView() {
                 </TooltipProvider>
                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground ml-2 bg-muted/50 px-2 py-1 rounded-md">
                   <Users className="h-3.5 w-3.5" />
-                  <span>{channel.members.length}</span>
+                  <span>{connectedUsers.length || channel.members.length}</span>
                 </div>
               </div>
             </div>
@@ -533,7 +570,7 @@ export function MessagesView() {
             {/* Messages Area */}
             <ScrollArea className="flex-1">
               <div className="py-4">
-                {messages.length > 0 ? (
+                {wsMessages.length > 0 ? (
                   <>
                     {/* Channel intro */}
                     <div className="px-4 mb-6">
@@ -562,8 +599,8 @@ export function MessagesView() {
                     </div>
 
                     {/* Messages */}
-                    {messages.map((msg, idx) => {
-                      const prevMsg = idx > 0 ? messages[idx - 1] : null;
+                    {wsMessages.map((msg, idx) => {
+                      const prevMsg = idx > 0 ? wsMessages[idx - 1] : null;
                       const showHeader =
                         !prevMsg ||
                         prevMsg.senderId !== msg.senderId ||
@@ -571,7 +608,7 @@ export function MessagesView() {
                           new Date(prevMsg.timestamp).getTime() >
                           300000; // 5 minutes gap
 
-                      const isOwnMessage = msg.senderId === 'u-1';
+                      const isOwnMessage = msg.senderId === currentUser?.id;
 
                       return (
                         <MessageBubble
@@ -583,16 +620,18 @@ export function MessagesView() {
                       );
                     })}
 
-                    {/* Typing indicator */}
+                    {/* Typing indicators */}
                     <AnimatePresence>
-                      {showTyping && (
+                      {typingUsers.length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 8 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <TypingIndicator />
+                          {typingUsers.map((tu) => (
+                            <TypingIndicator key={tu.userId} userName={tu.userName} />
+                          ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -666,7 +705,13 @@ export function MessagesView() {
                     placeholder={t.messages.messageInput}
                     className="border-0 shadow-none focus-visible:ring-0 h-7 text-sm px-1 flex-1"
                     value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
+                    onChange={(e) => {
+                      setMessageInput(e.target.value);
+                      // Emit typing indicator
+                      if (e.target.value.trim()) {
+                        emitTyping();
+                      }
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();

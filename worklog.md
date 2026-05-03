@@ -371,3 +371,233 @@ Stage Summary:
 - All lint checks pass clean
 - App compiles and runs successfully
 - 0 runtime errors
+
+---
+
+# Cron Review Round — 2025-05-03
+
+## Current Project Status
+
+TeamFlow is a fully-featured collaborative project management web app built with Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion, Zustand, and Prisma. The app includes 14 views (Dashboard, Tasks, Projects, Calendar, Messages, Meetings, Files, Wiki, Activity, Members, Teams, Reports, Automations, Settings), plus a login page, sidebar, top bar, search dialog, notification panel, workspace creation dialog, and task detail drawer.
+
+**Status**: Stable — 0 lint errors, 0 compilation errors, both servers running (Next.js on :3000, Chat service on :3003)
+
+---
+
+## Task ID: 8
+Agent: subagent
+Task: Add Drag-and-Drop Kanban, Enhanced Search Dialog, Task Detail Drawer Integration
+
+Work Log:
+- **Drag-and-Drop Kanban**: Integrated @dnd-kit/core and @dnd-kit/sortable into tasks-view.tsx. Each task card is a SortableTaskCard using useSortable hook. Each column is a DroppableKanbanColumn using useDroppable. onDragStart/onDragOver/onDragEnd handlers manage task movement between columns. DragOverlay shows rotated preview. Columns being dragged over get teal ring highlight and background tint.
+- **Enhanced Search Dialog**: Added real-time search filtering through mockTasks, mockProjects, and mockUsers. Three new CommandGroup sections: Tasks (status icon + priority dot), Projects (color dot + progress %), Members (avatar + online status + role). Click handlers: task→tasks+drawer, project→projects, member→members. Results limited to 5 per category. Added i18n keys for search.tasks/projects/members.
+- **Task Detail Drawer Integration**: Added TaskDetailDrawer component to main-app.tsx. All task cards (Kanban, List, My Tasks) are clickable via setSelectedTask from the store, opening the drawer with full task details.
+
+Stage Summary:
+- Full drag-and-drop kanban board with visual feedback
+- Search dialog now searches actual data (tasks, projects, members)
+- Task detail drawer opens on task click from any view
+- 0 lint errors
+
+---
+
+## Task ID: 9
+Agent: subagent
+Task: Polish Login Page + Add WebSocket Chat Service
+
+Work Log:
+- **Login Page Polish**: Added animated stats ticker (10K+ Teams, 2M+ Tasks, 99.9% Uptime, 150+ Countries) with AnimatedCounter component. Added floating glass-morphism testimonial card with avatar, name, role, company, 5-star rating, and Framer Motion float animation. Added "Remember me" checkbox with teal accent. Added hover scale effects on social login buttons. Added password visibility toggle with Eye/EyeOff icons. Added subtle diagonal shimmer animation on left panel. Added all i18n keys for FR and EN.
+- **WebSocket Chat Service**: Created mini-service at mini-services/chat-service/ using socket.io on port 3003. Supports channel rooms, user tracking, typing indicators, message storage (last 50/channel), and 10 pre-populated sample messages.
+- **useChatSocket Hook**: Created React hook at src/hooks/use-chat-socket.ts connecting via io("/?XTransformPort=3003"). Provides messages, sendMessage, emitTyping, typingUsers, connectedUsers, isConnected.
+- **Updated Messages View**: Integrated WebSocket for real-time messaging, typing indicators from other users, connection status icon, and connected users count.
+
+Stage Summary:
+- Login page significantly enhanced with testimonials, stats, and interactive features
+- Real-time chat service running on port 3003
+- Messages view uses WebSocket for live communication
+- 0 lint errors
+- Both servers confirmed running
+
+---
+
+## Unresolved Issues / Risks
+1. **Dev server stability**: The Next.js dev server process occasionally dies between commands in the sandbox. May need to use a more robust process manager.
+2. **Agent-browser localhost access**: The headless Chrome instance cannot reach localhost from within the sandbox. External URLs work fine. QA testing currently relies on curl and code review.
+3. **Chat service persistence**: Messages are stored in memory only and lost on restart. Could add file-based or SQLite persistence.
+
+## Priority Recommendations for Next Phase
+1. **Drag-and-Drop for task reordering within columns** (currently only cross-column)
+2. **File upload functionality** in Files view (currently UI only)
+3. **Real-time notifications** via WebSocket (push new notifications to clients)
+4. **Data persistence** — Connect more views to the Prisma database instead of mock data
+5. **Mobile responsive improvements** — Fine-tune all views for smaller screens
+6. **Keyboard shortcuts** — Add more keyboard navigation throughout the app
+
+---
+Task ID: 10
+Agent: main (cron review)
+Task: QA assessment, bug fixes, feature additions, and styling improvements
+
+Work Log:
+- Read worklog.md to assess current project status (all 14 views, backend, styling improvements already done)
+- Verified lint passes with 0 errors
+- Verified dev server compiles and returns 200
+- Identified areas for improvement: no DnD on kanban, basic search, no task drawer integration, login page needs polish, no real-time features
+- Delegated work to 2 subagents in parallel:
+  - Subagent 1: DnD kanban + enhanced search + task drawer integration
+  - Subagent 2: Login page polish + WebSocket chat service
+- Verified all features integrated correctly
+- Verified both servers running (Next.js:3000, Chat:3003)
+- Updated worklog.md with comprehensive status
+
+Stage Summary:
+- Project status: Stable, 0 errors, both servers running
+- 3 major features added: DnD kanban, enhanced search, task detail drawer
+- Login page polished with testimonials, stats, password toggle, shimmer
+- Real-time chat service created with socket.io on port 3003
+- Messages view integrated with WebSocket for live messaging
+Task: Add three major features: DnD Kanban, Enhanced Search, Task Detail Drawer integration
+
+Work Log:
+
+**Feature 1: Drag-and-Drop for Kanban Board** (`tasks-view.tsx`):
+- Imported DndContext, DragOverlay, closestCorners, PointerSensor, KeyboardSensor, useDroppable from @dnd-kit/core
+- Imported SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates from @dnd-kit/sortable
+- Imported CSS from @dnd-kit/utilities
+- Created `TaskCardContent` base component (extracted from original `TaskCard`) - renders the visual card without DnD
+- Created `SortableTaskCard` component using `useSortable` hook - wraps TaskCardContent with DnD transform/transition/opacity
+- Created `DroppableKanbanColumn` component using `useDroppable` hook - each column is a droppable area
+- Implemented `handleDragStart` - tracks active dragged task ID
+- Implemented `handleDragOver` - when task dragged over different column, updates its status in local state; tracks overColumn for visual feedback
+- Implemented `handleDragEnd` - finalizes the drag operation
+- Added `DragOverlay` with rotated/opacity-styled task card preview when dragging
+- Added visual feedback: columns being dragged over get ring-2 ring-[oklch] border highlight and background tint
+- Local `useState<Task[]>` initialized from mockTasks manages task list within KanbanView
+- All existing styling preserved (priority strips, avatars, badges, subtask progress, etc.)
+- "Add task" button still works in each column
+
+**Feature 2: Enhanced Search Dialog with Real Results** (`search-dialog.tsx`):
+- Imported mockTasks, mockProjects, mockUsers from @/lib/mock-data
+- Added useTranslation() for i18n support
+- Added query state with `useState` for search input
+- Added `useMemo` filtering logic for tasks (by title), projects (by name), users (by name)
+- Results limited to 5 per category
+- Added "Tasks" CommandGroup: matching tasks with status icon (color-coded) and priority dot/icon
+- Added "Projects" CommandGroup: matching projects with color dot and progress percentage
+- Added "Members" CommandGroup: matching users with avatar initials, online status dot, and role badge
+- Clicking task result: sets activePage to 'tasks' AND opens task detail drawer via setSelectedTask
+- Clicking project result: sets activePage to 'projects'
+- Clicking member result: sets activePage to 'members'
+- Proper icons for each group header from lucide-react
+- Reset query on dialog close via onOpenChange handler (avoiding lint error with setState-in-effect)
+- Added i18n keys `search.tasks`, `search.projects`, `search.members` to both FR and EN translations
+
+**Feature 3: Integrate Task Detail Drawer** (`main-app.tsx` + `tasks-view.tsx`):
+- Imported TaskDetailDrawer in main-app.tsx and rendered alongside NotificationPanel
+- In KanbanView: each SortableTaskCard has onClick that calls `setSelectedTask(task)` from store
+- In ListView: each task row has onClick that calls `setSelectedTask(task)` from store
+- In MyTasksView: each task row has onClick that calls `setSelectedTask(task)` from store
+- cursor-pointer already present on task cards and rows
+- Drawer opens with selected task details when any task card is clicked
+
+**Additional fixes:**
+- Fixed pre-existing lint error in use-chat-socket.ts: removed redundant useEffect for channel switching that called setState in effect
+- All lint errors resolved: `bun run lint` passes with 0 errors
+
+Stage Summary:
+- Kanban board now has full drag-and-drop between columns with visual feedback
+- Search dialog searches through real tasks, projects, and members data
+- Task detail drawer is integrated and opens on task click from all views
+- 0 lint errors
+- App compiling and serving successfully on port 3000
+
+---
+Task ID: 4
+Agent: main
+Task: Polish login page and create real-time WebSocket chat service
+
+Work Log:
+
+**Part 1: Login Page Polish** (`login-page.tsx`):
+
+1. **Animated Stats/Ticker** below feature highlights in left panel:
+   - Added horizontal row of animated statistics: "10K+ Teams", "2M+ Tasks Completed", "99.9% Uptime", "150+ Countries"
+   - Created AnimatedCounter component using requestAnimationFrame with ease-out cubic animation
+   - Stats displayed with teal accent numbers and white/60 labels
+   - Subtle separator dots (·) between stat items
+
+2. **Floating Testimonial Card** at bottom of left panel:
+   - Glass-morphism card: `bg-white/5 backdrop-blur-md border border-white/10 rounded-xl`
+   - Contains: avatar with gradient background, name, role, company, 5-star rating (amber filled stars)
+   - Animated with subtle float animation (up/down using Framer Motion, 4s cycle)
+   - Uses i18n for testimonial text, name, and role
+
+3. **Remember Me Checkbox**:
+   - Added between password field and sign-in button
+   - Uses shadcn/ui Checkbox component with teal accent when checked (`data-[state=checked]:bg-[oklch(0.55_0.15_160)]`)
+   - Added i18n key `login.rememberMe` for both EN and FR
+
+4. **Better Social Login Buttons**:
+   - Added Framer Motion `whileHover={{ scale: 1.03 }}` and `whileTap={{ scale: 0.98 }}` on both Google/GitHub
+   - Added hover border animation: `hover:border-[oklch(0.55_0.15_160)/40] hover:shadow-sm`
+
+5. **Password Visibility Toggle**:
+   - Added Eye/EyeOff icon button inside the password input (absolute positioned)
+   - Toggle between password/text type using `useState`
+   - Proper aria-label for accessibility
+
+6. **Loading Shimmer on Left Panel**:
+   - Added subtle animated gradient overlay that moves diagonally across the left panel
+   - CSS: `linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.06) 50%, ...)`
+   - Uses `shimmer-move` keyframe animation (8s ease-in-out infinite)
+   - Barely noticeable but adds life to the page
+
+7. **i18n Keys Added** to `translations.ts`:
+   - FR: `rememberMe: 'Se souvenir de moi'`, `testimonialText/Name/Role`, `statTeams/Tasks/Uptime/Countries`
+   - EN: `rememberMe: 'Remember me'`, `testimonialText/Name/Role`, `statTeams/Tasks/Uptime/Countries`
+
+**Part 2: Real-time WebSocket Chat Service**:
+
+1. **Chat Service Mini-Service** (`mini-services/chat-service/`):
+   - Created `package.json` with socket.io dependency and dev script using `bun --hot index.ts`
+   - Uses port **3003**
+   - `index.ts` implements socket.io server with:
+     - Tracks connected users with names/avatars in `connectedUsers` Map
+     - Broadcasts messages to all clients in the same channel room (using socket.io rooms)
+     - Emits `user_joined` / `user_left` events
+     - Emits `user_typing` / `user_stop_typing` events
+     - Stores last 50 messages per channel in memory (`channelMessages` Map)
+     - Pre-populates with 10 sample messages across channels ch-1 through ch-4 on startup
+     - Supports `join`, `switch_channel`, `send_message`, `typing`, `stop_typing` events
+     - Graceful shutdown handlers for SIGTERM/SIGINT
+
+2. **Frontend Socket Hook** (`src/hooks/use-chat-socket.ts`):
+   - React hook connecting to WebSocket via `io("/?XTransformPort=3003")` (NEVER direct URL)
+   - Provides: `messages`, `sendMessage`, `emitTyping`, `typingUsers`, `connectedUsers`, `isConnected`
+   - Auto-joins channel on connect using Zustand store's `currentUser`
+   - Switches channel room when channelId changes
+   - Handles reconnection gracefully with socket.io built-in reconnection
+   - Typing auto-stops after 3 seconds of inactivity
+   - Avoids duplicate messages
+
+3. **Updated Messages View** (`src/components/views/messages-view.tsx`):
+   - Integrated `useChatSocket` hook replacing static mock data
+   - Real-time messages from WebSocket displayed with existing UI styling
+   - Typing indicators from other users shown with animated dots
+   - Connection status indicator in sidebar (Wifi/WifiOff icon with color)
+   - Connected users count shown in channel header
+   - Message send calls `sendMessage` from hook
+   - Input changes trigger `emitTyping` for typing indicators
+   - All existing styling preserved (formatting toolbar, avatar colors, reactions, etc.)
+
+4. **Dependencies**:
+   - Installed `socket.io-client@4.8.3` in main project
+   - Installed `socket.io@4.8.3` in chat-service mini-service
+
+Stage Summary:
+- Login page dramatically enhanced with 7 polish features (animated stats, testimonial, remember me, social hover, password toggle, shimmer overlay, i18n)
+- Real-time WebSocket chat service running on port 3003 with channel rooms, typing indicators, user tracking
+- Messages view fully integrated with live WebSocket for real-time chat
+- 0 lint errors
+- App compiling and serving successfully on port 3000
+- Chat service running on port 3003

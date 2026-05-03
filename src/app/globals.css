@@ -305,3 +305,9 @@
 .priority-high { border-left: 3px solid oklch(0.7 0.15 60); }
 .priority-medium { border-left: 3px solid oklch(0.7 0.12 200); }
 .priority-low { border-left: 3px solid oklch(0.65 0.15 155); }
+
+/* Shimmer move for login panel */
+@keyframes shimmer-move {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

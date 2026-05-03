@@ -54,6 +54,28 @@ import type { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+// DnD Kit imports
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 // ── Config Maps ──────────────────────────────────────────────────────────────
 
 const statusConfig: Record<TaskStatus, { color: string; icon: React.ReactNode; bg: string; gradient: string; headerBg: string; dotColor: string }> = {
@@ -161,9 +183,9 @@ type SortDirection = 'asc' | 'desc';
 
 const priorityOrder: Record<TaskPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
-// ── Task Card (Kanban) ──────────────────────────────────────────────────────
+// ── Task Card (Kanban) - base card without sortable ──────────────────────────
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCardContent({ task, onClick }: { task: Task; onClick?: () => void }) {
   const { t } = useTranslation();
   const subtaskTotal = task.subtasks.length;
   const subtaskDone = task.subtasks.filter((s) => s.completed).length;
@@ -173,12 +195,8 @@ function TaskCard({ task }: { task: Task }) {
   const assigneeStatus = getUserStatus(task.assigneeId);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.97 }}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+    <div
+      onClick={onClick}
       className={cn(
         'group relative bg-card rounded-xl border shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden',
         'border-l-[3px]',
@@ -245,16 +263,14 @@ function TaskCard({ task }: { task: Task }) {
               <span className="text-[10px] font-bold">{subtaskDone}/{subtaskTotal}</span>
             </div>
             <div className="h-1.5 w-full bg-muted/50 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(subtaskDone / subtaskTotal) * 100}%` }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+              <div
                 className={cn(
-                  'h-full rounded-full bg-gradient-to-r',
+                  'h-full rounded-full bg-gradient-to-r transition-all',
                   subtaskDone === subtaskTotal
                     ? 'from-emerald-400 to-emerald-500'
                     : 'from-[oklch(0.6_0.15_160)] to-[oklch(0.5_0.12_170)]'
                 )}
+                style={{ width: `${(subtaskDone / subtaskTotal) * 100}%` }}
               />
             </div>
           </div>
@@ -309,58 +325,217 @@ function TaskCard({ task }: { task: Task }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Sortable Task Card (wraps TaskCardContent with useSortable) ──────────────
+
+function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, data: { type: 'task', task } });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      <TaskCardContent task={task} onClick={onClick} />
     </motion.div>
   );
 }
 
-// ── Kanban View ──────────────────────────────────────────────────────────────
+// ── Droppable Kanban Column ──────────────────────────────────────────────────
+
+function DroppableKanbanColumn({
+  status,
+  tasks,
+  isOver,
+  children,
+}: {
+  status: TaskStatus;
+  tasks: Task[];
+  isOver: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: `column-${status}`, data: { type: 'column', status } });
+  const config = statusConfig[status];
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200',
+        isOver && 'ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl'
+      )}
+    >
+      {/* Column header */}
+      <div className={cn('flex items-center justify-between mb-3 px-3 py-2.5 rounded-xl', config.headerBg)}>
+        <div className="flex items-center gap-2">
+          <div className={cn('p-1 rounded-md', config.bg)}>
+            <span className={config.color}>{config.icon}</span>
+          </div>
+          <span className="text-sm font-bold">{status}</span>
+          <span
+            className={cn(
+              'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold text-white',
+              config.dotColor
+            )}
+          >
+            {tasks.length}
+          </span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Cards area with subtle gradient background */}
+      <div
+        className={cn(
+          'space-y-2.5 min-h-[200px] p-2 rounded-xl bg-gradient-to-b transition-colors duration-200',
+          config.gradient,
+          isOver && 'bg-[oklch(0.55_0.15_160)]/5'
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Kanban View with DnD ─────────────────────────────────────────────────────
 
 function KanbanView() {
+  const { setSelectedTask } = useAppStore();
   const { t } = useTranslation();
   const statuses: TaskStatus[] = ['todo', 'in_progress', 'review', 'done'];
   const sl: Record<TaskStatus, string> = { todo: t.tasks.todo, in_progress: t.tasks.inProgress, review: t.tasks.inReview, done: t.tasks.done };
 
+  // Local task state initialized from mock data
+  const [tasks, setTasks] = useState<Task[]>([...mockTasks]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
+
+  function findContainer(id: string): TaskStatus | undefined {
+    // Check if id is a column id
+    if (id.startsWith('column-')) {
+      return id.replace('column-', '') as TaskStatus;
+    }
+    // Otherwise find which column the task is in
+    const task = tasks.find((t) => t.id === id);
+    return task?.status;
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeContainer = findContainer(active.id as string);
+    const overContainer = findContainer(over.id as string);
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      setOverColumn(null);
+      return;
+    }
+
+    // Set over column for visual feedback
+    setOverColumn(overContainer);
+
+    // Move the task to the new column
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === active.id ? { ...task, status: overContainer } : task
+      )
+    );
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveId(null);
+    setOverColumn(null);
+
+    if (!over) return;
+
+    const activeContainer = findContainer(active.id as string);
+    const overContainer = findContainer(over.id as string);
+
+    if (!activeContainer || !overContainer) return;
+
+    // If same container, we may want to reorder (but for now, just finalize the move)
+    if (activeContainer === overContainer) return;
+
+    // Task was already moved in onDragOver, nothing more to do
+  }
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task as unknown as Record<string, unknown>);
+  };
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)] scrollbar-thin">
-      {statuses.map((status) => {
-        const config = statusConfig[status];
-        const tasks = mockTasks.filter((task) => task.status === status);
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)] scrollbar-thin">
+        {statuses.map((status) => {
+          const config = statusConfig[status];
+          const columnTasks = tasks.filter((task) => task.status === status);
 
-        return (
-          <div key={status} className="flex-shrink-0 w-[280px] sm:w-[300px]">
-            {/* Column header */}
-            <div className={cn('flex items-center justify-between mb-3 px-3 py-2.5 rounded-xl', config.headerBg)}>
-              <div className="flex items-center gap-2">
-                <div className={cn('p-1 rounded-md', config.bg)}>
-                  <span className={config.color}>{config.icon}</span>
-                </div>
-                <span className="text-sm font-bold">{sl[status]}</span>
-                <span
-                  className={cn(
-                    'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold text-white',
-                    config.dotColor
-                  )}
-                >
-                  {tasks.length}
-                </span>
-              </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            {/* Cards area with subtle gradient background */}
-            <div
-              className={cn(
-                'space-y-2.5 min-h-[200px] p-2 rounded-xl bg-gradient-to-b',
-                config.gradient
-              )}
+          return (
+            <DroppableKanbanColumn
+              key={status}
+              status={status}
+              tasks={columnTasks}
+              isOver={overColumn === status}
             >
-              <AnimatePresence>
-                {tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
-              </AnimatePresence>
+              <SortableContext
+                items={columnTasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <AnimatePresence>
+                  {columnTasks.map((task) => (
+                    <SortableTaskCard
+                      key={task.id}
+                      task={task}
+                      onClick={() => handleTaskClick(task)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </SortableContext>
 
               {/* Add task button with dashed border */}
               <motion.button
@@ -371,11 +546,20 @@ function KanbanView() {
                 <Plus className="h-3.5 w-3.5" />
                 {t.tasks.addTask}
               </motion.button>
-            </div>
+            </DroppableKanbanColumn>
+          );
+        })}
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeTask ? (
+          <div className="w-[280px] sm:w-[300px] rotate-2 opacity-90 shadow-2xl">
+            <TaskCardContent task={activeTask} />
           </div>
-        );
-      })}
-    </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -401,6 +585,7 @@ function SortHeader({ field, label, currentField, currentDir, onSort }: { field:
 }
 
 function ListView() {
+  const { setSelectedTask } = useAppStore();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('priority');
@@ -526,6 +711,7 @@ function ListView() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: idx * 0.02 }}
+                onClick={() => setSelectedTask(task as unknown as Record<string, unknown>)}
                 className={cn(
                   'grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer',
                   idx % 2 === 1 && 'bg-muted/10'
@@ -589,6 +775,7 @@ function ListView() {
 // ── My Tasks View ────────────────────────────────────────────────────────────
 
 function MyTasksView() {
+  const { setSelectedTask } = useAppStore();
   const { t } = useTranslation();
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const myTasks = mockTasks.filter((task) => task.assigneeId === 'u-1');
@@ -724,6 +911,7 @@ function MyTasksView() {
                         return (
                           <div
                             key={task.id}
+                            onClick={() => setSelectedTask(task as unknown as Record<string, unknown>)}
                             className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
                           >
                             <Checkbox
