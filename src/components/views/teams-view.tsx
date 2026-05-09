@@ -168,6 +168,8 @@ export function TeamsView() {
     deletedTeamIds,
     addDeletedTeamId,
     teamRefetchKey,
+    setTeamManagementId,
+    setActivePage,
   } = useAppStore();
 
   // ─── Delete confirmation state ─────────────────────────────────────────
@@ -364,6 +366,10 @@ export function TeamsView() {
                       variant="ghost"
                       size="sm"
                       className="h-7 text-xs gap-1 hover:text-primary"
+                      onClick={() => {
+                        setTeamManagementId(team.id);
+                        setActivePage("team-management");
+                      }}
                     >
                       View <ArrowRight className="h-3 w-3" />
                     </Button>

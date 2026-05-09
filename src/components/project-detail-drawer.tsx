@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -48,6 +48,7 @@ import type { Project, ProjectStatus, User, Task } from "@/lib/types";
 import { mockUsers, mockTasks } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
+import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -210,26 +211,10 @@ function ProgressBar({
   );
 }
 
-// ── Task Status Badge ────────────────────────────────────────────────────────
-
-const taskStatusLabels: Record<string, string> = {
-  todo: "À faire",
-  in_progress: "En cours",
-  review: "En revue",
-  done: "Terminé",
-};
-
-const taskStatusColors: Record<string, string> = {
-  todo: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  in_progress: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300",
-  review: "bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-300",
-  done: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300",
-};
-
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function ProjectDetailDrawer() {
-  const { projectDetailOpen, setProjectDetailOpen, selectedProject } =
+  const { projectDetailOpen, setProjectDetailOpen, selectedProject, columns } =
     useAppStore();
   const { t } = useTranslation();
 
@@ -237,6 +222,20 @@ export function ProjectDetailDrawer() {
     fallback: mockUsers,
   });
   const users = (usersData as User[]) || mockUsers;
+
+  const { taskStatusLabels, taskStatusColors } = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
+    const labels: Record<string, string> = {};
+    const colors: Record<string, string> = {};
+    const config = buildStatusConfig(cols);
+    for (const col of cols) {
+      labels[col.slug] = col.name;
+      colors[col.slug] = config[col.slug]?.bg
+        ? `${config[col.slug].bg} ${config[col.slug].color}`
+        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+    }
+    return { taskStatusLabels: labels, taskStatusColors: colors };
+  }, [columns]);
 
   // Fetch activity logs for this project
   const projectId = selectedProject?.id as string | undefined;

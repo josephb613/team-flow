@@ -12,6 +12,9 @@ import type {
   Automation,
   CalendarEvent,
   Opportunity,
+  TeamRole,
+  TeamScope,
+  TeamMemberDetailed,
 } from './types';
 
 export const mockUsers: User[] = [
@@ -238,6 +241,98 @@ export const mockTeams: Team[] = [
   { id: 'tm-4', name: 'Product', description: 'Product strategy and management', color: '#06b6d4', members: ['u-1', 'u-2', 'u-8'], projects: ['p-1', 'p-5'] },
 ];
 
+export const mockTeamRoles: TeamRole[] = [
+  { id: 'tr-1', teamId: 'tm-1', name: 'Lead Tech', description: 'Technical lead for the team', color: '#8b5cf6', icon: '👑' },
+  { id: 'tr-2', teamId: 'tm-1', name: 'Senior Dev', description: 'Senior developer', color: '#3b82f6', icon: '⭐' },
+  { id: 'tr-3', teamId: 'tm-1', name: 'Developer', description: 'Team developer', color: '#10b981', icon: '💻' },
+  { id: 'tr-4', teamId: 'tm-1', name: 'QA Engineer', description: 'Quality assurance', color: '#f59e0b', icon: '🧪' },
+  { id: 'tr-5', teamId: 'tm-2', name: 'Lead Designer', description: 'Design team lead', color: '#ec4899', icon: '👑' },
+  { id: 'tr-6', teamId: 'tm-2', name: 'UX Designer', description: 'UX specialist', color: '#06b6d4', icon: '🎨' },
+];
+
+export const mockTeamScopes: TeamScope[] = [
+  { id: 'ts-1', teamId: 'tm-1', name: 'Frontend Dev', description: 'Frontend development scope', type: 'functional', icon: '🎨', color: '#3b82f6' },
+  { id: 'ts-2', teamId: 'tm-1', name: 'Backend API', description: 'Backend and API development', type: 'functional', icon: '⚛️', color: '#10b981' },
+  { id: 'ts-3', teamId: 'tm-1', name: 'DevOps', description: 'CI/CD and infrastructure', type: 'functional', icon: '🚀', color: '#f59e0b' },
+  { id: 'ts-4', teamId: 'tm-1', name: 'Code Review', description: 'Code review permissions', type: 'permission', icon: '👁️', color: '#8b5cf6' },
+  { id: 'ts-5', teamId: 'tm-1', name: 'Deploy', description: 'Deployment access', type: 'permission', icon: '🔄', color: '#ef4444' },
+  { id: 'ts-6', teamId: 'tm-2', name: 'UI Design', description: 'User interface design', type: 'functional', icon: '🎨', color: '#ec4899' },
+  { id: 'ts-7', teamId: 'tm-2', name: 'Brand Identity', description: 'Brand and visual identity', type: 'functional', icon: '✨', color: '#f59e0b' },
+];
+
+const _mockUsersForTeamMembers: User[] = [
+  { id: 'u-1', name: 'Alex Thompson', email: 'alex@example.com', avatar: '', role: 'admin', status: 'online' },
+  { id: 'u-3', name: 'Marcus Rivera', email: 'marcus@example.com', avatar: '', role: 'member', status: 'online' },
+  { id: 'u-6', name: 'Lisa Park', email: 'lisa@example.com', avatar: '', role: 'member', status: 'away' },
+  { id: 'u-7', name: 'James Wilson', email: 'james@example.com', avatar: '', role: 'member', status: 'offline' },
+  { id: 'u-2', name: 'Sarah Chen', email: 'sarah@example.com', avatar: '', role: 'member', status: 'online' },
+  { id: 'u-4', name: 'Emily Watson', email: 'emily@example.com', avatar: '', role: 'member', status: 'busy' },
+];
+
+export const mockTeamMembersDetailed: Record<string, TeamMemberDetailed[]> = {
+  'tm-1': [
+    {
+      id: 'tmem-1', userId: 'u-1', teamId: 'tm-1', roleId: 'tr-1',
+      role: { id: 'tr-1', teamId: 'tm-1', name: 'Lead Tech', description: 'Technical lead for the team', color: '#8b5cf6', icon: '👑' },
+      user: _mockUsersForTeamMembers[0],
+      scopes: [
+        { id: 'ms-1', scopeId: 'ts-1', scope: { id: 'ts-1', teamId: 'tm-1', name: 'Frontend Dev', description: 'Frontend development scope', type: 'functional', icon: '🎨', color: '#3b82f6' }, permission: 'admin' },
+        { id: 'ms-2', scopeId: 'ts-2', scope: { id: 'ts-2', teamId: 'tm-1', name: 'Backend API', description: 'Backend and API development', type: 'functional', icon: '⚛️', color: '#10b981' }, permission: 'admin' },
+        { id: 'ms-3', scopeId: 'ts-3', scope: { id: 'ts-3', teamId: 'tm-1', name: 'DevOps', description: 'CI/CD and infrastructure', type: 'functional', icon: '🚀', color: '#f59e0b' }, permission: 'write' },
+        { id: 'ms-4', scopeId: 'ts-4', scope: { id: 'ts-4', teamId: 'tm-1', name: 'Code Review', description: 'Code review permissions', type: 'permission', icon: '👁️', color: '#8b5cf6' }, permission: 'admin' },
+        { id: 'ms-5', scopeId: 'ts-5', scope: { id: 'ts-5', teamId: 'tm-1', name: 'Deploy', description: 'Deployment access', type: 'permission', icon: '🔄', color: '#ef4444' }, permission: 'admin' },
+      ],
+    },
+    {
+      id: 'tmem-2', userId: 'u-3', teamId: 'tm-1', roleId: 'tr-2',
+      role: { id: 'tr-2', teamId: 'tm-1', name: 'Senior Dev', description: 'Senior developer', color: '#3b82f6', icon: '⭐' },
+      user: _mockUsersForTeamMembers[1],
+      scopes: [
+        { id: 'ms-6', scopeId: 'ts-2', scope: { id: 'ts-2', teamId: 'tm-1', name: 'Backend API', description: 'Backend and API development', type: 'functional', icon: '⚛️', color: '#10b981' }, permission: 'admin' },
+        { id: 'ms-7', scopeId: 'ts-4', scope: { id: 'ts-4', teamId: 'tm-1', name: 'Code Review', description: 'Code review permissions', type: 'permission', icon: '👁️', color: '#8b5cf6' }, permission: 'write' },
+      ],
+    },
+    {
+      id: 'tmem-3', userId: 'u-6', teamId: 'tm-1', roleId: 'tr-3',
+      role: { id: 'tr-3', teamId: 'tm-1', name: 'Developer', description: 'Team developer', color: '#10b981', icon: '💻' },
+      user: _mockUsersForTeamMembers[2],
+      scopes: [
+        { id: 'ms-8', scopeId: 'ts-1', scope: { id: 'ts-1', teamId: 'tm-1', name: 'Frontend Dev', description: 'Frontend development scope', type: 'functional', icon: '🎨', color: '#3b82f6' }, permission: 'write' },
+      ],
+    },
+    {
+      id: 'tmem-4', userId: 'u-7', teamId: 'tm-1', roleId: 'tr-4',
+      role: { id: 'tr-4', teamId: 'tm-1', name: 'QA Engineer', description: 'Quality assurance', color: '#f59e0b', icon: '🧪' },
+      user: _mockUsersForTeamMembers[3],
+      scopes: [
+        { id: 'ms-9', scopeId: 'ts-1', scope: { id: 'ts-1', teamId: 'tm-1', name: 'Frontend Dev', description: 'Frontend development scope', type: 'functional', icon: '🎨', color: '#3b82f6' }, permission: 'read' },
+        { id: 'ms-10', scopeId: 'ts-2', scope: { id: 'ts-2', teamId: 'tm-1', name: 'Backend API', description: 'Backend and API development', type: 'functional', icon: '⚛️', color: '#10b981' }, permission: 'read' },
+      ],
+    },
+  ],
+  'tm-2': [
+    {
+      id: 'tmem-5', userId: 'u-2', teamId: 'tm-2', roleId: 'tr-5',
+      role: { id: 'tr-5', teamId: 'tm-2', name: 'Lead Designer', description: 'Design team lead', color: '#ec4899', icon: '👑' },
+      user: _mockUsersForTeamMembers[4],
+      scopes: [
+        { id: 'ms-11', scopeId: 'ts-6', scope: { id: 'ts-6', teamId: 'tm-2', name: 'UI Design', description: 'User interface design', type: 'functional', icon: '🎨', color: '#ec4899' }, permission: 'admin' },
+        { id: 'ms-12', scopeId: 'ts-7', scope: { id: 'ts-7', teamId: 'tm-2', name: 'Brand Identity', description: 'Brand and visual identity', type: 'functional', icon: '✨', color: '#f59e0b' }, permission: 'admin' },
+      ],
+    },
+    {
+      id: 'tmem-6', userId: 'u-4', teamId: 'tm-2', roleId: 'tr-6',
+      role: { id: 'tr-6', teamId: 'tm-2', name: 'UX Designer', description: 'UX specialist', color: '#06b6d4', icon: '🎨' },
+      user: _mockUsersForTeamMembers[5],
+      scopes: [
+        { id: 'ms-13', scopeId: 'ts-6', scope: { id: 'ts-6', teamId: 'tm-2', name: 'UI Design', description: 'User interface design', type: 'functional', icon: '🎨', color: '#ec4899' }, permission: 'write' },
+      ],
+    },
+  ],
+  'tm-3': [],
+  'tm-4': [],
+};
+
 export const mockAutomations: Automation[] = [
   { id: 'auto-1', name: 'Auto-assign urgent tasks', trigger: 'When a task is marked urgent', action: 'Assign to project lead', enabled: true, lastRun: '2025-01-20T08:00:00Z', runCount: 15 },
   { id: 'auto-2', name: 'Deadline reminder', trigger: 'When a task is due in 24 hours', action: 'Send notification to assignee', enabled: true, lastRun: '2025-01-20T09:00:00Z', runCount: 42 },
@@ -259,58 +354,74 @@ export const mockCalendarEvents: CalendarEvent[] = [
 
 export const mockOpportunities: Opportunity[] = [
   {
-    id: 'opp-1', title: 'Contrat Acme Corp — Licence Enterprise',
-    description: 'Négociation pour 200 licences avec support premium et formation.',
-    status: 'negociation', dueDate: '2025-06-15T00:00:00Z',
+    id: 'opp-1', title: 'Orange Corners',
+    organisation: 'Orange',
+    description: 'Préparer le pitch pour la compétition de startups.',
+    status: 'en_preparation', dueDate: '2025-06-15T00:00:00Z',
+    responsableId: 'u-1',
     workspaceId: '', creatorId: 'u-1',
     createdAt: '2025-02-01T10:00:00Z',
   },
   {
-    id: 'opp-2', title: 'Startup InnovTech — POC Dashboard',
-    description: 'Démonstration du dashboard analytics pour leur équipe data.',
-    status: 'prospection', dueDate: '2025-05-01T00:00:00Z',
+    id: 'opp-2', title: 'PNUD Innovation',
+    organisation: 'PNUD',
+    description: 'Attendre réponse pour le programme d\'innovation.',
+    status: 'soumis', dueDate: '2025-06-20T00:00:00Z',
+    responsableId: 'u-3',
     workspaceId: '', creatorId: 'u-2',
     createdAt: '2025-03-15T14:00:00Z',
   },
   {
-    id: 'opp-3', title: 'Groupe Casino — Audit sécurité annuel',
-    description: 'Audit de sécurité complet et mise en conformité RGPD.',
-    status: 'qualification', dueDate: '2025-07-30T00:00:00Z',
+    id: 'opp-3', title: 'Contrat Acme Corp — Licence Enterprise',
+    organisation: 'Acme Corp',
+    description: 'Négociation pour 200 licences avec support premium et formation.',
+    status: 'entretien', dueDate: '2025-07-30T00:00:00Z',
+    responsableId: 'u-2',
     workspaceId: '', creatorId: 'u-3',
     createdAt: '2025-03-10T09:00:00Z',
   },
   {
-    id: 'opp-4', title: 'E-commerce Shopify — Refonte UX',
-    description: 'Refonte complète de l\'expérience utilisateur pour leur boutique en ligne.',
-    status: 'proposition', dueDate: '2025-04-20T00:00:00Z',
+    id: 'opp-4', title: 'Startup InnovTech — POC Dashboard',
+    organisation: 'InnovTech',
+    description: 'Démonstration du dashboard analytics pour leur équipe data.',
+    status: 'nouveau', dueDate: '2025-05-01T00:00:00Z',
+    responsableId: 'u-4',
     workspaceId: '', creatorId: 'u-1',
     createdAt: '2025-01-20T11:00:00Z',
   },
   {
     id: 'opp-5', title: 'Banque Nationale — Migration Cloud',
+    organisation: 'Banque Nationale',
     description: 'Migration de l\'infrastructure on-premise vers AWS.',
-    status: 'gagnee', dueDate: '2025-08-01T00:00:00Z',
+    status: 'accepte', dueDate: '2025-08-01T00:00:00Z',
+    responsableId: 'u-1',
     workspaceId: '', creatorId: 'u-4',
     createdAt: '2025-01-05T08:00:00Z',
   },
   {
     id: 'opp-6', title: 'Agence MediaPlus — Campagne digitale Q3',
+    organisation: 'MediaPlus',
     description: 'Création et gestion de leur campagne marketing digitale.',
-    status: 'perdue', dueDate: '2025-02-01T00:00:00Z',
+    status: 'refuse', dueDate: '2025-02-01T00:00:00Z',
+    responsableId: 'u-6',
     workspaceId: '', creatorId: 'u-2',
     createdAt: '2024-12-10T16:00:00Z',
   },
   {
     id: 'opp-7', title: 'Éditeur Logiciel SaaS — Intégration API',
+    organisation: 'SaaSPlus',
     description: 'Intégration de notre API dans leur plateforme SaaS existante.',
-    status: 'qualification', dueDate: '2025-05-15T00:00:00Z',
+    status: 'soumis', dueDate: '2025-05-15T00:00:00Z',
+    responsableId: 'u-2',
     workspaceId: '', creatorId: 'u-6',
     createdAt: '2025-03-01T13:00:00Z',
   },
   {
     id: 'opp-8', title: 'Clinique Saint-Jean — Dossier patient digital',
+    organisation: 'Clinique Saint-Jean',
     description: 'Développement d\'une solution de gestion de dossiers patients numériques.',
-    status: 'prospection', dueDate: '2025-09-01T00:00:00Z',
+    status: 'nouveau', dueDate: '2025-09-01T00:00:00Z',
+    responsableId: 'u-7',
     workspaceId: '', creatorId: 'u-3',
     createdAt: '2025-03-20T10:00:00Z',
   },

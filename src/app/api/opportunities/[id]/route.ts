@@ -19,6 +19,7 @@ export const GET = withErrorHandler(
       },
       include: {
         creator: true,
+        responsable: true,
       },
     });
 
@@ -76,6 +77,7 @@ export const PATCH = withErrorHandler(
       },
       include: {
         creator: true,
+        responsable: true,
       },
     });
 
@@ -85,10 +87,10 @@ export const PATCH = withErrorHandler(
     let description = `updated opportunity "${opportunity.title}"`;
 
     if (newStatus && newStatus !== existing.status) {
-      if (newStatus === "gagnee") {
+      if (newStatus === "accepte") {
         activityType = "opportunity_won";
         description = `won opportunity "${opportunity.title}"`;
-      } else if (newStatus === "perdue") {
+      } else if (newStatus === "refuse") {
         activityType = "opportunity_lost";
         description = `lost opportunity "${opportunity.title}"`;
       }

@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { mockProjects, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
+import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
@@ -51,17 +52,6 @@ import {
 import type { DateRange } from "react-day-picker";
 
 const TITLE_MAX_LENGTH = 120;
-
-const statusOptions = [
-  { value: "todo", labelKey: "todo" as const, color: "bg-slate-400" },
-  {
-    value: "in_progress",
-    labelKey: "inProgress" as const,
-    color: "bg-amber-500",
-  },
-  { value: "review", labelKey: "inReview" as const, color: "bg-cyan-500" },
-  { value: "done", labelKey: "done" as const, color: "bg-emerald-500" },
-];
 
 const priorityOptions = [
   {
@@ -96,7 +86,7 @@ interface Subtask {
 }
 
 export function CreateTaskDialog() {
-  const { createTaskDialogOpen, setCreateTaskDialogOpen } = useAppStore();
+  const { createTaskDialogOpen, setCreateTaskDialogOpen, columns } = useAppStore();
   const { t } = useTranslation();
 
   // ─── API Data ──────────────────────────────────────────────────────────
@@ -108,6 +98,11 @@ export function CreateTaskDialog() {
   });
   const projects = (projectsData as typeof mockProjects) || mockProjects;
   const users = (usersData as typeof mockUsers) || mockUsers;
+
+  const statusOptions = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
+    return cols.map((c) => ({ value: c.slug, name: c.name, color: c.color }));
+  }, [columns]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -369,9 +364,10 @@ export function CreateTaskDialog() {
                         <SelectItem key={opt.value} value={opt.value}>
                           <span className="flex items-center gap-2">
                             <span
-                              className={cn("w-2 h-2 rounded-full", opt.color)}
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: opt.color }}
                             />
-                            {t.tasks[opt.labelKey]}
+                            {opt.name}
                           </span>
                         </SelectItem>
                       ))}

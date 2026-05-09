@@ -28,8 +28,9 @@ model User {
   wikiEdits         WikiPage[]
   channelMemberships ChannelMember[]
   meetingMemberships MeetingMember[]
-  sentInvitations     Invitation[]    @relation("SentInvitations")
-  createdOpportunities Opportunity[]  @relation("CreatedOpportunities")
+  sentInvitations         Invitation[]    @relation("SentInvitations")
+  createdOpportunities    Opportunity[]   @relation("CreatedOpportunities")
+  responsableOpportunities Opportunity[]  @relation("ResponsableOpportunities")
 }
 
 model Workspace {
@@ -125,21 +126,25 @@ model Project {
 }
 
 model Opportunity {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  status      String    @default("prospection")
-  dueDate     DateTime?
-  workspaceId String
-  creatorId   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  organisation   String?
+  status         String    @default("nouveau")
+  dueDate        DateTime?
+  responsableId  String?
+  workspaceId    String
+  creatorId      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creator   User?     @relation("CreatedOpportunities", fields: [creatorId], references: [id], onDelete: SetNull)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     User?     @relation("CreatedOpportunities", fields: [creatorId], references: [id], onDelete: SetNull)
+  responsable User?     @relation("ResponsableOpportunities", fields: [responsableId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([creatorId])
+  @@index([responsableId])
 }
 
 model Task {

@@ -43,6 +43,7 @@ import type { PageId, TaskStatus, TaskPriority } from "@/lib/types";
 import { mockTasks, mockProjects } from "@/lib/mock-data";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { buildStatusConfig, DEFAULT_COLUMNS, ICON_MAP } from "@/lib/column-utils";
 
 const pages: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
   {
@@ -105,20 +106,6 @@ const pages: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
   },
 ];
 
-const statusIconMap: Record<TaskStatus, React.ReactNode> = {
-  todo: <Circle className="h-3 w-3" />,
-  in_progress: <Clock className="h-3 w-3" />,
-  review: <AlertCircle className="h-3 w-3" />,
-  done: <CheckCircle2 className="h-3 w-3" />,
-};
-
-const statusColorMap: Record<TaskStatus, string> = {
-  todo: "text-slate-500",
-  in_progress: "text-cyan-500",
-  review: "text-amber-500",
-  done: "text-emerald-500",
-};
-
 const priorityDotMap: Record<
   TaskPriority,
   { icon: React.ReactNode; color: string }
@@ -143,6 +130,7 @@ export function SearchDialog() {
     setCreateTaskDialogOpen,
     setCreateProjectDialogOpen,
     setShortcutsHelpOpen,
+    columns,
   } = useAppStore();
   const { t } = useTranslation();
   const { setTheme, resolvedTheme } = useTheme();
@@ -168,6 +156,21 @@ export function SearchDialog() {
   }, [query, isQueryEmpty]);
 
   const storeUsers = useAppStore((s) => s.users);
+
+  const { statusIconMap, statusColorMap } = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
+    const iconMap: Record<string, React.ReactNode> = {};
+    const colorMap: Record<string, string> = {};
+    const config = buildStatusConfig(cols);
+    for (const col of cols) {
+      const cfg = config[col.slug];
+      if (cfg) {
+        iconMap[col.slug] = cfg.icon;
+        colorMap[col.slug] = cfg.color;
+      }
+    }
+    return { statusIconMap: iconMap, statusColorMap: colorMap };
+  }, [columns]);
 
   const filteredUsers = useMemo(() => {
     if (isQueryEmpty) return [];

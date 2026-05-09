@@ -7,10 +7,16 @@ export const GET = withErrorHandler(
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
     const targetType = searchParams.get("targetType");
+    const targetId = searchParams.get("targetId");
 
     const where: Record<string, unknown> = {
       workspace: { members: { some: { userId: user.id } } },
     };
+
+    // Si un targetId est fourni, on filtre directement par cet ID
+    if (targetId) {
+      where.targetId = targetId;
+    }
 
     // Si un projectId est fourni, on filtre les logs liés à ce projet
     // via les tâches du projet ou via targetId = projectId
