@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,17 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   User,
   Bell,
@@ -65,14 +76,74 @@ const integrations = [
 // ─── Animation ───────────────────────────────────────────────────────────────
 const sectionVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function SettingsView() {
   const { t } = useTranslation();
+
   const [activeSection, setActiveSection] = useState('general');
   const currentUser = useAppStore((s) => s.currentUser);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const workspaces = useAppStore((s) => s.workspaces);
+  const removeWorkspace = useAppStore((s) => s.removeWorkspace);
+  const updateWorkspace = useAppStore((s) => s.updateWorkspace);
+
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const [workspaceForm, setWorkspaceForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+  });
+  const [workspaceSaving, setWorkspaceSaving] = useState(false);
+  const [workspaceSaveFeedback, setWorkspaceSaveFeedback] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Sync form state when the active workspace changes
+  useEffect(() => {
+    if (activeWorkspace) {
+      setWorkspaceForm({
+        name: activeWorkspace.name || '',
+        slug: activeWorkspace.slug || '',
+        description: activeWorkspace.description || '',
+      });
+    }
+  }, [activeWorkspace?.id]);
+
+  const handleSaveWorkspace = useCallback(async () => {
+    if (!activeWorkspaceId) return;
+    setWorkspaceSaving(true);
+    setWorkspaceSaveFeedback('idle');
+    try {
+      const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(workspaceForm),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update workspace');
+      }
+      const updated = await res.json();
+      updateWorkspace(activeWorkspaceId, {
+        name: updated.name,
+        slug: updated.slug,
+        description: updated.description,
+      });
+      setWorkspaceSaveFeedback('success');
+      setTimeout(() => setWorkspaceSaveFeedback('idle'), 2500);
+    } catch (err) {
+      console.error('Failed to update workspace:', err);
+      setWorkspaceSaveFeedback('error');
+      setTimeout(() => setWorkspaceSaveFeedback('idle'), 3500);
+    } finally {
+      setWorkspaceSaving(false);
+    }
+  }, [activeWorkspaceId, workspaceForm, updateWorkspace]);
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -95,6 +166,26 @@ export function SettingsView() {
   const getSectionLabel = (id: string) => {
     const key = id as keyof typeof t.settings;
     return t.settings[key] || id;
+  };
+
+  const handleDeleteWorkspace = async () => {
+    if (!activeWorkspaceId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete workspace');
+      }
+      removeWorkspace(activeWorkspaceId);
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to delete workspace:', err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -457,20 +548,58 @@ export function SettingsView() {
                     <CardContent className="space-y-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceName}</Label>
-                        <Input defaultValue="Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceForm.name}
+                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, name: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceUrl}</Label>
-                        <Input defaultValue="acme-corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceForm.slug}
+                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, slug: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.description}</Label>
-                        <Input defaultValue="Main workspace for Acme Corporation" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceForm.description}
+                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, description: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <Button
-                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+                        onClick={handleSaveWorkspace}
+                        disabled={workspaceSaving}
+                        className={cn(
+                          'gap-1.5 text-white shadow-sm transition-all duration-200',
+                          workspaceSaveFeedback === 'success'
+                            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
+                            : workspaceSaveFeedback === 'error'
+                              ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20'
+                              : 'bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-[oklch(0.55_0.15_160/0.2)]',
+                        )}
                       >
-                        <Save className="h-4 w-4" /> {t.settings.saveChanges}
+                        {workspaceSaving ? (
+                          <>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            {t.settings.saving}
+                          </>
+                        ) : workspaceSaveFeedback === 'success' ? (
+                          <>
+                            <Check className="h-4 w-4" /> {t.settings.saved}
+                          </>
+                        ) : workspaceSaveFeedback === 'error' ? (
+                          <>
+                            <AlertTriangle className="h-4 w-4" /> {t.settings.saveError}
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4" /> {t.settings.saveChanges}
+                          </>
+                        )}
                       </Button>
                     </CardContent>
                   </Card>
@@ -495,9 +624,42 @@ export function SettingsView() {
                           <p className="text-sm font-semibold text-rose-700">{t.settings.deleteWorkspace}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{t.settings.deleteWorkspaceDesc}</p>
                         </div>
-                        <Button variant="destructive" size="sm" className="gap-1.5 shadow-sm">
-                          <Trash2 className="h-4 w-4" /> {t.settings.delete}
-                        </Button>
+                        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm" className="gap-1.5 shadow-sm">
+                              <Trash2 className="h-4 w-4" /> {t.settings.delete}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-rose-600">
+                                {t.settings.deleteWorkspaceConfirmTitle}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t.settings.deleteWorkspaceConfirmDesc}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel disabled={deleting}>
+                                {t.settings.cancel}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                disabled={deleting}
+                                onClick={handleDeleteWorkspace}
+                                className="bg-rose-600 hover:bg-rose-700 text-white"
+                              >
+                                {deleting ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                    {t.settings.delete}
+                                  </span>
+                                ) : (
+                                  t.settings.confirm
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </CardContent>
                   </Card>

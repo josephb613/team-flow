@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Hash,
   Lock,
@@ -28,29 +33,39 @@ import {
   Pin,
   Wifi,
   WifiOff,
-} from 'lucide-react';
-import { mockChannels, mockUsers } from '@/lib/mock-data';
-import type { Channel, Message } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
-import { useChatSocket } from '@/hooks/use-chat-socket';
-import type { ChatMessage } from '@/hooks/use-chat-socket';
-import { useAppStore } from '@/lib/store';
+} from "lucide-react";
+import { mockUsers } from "@/lib/mock-data";
+import type { Channel, Message, User } from "@/lib/types";
+import { useApiData } from "@/hooks/use-api-data";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
+import { useChatSocket } from "@/hooks/use-chat-socket";
+import type { ChatMessage } from "@/hooks/use-chat-socket";
+import { useAppStore } from "@/lib/store";
 
-// Helper functions
-function getUserById(id: string) {
-  return mockUsers.find((u) => u.id === id);
+// Helper functions (accept users array so they work with API or mock data)
+function getUserById(id: string, users: User[]) {
+  return users.find((u) => u.id === id);
 }
 
-function getUserInitials(id: string, name?: string) {
-  if (name) return name.split(' ').map((n) => n[0]).join('');
-  const user = getUserById(id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
+function getUserInitials(id: string, users: User[], name?: string) {
+  if (name)
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("");
+  const user = getUserById(id, users);
+  return user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+    : "??";
 }
 
-function getUserStatus(id: string) {
-  return getUserById(id)?.status || 'offline';
+function getUserStatus(id: string, users: User[]) {
+  return getUserById(id, users)?.status || "offline";
 }
 
 function formatMessageTime(timestamp: string) {
@@ -61,40 +76,47 @@ function formatMessageTime(timestamp: string) {
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
-  const time = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 
   if (isToday) return `Today at ${time}`;
   if (isYesterday) return `Yesterday at ${time}`;
-  return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${time}`;
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${time}`;
 }
 
 function formatShortTime(timestamp: string) {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  return new Date(timestamp).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 }
 
 // Status color indicator with online status
-function OnlineStatusDot({ status, size = 'sm' }: { status: string; size?: 'sm' | 'md' }) {
-  const sizeClasses = size === 'sm' ? 'h-2.5 w-2.5 border-2' : 'h-3.5 w-3.5 border-[2.5px]';
+function OnlineStatusDot({
+  status,
+  size = "sm",
+}: {
+  status: string;
+  size?: "sm" | "md";
+}) {
+  const sizeClasses =
+    size === "sm" ? "h-2.5 w-2.5 border-2" : "h-3.5 w-3.5 border-[2.5px]";
   const colors: Record<string, string> = {
-    online: 'bg-emerald-500 border-background',
-    away: 'bg-amber-500 border-background',
-    busy: 'bg-red-500 border-background',
-    offline: 'bg-slate-400 dark:bg-slate-500 border-background',
+    online: "bg-emerald-500 border-background",
+    away: "bg-amber-500 border-background",
+    busy: "bg-red-500 border-background",
+    offline: "bg-slate-400 dark:bg-slate-500 border-background",
   };
   return (
     <span
       className={cn(
-        'inline-block rounded-full shadow-sm',
+        "inline-block rounded-full shadow-sm",
         sizeClasses,
-        colors[status] || 'bg-slate-400 border-background'
+        colors[status] || "bg-slate-400 border-background",
       )}
     />
   );
@@ -106,7 +128,10 @@ function TypingIndicator({ userName }: { userName: string }) {
     <div className="flex items-center gap-2 px-4 py-2">
       <div className="flex items-center gap-1.5">
         <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center text-[8px] text-white font-bold shadow-sm">
-          {userName.split(' ').map((n) => n[0]).join('')}
+          {userName
+            .split(" ")
+            .map((n) => n[0])
+            .join("")}
         </div>
         <div className="flex items-center gap-1 px-3 py-2 rounded-2xl bg-muted/60">
           <span className="text-xs text-muted-foreground mr-1">{userName}</span>
@@ -136,31 +161,33 @@ function ChannelListItem({
   channel,
   isActive,
   onClick,
-  membersLabel,
+  users,
 }: {
   channel: Channel;
   isActive: boolean;
   onClick: () => void;
-  membersLabel?: string;
+  users: User[];
 }) {
-  const isDirect = channel.type === 'direct';
-  const status = isDirect ? getUserStatus(channel.members[1] || channel.members[0]) : null;
+  const isDirect = channel.type === "direct";
+  const status = isDirect
+    ? getUserStatus(channel.members[1] || channel.members[0], users)
+    : null;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left',
+        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left",
         isActive
-          ? 'bg-[oklch(0.55_0.15_160)/0.12] text-foreground font-medium shadow-sm'
-          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+          ? "bg-[oklch(0.55_0.15_160)/0.12] text-foreground font-medium shadow-sm"
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
       )}
     >
       {isDirect ? (
         <div className="relative shrink-0">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-[9px] bg-muted">
-              {getUserInitials(channel.members[1] || channel.members[0])}
+              {getUserInitials(channel.members[1] || channel.members[0], users)}
             </AvatarFallback>
           </Avatar>
           {status && (
@@ -169,14 +196,12 @@ function ChannelListItem({
             </span>
           )}
         </div>
-      ) : channel.type === 'project' ? (
+      ) : channel.type === "project" ? (
         <Lock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
       ) : (
         <Hash className="h-4 w-4 shrink-0 text-muted-foreground/70" />
       )}
-      <span className="truncate flex-1">
-        {channel.name}
-      </span>
+      <span className="truncate flex-1">{channel.name}</span>
       {channel.unread > 0 && (
         <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
           {channel.unread}
@@ -187,17 +212,34 @@ function ChannelListItem({
 }
 
 // Message bubble that works with both local Message type and ChatMessage from WebSocket
-function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message | ChatMessage; showHeader: boolean; isOwnMessage: boolean }) {
-  const senderId = 'senderId' in message ? message.senderId : '';
-  const senderName = 'senderName' in message ? message.senderName : (getUserById(senderId)?.name || 'Unknown');
+function MessageBubble({
+  message,
+  showHeader,
+  isOwnMessage,
+  users,
+}: {
+  message: Message | ChatMessage;
+  showHeader: boolean;
+  isOwnMessage: boolean;
+  users: User[];
+}) {
+  const senderId = "senderId" in message ? message.senderId : "";
+  const senderName =
+    "senderName" in message
+      ? message.senderName
+      : getUserById(senderId, users)?.name || "Unknown";
   const content = message.content;
   const timestamp = message.timestamp;
   const reactions = message.reactions || [];
 
   // Determine avatar initials
-  const initials = senderName !== 'Unknown'
-    ? senderName.split(' ').map((n) => n[0]).join('')
-    : getUserInitials(senderId);
+  const initials =
+    senderName !== "Unknown"
+      ? senderName
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+      : getUserInitials(senderId, users);
 
   return (
     <motion.div
@@ -205,8 +247,8 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'group flex gap-2.5 px-4 py-0.5 hover:bg-muted/20 transition-colors',
-        showHeader && 'mt-3'
+        "group flex gap-2.5 px-4 py-0.5 hover:bg-muted/20 transition-colors",
+        showHeader && "mt-3",
       )}
     >
       {/* Avatar */}
@@ -224,7 +266,10 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
               </AvatarFallback>
             </Avatar>
             <span className="absolute -bottom-0.5 -right-0.5">
-              <OnlineStatusDot status={getUserStatus(senderId)} size="sm" />
+              <OnlineStatusDot
+                status={getUserStatus(senderId, users)}
+                size="sm"
+              />
             </span>
           </div>
         ) : (
@@ -255,8 +300,8 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
               <button
                 key={idx}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150',
-                  'hover:border-[oklch(0.55_0.15_160)/40] hover:bg-[oklch(0.55_0.15_160)/8] hover:shadow-sm'
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150",
+                  "hover:border-[oklch(0.55_0.15_160)/40] hover:bg-[oklch(0.55_0.15_160)/8] hover:shadow-sm",
                 )}
               >
                 <span className="text-xs">{reaction.emoji}</span>
@@ -283,17 +328,25 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, x: -8 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  show: { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeOut" as const } },
 };
 
 export function MessagesView() {
   const { t } = useTranslation();
   const currentUser = useAppStore((s) => s.currentUser);
-  const [selectedChannel, setSelectedChannel] = useState<string>('ch-1');
-  const [messageInput, setMessageInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const storeChannels = useAppStore((s) => s.channels);
+  const [selectedChannel, setSelectedChannel] = useState<string>("ch-1");
+  const [messageInput, setMessageInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ── API Data ──────────────────────────────────────────────────────────
+  const { data: users, isLoading: usersLoading } = useApiData<User[]>(
+    "/api/users",
+    { fallback: mockUsers },
+  );
+  const usersData = users || [];
 
   // WebSocket integration
   const {
@@ -305,26 +358,33 @@ export function MessagesView() {
     isConnected,
   } = useChatSocket(selectedChannel);
 
-  const channel = mockChannels.find((c) => c.id === selectedChannel);
+  const channel = storeChannels.find((c: Channel) => c.id === selectedChannel);
 
   // Group channels by type
-  const teamChannels = mockChannels.filter((c) => c.type === 'team');
-  const projectChannels = mockChannels.filter((c) => c.type === 'project');
-  const directChannels = mockChannels.filter((c) => c.type === 'direct');
+  const teamChannels = storeChannels.filter((c: Channel) => c.type === "team");
+  const projectChannels = storeChannels.filter(
+    (c: Channel) => c.type === "project",
+  );
+  const directChannels = storeChannels.filter(
+    (c: Channel) => c.type === "direct",
+  );
 
   // Filter channels by search
   const filterChannels = (channels: Channel[]) =>
     searchQuery
       ? channels.filter((c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase())
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()),
         )
       : channels;
 
-  const totalUnread = mockChannels.reduce((sum, c) => sum + c.unread, 0);
+  const totalUnread = storeChannels.reduce(
+    (sum: number, c: Channel) => sum + c.unread,
+    0,
+  );
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [wsMessages, selectedChannel]);
 
   const handleChannelSelect = (channelId: string) => {
@@ -335,18 +395,30 @@ export function MessagesView() {
   const handleSendMessage = () => {
     if (messageInput.trim()) {
       sendMessage(messageInput);
-      setMessageInput('');
+      setMessageInput("");
     }
   };
+
+  // ── Loading State ─────────────────────────────────────────────────────
+  if (usersLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-6rem)]">
+        <div className="text-center">
+          <div className="h-8 w-8 mx-auto mb-3 animate-spin rounded-full border-2 border-[oklch(0.55_0.15_160)] border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-6rem)] border rounded-xl overflow-hidden bg-background shadow-sm">
       {/* Channel Sidebar */}
       <div
         className={cn(
-          'flex flex-col border-r bg-muted/20 shrink-0',
-          'w-full md:w-72',
-          showMobileChat ? 'hidden md:flex' : 'flex'
+          "flex flex-col border-r bg-muted/20 shrink-0",
+          "w-full md:w-72",
+          showMobileChat ? "hidden md:flex" : "flex",
         )}
       >
         {/* Sidebar Header */}
@@ -413,6 +485,7 @@ export function MessagesView() {
                         channel={ch}
                         isActive={selectedChannel === ch.id}
                         onClick={() => handleChannelSelect(ch.id)}
+                        users={usersData}
                       />
                     </motion.div>
                   ))}
@@ -434,6 +507,7 @@ export function MessagesView() {
                         channel={ch}
                         isActive={selectedChannel === ch.id}
                         onClick={() => handleChannelSelect(ch.id)}
+                        users={usersData}
                       />
                     </motion.div>
                   ))}
@@ -455,6 +529,7 @@ export function MessagesView() {
                         channel={ch}
                         isActive={selectedChannel === ch.id}
                         onClick={() => handleChannelSelect(ch.id)}
+                        users={usersData}
                       />
                     </motion.div>
                   ))}
@@ -468,8 +543,8 @@ export function MessagesView() {
       {/* Main Chat Area */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-w-0',
-          !showMobileChat ? 'hidden md:flex' : 'flex'
+          "flex-1 flex flex-col min-w-0",
+          !showMobileChat ? "hidden md:flex" : "flex",
         )}
       >
         {channel ? (
@@ -485,25 +560,36 @@ export function MessagesView() {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                {channel.type === 'direct' ? (
+                {channel.type === "direct" ? (
                   <div className="relative">
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="text-[8px] bg-muted">
-                        {getUserInitials(channel.members[1] || channel.members[0])}
+                        {getUserInitials(
+                          channel.members[1] || channel.members[0],
+                          usersData,
+                        )}
                       </AvatarFallback>
                     </Avatar>
                     <span className="absolute -bottom-0.5 -right-0.5">
-                      <OnlineStatusDot status={getUserStatus(channel.members[1] || channel.members[0])} size="sm" />
+                      <OnlineStatusDot
+                        status={getUserStatus(
+                          channel.members[1] || channel.members[0],
+                          usersData,
+                        )}
+                        size="sm"
+                      />
                     </span>
                   </div>
-                ) : channel.type === 'project' ? (
+                ) : channel.type === "project" ? (
                   <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
                 ) : (
                   <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold truncate">{channel.name}</h3>
+                    <h3 className="text-sm font-bold truncate">
+                      {channel.name}
+                    </h3>
                     {channel.unread > 0 && (
                       <Badge className="h-4 min-w-[16px] px-1 text-[8px] bg-[oklch(0.55_0.15_160)] text-white">
                         {channel.unread} new
@@ -511,7 +597,7 @@ export function MessagesView() {
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {channel.type === 'direct'
+                    {channel.type === "direct"
                       ? `Active now · ${channel.members.length} ${t.messages.members}`
                       : `${channel.members.length} ${t.messages.members}`}
                   </p>
@@ -576,22 +662,24 @@ export function MessagesView() {
                     <div className="px-4 mb-6">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.15_160)/20] to-[oklch(0.55_0.15_160)/5] flex items-center justify-center shadow-sm">
-                          {channel.type === 'direct' ? (
+                          {channel.type === "direct" ? (
                             <MessageSquare className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
-                          ) : channel.type === 'project' ? (
+                          ) : channel.type === "project" ? (
                             <Lock className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
                           ) : (
                             <Hash className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
                           )}
                         </div>
                         <div>
-                          <h4 className="text-base font-bold">{channel.name}</h4>
+                          <h4 className="text-base font-bold">
+                            {channel.name}
+                          </h4>
                           <p className="text-xs text-muted-foreground">
-                            {channel.type === 'direct'
+                            {channel.type === "direct"
                               ? `This is the beginning of your conversation with ${channel.name}`
-                              : channel.type === 'project'
-                              ? `Private channel for ${channel.name} project members`
-                              : `This is the #${channel.name} channel`}
+                              : channel.type === "project"
+                                ? `Private channel for ${channel.name} project members`
+                                : `This is the #${channel.name} channel`}
                           </p>
                         </div>
                       </div>
@@ -616,6 +704,7 @@ export function MessagesView() {
                           message={msg}
                           showHeader={showHeader}
                           isOwnMessage={isOwnMessage}
+                          users={usersData}
                         />
                       );
                     })}
@@ -630,7 +719,10 @@ export function MessagesView() {
                           transition={{ duration: 0.2 }}
                         >
                           {typingUsers.map((tu) => (
-                            <TypingIndicator key={tu.userId} userName={tu.userName} />
+                            <TypingIndicator
+                              key={tu.userId}
+                              userName={tu.userName}
+                            />
                           ))}
                         </motion.div>
                       )}
@@ -657,7 +749,11 @@ export function MessagesView() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           <Bold className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -665,7 +761,11 @@ export function MessagesView() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           <Italic className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -673,7 +773,11 @@ export function MessagesView() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           <Code2 className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -682,7 +786,11 @@ export function MessagesView() {
                     <div className="w-px h-4 bg-border mx-1" />
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           <Paperclip className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -690,7 +798,11 @@ export function MessagesView() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           <AtSign className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -713,23 +825,27 @@ export function MessagesView() {
                       }
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
                   />
                   <div className="flex items-center gap-0.5 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    >
                       <Smile className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
                       className={cn(
-                        'h-7 w-7 shrink-0 transition-all duration-200',
+                        "h-7 w-7 shrink-0 transition-all duration-200",
                         messageInput.trim()
-                          ? 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm'
-                          : 'bg-muted text-muted-foreground'
+                          ? "bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
+                          : "bg-muted text-muted-foreground",
                       )}
                       onClick={handleSendMessage}
                       disabled={!messageInput.trim()}
@@ -740,8 +856,15 @@ export function MessagesView() {
                 </div>
               </div>
               <p className="text-[9px] text-muted-foreground mt-1.5 px-2">
-                Press <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">Enter</kbd> to {t.messages.send.toLowerCase()},{' '}
-                <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">Shift+Enter</kbd> for new line
+                Press{" "}
+                <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">
+                  Enter
+                </kbd>{" "}
+                to {t.messages.send.toLowerCase()},{" "}
+                <kbd className="px-1 py-0.5 rounded bg-muted text-[8px] font-mono">
+                  Shift+Enter
+                </kbd>{" "}
+                for new line
               </p>
             </div>
           </>
@@ -750,7 +873,9 @@ export function MessagesView() {
             <div className="text-center">
               <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm font-medium">Select a channel</p>
-              <p className="text-xs mt-1">Choose a channel to start messaging</p>
+              <p className="text-xs mt-1">
+                Choose a channel to start messaging
+              </p>
             </div>
           </div>
         )}

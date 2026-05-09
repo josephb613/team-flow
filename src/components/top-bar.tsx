@@ -94,6 +94,7 @@ export function TopBar() {
     setLocale,
     setActivePage,
     isApiLoading,
+    setWhatsNewDialogOpen,
   } = useAppStore();
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
@@ -224,7 +225,7 @@ export function TopBar() {
             variant="outline"
             className={cn(
               'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
-              'w-72 justify-start shadow-sm bg-muted/30',
+              'w-48 justify-start shadow-sm bg-muted/30',
               'transition-all duration-200',
               searchFocused && 'ring-2 ring-[oklch(0.55_0.15_160/0.3)] border-[oklch(0.55_0.15_160/0.3)]'
             )}
@@ -258,6 +259,7 @@ export function TopBar() {
                 variant="ghost"
                 size="icon"
                 className="hidden sm:flex h-9 w-9 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                onClick={() => setWhatsNewDialogOpen(true)}
               >
                 <Sparkles className="h-4 w-4" />
               </Button>

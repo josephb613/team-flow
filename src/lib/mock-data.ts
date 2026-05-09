@@ -11,6 +11,7 @@ import type {
   Team,
   Automation,
   CalendarEvent,
+  Opportunity,
 } from './types';
 
 export const mockUsers: User[] = [
@@ -254,4 +255,63 @@ export const mockCalendarEvents: CalendarEvent[] = [
   { id: 'ce-6', title: 'All Hands Meeting', date: '2025-01-24T11:00:00Z', endDate: '2025-01-24T12:00:00Z', type: 'meeting', color: '#10b981' },
   { id: 'ce-7', title: 'Q1 Review', date: '2025-03-31', type: 'milestone', color: '#ec4899' },
   { id: 'ce-8', title: 'Sprint 4 Ends', date: '2025-01-22', type: 'deadline', color: '#ef4444' },
+];
+
+export const mockOpportunities: Opportunity[] = [
+  {
+    id: 'opp-1', title: 'Contrat Acme Corp — Licence Enterprise',
+    description: 'Négociation pour 200 licences avec support premium et formation.',
+    status: 'negociation', dueDate: '2025-06-15T00:00:00Z',
+    workspaceId: '', creatorId: 'u-1',
+    createdAt: '2025-02-01T10:00:00Z',
+  },
+  {
+    id: 'opp-2', title: 'Startup InnovTech — POC Dashboard',
+    description: 'Démonstration du dashboard analytics pour leur équipe data.',
+    status: 'prospection', dueDate: '2025-05-01T00:00:00Z',
+    workspaceId: '', creatorId: 'u-2',
+    createdAt: '2025-03-15T14:00:00Z',
+  },
+  {
+    id: 'opp-3', title: 'Groupe Casino — Audit sécurité annuel',
+    description: 'Audit de sécurité complet et mise en conformité RGPD.',
+    status: 'qualification', dueDate: '2025-07-30T00:00:00Z',
+    workspaceId: '', creatorId: 'u-3',
+    createdAt: '2025-03-10T09:00:00Z',
+  },
+  {
+    id: 'opp-4', title: 'E-commerce Shopify — Refonte UX',
+    description: 'Refonte complète de l\'expérience utilisateur pour leur boutique en ligne.',
+    status: 'proposition', dueDate: '2025-04-20T00:00:00Z',
+    workspaceId: '', creatorId: 'u-1',
+    createdAt: '2025-01-20T11:00:00Z',
+  },
+  {
+    id: 'opp-5', title: 'Banque Nationale — Migration Cloud',
+    description: 'Migration de l\'infrastructure on-premise vers AWS.',
+    status: 'gagnee', dueDate: '2025-08-01T00:00:00Z',
+    workspaceId: '', creatorId: 'u-4',
+    createdAt: '2025-01-05T08:00:00Z',
+  },
+  {
+    id: 'opp-6', title: 'Agence MediaPlus — Campagne digitale Q3',
+    description: 'Création et gestion de leur campagne marketing digitale.',
+    status: 'perdue', dueDate: '2025-02-01T00:00:00Z',
+    workspaceId: '', creatorId: 'u-2',
+    createdAt: '2024-12-10T16:00:00Z',
+  },
+  {
+    id: 'opp-7', title: 'Éditeur Logiciel SaaS — Intégration API',
+    description: 'Intégration de notre API dans leur plateforme SaaS existante.',
+    status: 'qualification', dueDate: '2025-05-15T00:00:00Z',
+    workspaceId: '', creatorId: 'u-6',
+    createdAt: '2025-03-01T13:00:00Z',
+  },
+  {
+    id: 'opp-8', title: 'Clinique Saint-Jean — Dossier patient digital',
+    description: 'Développement d\'une solution de gestion de dossiers patients numériques.',
+    status: 'prospection', dueDate: '2025-09-01T00:00:00Z',
+    workspaceId: '', creatorId: 'u-3',
+    createdAt: '2025-03-20T10:00:00Z',
+  },
 ];

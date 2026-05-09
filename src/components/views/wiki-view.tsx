@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,22 +27,26 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+} from "@/components/ui/context-menu";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 import {
   Plus,
   Search,
@@ -78,24 +82,31 @@ import {
   Check,
   GitCommit,
   AlertTriangle,
-} from 'lucide-react';
-import { mockWikiPages, mockUsers } from '@/lib/mock-data';
-import type { WikiPage } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
+} from "lucide-react";
+import { mockWikiPages, mockUsers } from "@/lib/mock-data";
+import { useApiData } from "@/hooks/use-api-data";
+import type { WikiPage, User } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
+function getUserName(id: string, users?: User[]) {
+  const u = (users ?? mockUsers).find((u) => u.id === id);
+  return u?.name || "Unknown";
 }
 
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
+function getUserInitials(id: string, users?: User[]) {
+  const user = (users ?? mockUsers).find((u) => u.id === id);
+  return user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+    : "??";
 }
 
-function getUserAvatarColor(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
+function getUserAvatarColor(id: string, users?: User[]) {
+  const user = (users ?? mockUsers).find((u) => u.id === id);
   return user
     ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
     : undefined;
@@ -112,20 +123,20 @@ function formatRelativeTime(dateStr: string) {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 }
 
 function formatFullDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -183,7 +194,7 @@ interface VersionEntry {
 }
 
 function getMockVersions(pageId: string): VersionEntry[] {
-  const authors = ['u-1', 'u-2', 'u-3', 'u-6', 'u-7', 'u-8'];
+  const authors = ["u-1", "u-2", "u-3", "u-6", "u-7", "u-8"];
   const page = mockWikiPages.find((p) => p.id === pageId);
   if (!page) return [];
 
@@ -242,10 +253,10 @@ function ToolbarButton({
   onClick,
   separator,
 }: {
-  icon: React.ReactNode;
-  label: string;
+  icon?: React.ReactNode;
+  label?: string;
   isActive?: boolean;
-  onClick: () => void;
+  onClick?: () => void;
   separator?: boolean;
 }) {
   if (separator) {
@@ -256,10 +267,10 @@ function ToolbarButton({
       variant="ghost"
       size="sm"
       className={cn(
-        'h-7 w-7 p-0 transition-all duration-150',
+        "h-7 w-7 p-0 transition-all duration-150",
         isActive
-          ? 'bg-[oklch(0.55_0.15_160)/0.15] text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/0.2]'
-          : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+          ? "bg-[oklch(0.55_0.15_160)/0.15] text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/0.2]"
+          : "hover:bg-muted/80 text-muted-foreground hover:text-foreground",
       )}
       onClick={onClick}
       title={label}
@@ -299,10 +310,10 @@ function WikiTreeItem({
               if (hasChildren) setExpanded(!expanded);
             }}
             className={cn(
-              'w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left group cursor-pointer',
+              "w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left group cursor-pointer",
               isSelected
-                ? 'bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold shadow-sm'
-                : 'hover:bg-muted/50 text-foreground'
+                ? "bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold shadow-sm"
+                : "hover:bg-muted/50 text-foreground",
             )}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
           >
@@ -311,15 +322,23 @@ function WikiTreeItem({
             </span>
             {hasChildren ? (
               <ChevronRight
-                className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-200', expanded && 'rotate-90')}
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+                  expanded && "rotate-90",
+                )}
               />
             ) : (
               <span className="w-3.5 shrink-0" />
             )}
             <span className="shrink-0 text-sm">{node.page.icon}</span>
-            <span className="truncate text-xs font-medium">{node.page.title}</span>
+            <span className="truncate text-xs font-medium">
+              {node.page.title}
+            </span>
             {hasChildren && (
-              <Badge variant="outline" className="ml-auto text-[8px] px-1 py-0 h-3.5 font-mono shrink-0 opacity-50">
+              <Badge
+                variant="outline"
+                className="ml-auto text-[8px] px-1 py-0 h-3.5 font-mono shrink-0 opacity-50"
+              >
                 {node.children.length}
               </Badge>
             )}
@@ -348,7 +367,7 @@ function WikiTreeItem({
         {expanded && hasChildren && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="overflow-hidden"
@@ -376,17 +395,20 @@ function renderContent(content: string) {
   let inCodeBlock = false;
   let codeBlockContent: string[] = [];
 
-  return content.split('\n').map((line, i) => {
+  return content.split("\n").map((line, i) => {
     // Handle code blocks
-    if (line.startsWith('```')) {
+    if (line.startsWith("```")) {
       if (inCodeBlock) {
         inCodeBlock = false;
-        const codeContent = codeBlockContent.join('\n');
+        const codeContent = codeBlockContent.join("\n");
         codeBlockContent = [];
         return (
-          <div key={i} className="my-3 rounded-lg bg-muted/80 border border-border/50 overflow-hidden">
+          <div
+            key={i}
+            className="my-3 rounded-lg bg-muted/80 border border-border/50 overflow-hidden"
+          >
             <div className="px-3 py-1.5 bg-muted/60 border-b border-border/30 text-[10px] text-muted-foreground font-mono">
-              {line.slice(3) || 'code'}
+              {line.slice(3) || "code"}
             </div>
             <pre className="p-4 overflow-x-auto">
               <code className="text-xs font-mono text-foreground/80 leading-relaxed">
@@ -407,49 +429,67 @@ function renderContent(content: string) {
       return null;
     }
 
-    if (line.startsWith('# ')) {
+    if (line.startsWith("# ")) {
       return (
-        <h1 key={i} className="text-2xl font-extrabold mt-8 mb-3 first:mt-0 tracking-tight text-foreground">
+        <h1
+          key={i}
+          className="text-2xl font-extrabold mt-8 mb-3 first:mt-0 tracking-tight text-foreground"
+        >
           {line.slice(2)}
         </h1>
       );
     }
-    if (line.startsWith('## ')) {
+    if (line.startsWith("## ")) {
       return (
-        <h2 key={i} className="text-lg font-bold mt-6 mb-2 pb-2 border-b border-border/50 text-foreground">
+        <h2
+          key={i}
+          className="text-lg font-bold mt-6 mb-2 pb-2 border-b border-border/50 text-foreground"
+        >
           {line.slice(3)}
         </h2>
       );
     }
-    if (line.startsWith('### ')) {
+    if (line.startsWith("### ")) {
       return (
-        <h3 key={i} className="text-base font-semibold mt-5 mb-1.5 text-foreground">
+        <h3
+          key={i}
+          className="text-base font-semibold mt-5 mb-1.5 text-foreground"
+        >
           {line.slice(4)}
         </h3>
       );
     }
-    if (line.startsWith('> ')) {
+    if (line.startsWith("> ")) {
       return (
-        <blockquote key={i} className="border-l-3 border-[oklch(0.55_0.15_160)/50] pl-4 my-3 text-sm text-muted-foreground italic bg-[oklch(0.55_0.15_160)/0.03] py-2 rounded-r-lg">
+        <blockquote
+          key={i}
+          className="border-l-3 border-[oklch(0.55_0.15_160)/50] pl-4 my-3 text-sm text-muted-foreground italic bg-[oklch(0.55_0.15_160)/0.03] py-2 rounded-r-lg"
+        >
           {line.slice(2)}
         </blockquote>
       );
     }
-    if (line.startsWith('- ')) {
+    if (line.startsWith("- ")) {
       return (
-        <li key={i} className="ml-5 text-sm text-muted-foreground list-disc leading-relaxed py-0.5">
+        <li
+          key={i}
+          className="ml-5 text-sm text-muted-foreground list-disc leading-relaxed py-0.5"
+        >
           {line.slice(2)}
         </li>
       );
     }
     if (/^\d+\.\s/.test(line)) {
       return (
-        <li key={i} className="ml-5 text-sm text-muted-foreground list-decimal leading-relaxed py-0.5">
-          {line.replace(/^\d+\.\s/, '')}
+        <li
+          key={i}
+          className="ml-5 text-sm text-muted-foreground list-decimal leading-relaxed py-0.5"
+        >
+          {line.replace(/^\d+\.\s/, "")}
         </li>
       );
     }
-    if (line.startsWith('`') && line.endsWith('`') && line.length > 2) {
+    if (line.startsWith("`") && line.endsWith("`") && line.length > 2) {
       return (
         <p key={i} className="text-sm leading-relaxed">
           <code className="px-1.5 py-0.5 rounded-md bg-muted/80 text-xs font-mono text-[oklch(0.55_0.15_160)] dark:text-[oklch(0.65_0.15_160)]">
@@ -458,38 +498,63 @@ function renderContent(content: string) {
         </p>
       );
     }
-    if (line.trim() === '') {
+    if (line.trim() === "") {
       return <div key={i} className="h-2" />;
     }
     // Process inline formatting
     const processedLine = line
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(
+        /\*\*(.+?)\*\*/g,
+        '<strong class="font-semibold text-foreground">$1</strong>',
+      )
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
       .replace(/~~(.+?)~~/g, '<del class="opacity-60">$1</del>')
-      .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 rounded bg-muted/80 text-xs font-mono text-[oklch(0.55_0.15_160)]">$1</code>');
+      .replace(
+        /`(.+?)`/g,
+        '<code class="px-1 py-0.5 rounded bg-muted/80 text-xs font-mono text-[oklch(0.55_0.15_160)]">$1</code>',
+      );
 
     return (
-      <p key={i} className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: processedLine }} />
+      <p
+        key={i}
+        className="text-sm text-muted-foreground leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: processedLine }}
+      />
     );
   });
 }
 
 export function WikiView() {
   const { t } = useTranslation();
-  const [selectedPageId, setSelectedPageId] = useState<string>(mockWikiPages[0]?.id || '');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [mode, setMode] = useState<'view' | 'edit'>('view');
-  const [activeTab, setActiveTab] = useState<'content' | 'history'>('content');
-  const [editContent, setEditContent] = useState('');
+
+  // ─── API Data ──────────────────────────────────────────────────────────
+  const { data: wikiData, isLoading } = useApiData("/api/wiki", {
+    fallback: mockWikiPages,
+  });
+  const { data: usersData } = useApiData("/api/users", {
+    fallback: mockUsers,
+  });
+  const apiPages = (wikiData as typeof mockWikiPages) ?? [];
+  const users = (usersData as typeof mockUsers) ?? [];
+
+  const [selectedPageId, setSelectedPageId] = useState<string>(
+    apiPages[0]?.id || "",
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [activeTab, setActiveTab] = useState<"content" | "history">("content");
+  const [editContent, setEditContent] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<WikiPage | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-  const [versionToRestore, setVersionToRestore] = useState<VersionEntry | null>(null);
+  const [versionToRestore, setVersionToRestore] = useState<VersionEntry | null>(
+    null,
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [pages, setPages] = useState<WikiPage[]>([...mockWikiPages]);
+  const [pages, setPages] = useState<WikiPage[]>([...apiPages]);
 
   const tree = useMemo(() => buildTree(pages), [pages]);
 
@@ -500,9 +565,10 @@ export function WikiView() {
   }, [selectedPageId, pages]);
 
   const filteredPages = searchQuery
-    ? pages.filter((p) =>
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.content.toLowerCase().includes(searchQuery.toLowerCase())
+    ? pages.filter(
+        (p) =>
+          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.content.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : pages;
 
@@ -525,7 +591,7 @@ export function WikiView() {
     if (selectedPage) {
       setEditContent(selectedPage.content);
       setHasUnsavedChanges(false);
-      setMode('edit');
+      setMode("edit");
     }
   }, [selectedPage]);
 
@@ -533,7 +599,7 @@ export function WikiView() {
     if (hasUnsavedChanges) {
       setShowDiscardDialog(true);
     } else {
-      setMode('view');
+      setMode("view");
     }
   }, [hasUnsavedChanges]);
 
@@ -541,18 +607,23 @@ export function WikiView() {
     setPages((prev) =>
       prev.map((p) =>
         p.id === selectedPageId
-          ? { ...p, content: editContent, updatedAt: new Date().toISOString(), lastEditedBy: 'u-1' }
-          : p
-      )
+          ? {
+              ...p,
+              content: editContent,
+              updatedAt: new Date().toISOString(),
+              lastEditedBy: "u-1",
+            }
+          : p,
+      ),
     );
     setHasUnsavedChanges(false);
-    setMode('view');
+    setMode("view");
   }, [selectedPageId, editContent]);
 
   const handleDiscard = useCallback(() => {
     setShowDiscardDialog(false);
     setHasUnsavedChanges(false);
-    setMode('view');
+    setMode("view");
   }, []);
 
   const handleContentChange = useCallback((value: string) => {
@@ -561,42 +632,59 @@ export function WikiView() {
   }, []);
 
   // Formatting insert functions
-  const insertFormat = useCallback((prefix: string, suffix: string = '') => {
-    if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = editContent.substring(start, end);
-    const newContent =
-      editContent.substring(0, start) + prefix + selectedText + suffix + editContent.substring(end);
-    setEditContent(newContent);
-    setHasUnsavedChanges(true);
-    // Restore cursor position
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newCursorPos = start + prefix.length + selectedText.length + suffix.length;
-      textarea.setSelectionRange(start + prefix.length, newCursorPos);
-    });
-  }, [editContent]);
+  const insertFormat = useCallback(
+    (prefix: string, suffix: string = "") => {
+      if (!textareaRef.current) return;
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = editContent.substring(start, end);
+      const newContent =
+        editContent.substring(0, start) +
+        prefix +
+        selectedText +
+        suffix +
+        editContent.substring(end);
+      setEditContent(newContent);
+      setHasUnsavedChanges(true);
+      // Restore cursor position
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const newCursorPos =
+          start + prefix.length + selectedText.length + suffix.length;
+        textarea.setSelectionRange(start + prefix.length, newCursorPos);
+      });
+    },
+    [editContent],
+  );
 
-  const insertLinePrefix = useCallback((prefix: string) => {
-    if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    // Find the start of the current line
-    const lineStart = editContent.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = editContent.indexOf('\n', start);
-    const endOfLine = lineEnd === -1 ? editContent.length : lineEnd;
-    const currentLine = editContent.substring(lineStart, endOfLine);
-    const newLine = prefix + currentLine;
-    const newContent = editContent.substring(0, lineStart) + newLine + editContent.substring(endOfLine);
-    setEditContent(newContent);
-    setHasUnsavedChanges(true);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length + currentLine.length);
-    });
-  }, [editContent]);
+  const insertLinePrefix = useCallback(
+    (prefix: string) => {
+      if (!textareaRef.current) return;
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      // Find the start of the current line
+      const lineStart = editContent.lastIndexOf("\n", start - 1) + 1;
+      const lineEnd = editContent.indexOf("\n", start);
+      const endOfLine = lineEnd === -1 ? editContent.length : lineEnd;
+      const currentLine = editContent.substring(lineStart, endOfLine);
+      const newLine = prefix + currentLine;
+      const newContent =
+        editContent.substring(0, lineStart) +
+        newLine +
+        editContent.substring(endOfLine);
+      setEditContent(newContent);
+      setHasUnsavedChanges(true);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(
+          lineStart + prefix.length,
+          lineStart + prefix.length + currentLine.length,
+        );
+      });
+    },
+    [editContent],
+  );
 
   // Page management
   const handleDuplicatePage = useCallback((page: WikiPage) => {
@@ -606,7 +694,7 @@ export function WikiView() {
       title: `${page.title} (copy)`,
       parentId: page.parentId,
       updatedAt: new Date().toISOString(),
-      lastEditedBy: 'u-1',
+      lastEditedBy: "u-1",
     };
     setPages((prev) => [...prev, newPage]);
   }, []);
@@ -623,27 +711,30 @@ export function WikiView() {
         return prev.filter((p) => p.id !== pageToDelete.id);
       });
       if (selectedPageId === pageToDelete.id) {
-        setSelectedPageId(pages[0]?.id || '');
+        setSelectedPageId(pages[0]?.id || "");
       }
     }
     setShowDeleteDialog(false);
     setPageToDelete(null);
   }, [pageToDelete, selectedPageId, pages]);
 
-  const handleSelectPage = useCallback((page: WikiPage) => {
-    if (hasUnsavedChanges) {
-      setShowDiscardDialog(true);
-      return;
-    }
-    setSelectedPageId(page.id);
-    setMode('view');
-    setActiveTab('content');
-  }, [hasUnsavedChanges]);
+  const handleSelectPage = useCallback(
+    (page: WikiPage) => {
+      if (hasUnsavedChanges) {
+        setShowDiscardDialog(true);
+        return;
+      }
+      setSelectedPageId(page.id);
+      setMode("view");
+      setActiveTab("content");
+    },
+    [hasUnsavedChanges],
+  );
 
   // Auto-resize textarea
   useEffect(() => {
-    if (textareaRef.current && mode === 'edit') {
-      textareaRef.current.style.height = 'auto';
+    if (textareaRef.current && mode === "edit") {
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 300)}px`;
     }
   }, [editContent, mode]);
@@ -656,7 +747,9 @@ export function WikiView() {
           <CardContent className="p-3">
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.wiki.title}</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {t.wiki.title}
+              </h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -686,14 +779,16 @@ export function WikiView() {
                       key={page.id}
                       onClick={() => handleSelectPage(page)}
                       className={cn(
-                        'w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left',
+                        "w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left",
                         selectedPageId === page.id
-                          ? 'bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold'
-                          : 'hover:bg-muted/50'
+                          ? "bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold"
+                          : "hover:bg-muted/50",
                       )}
                     >
                       <span className="text-sm">{page.icon}</span>
-                      <span className="truncate text-xs font-medium">{page.title}</span>
+                      <span className="truncate text-xs font-medium">
+                        {page.title}
+                      </span>
                     </button>
                   ))}
                   {filteredPages.length === 0 && (
@@ -720,7 +815,11 @@ export function WikiView() {
             </ScrollArea>
 
             <Separator className="my-2" />
-            <Button variant="ghost" size="sm" className="w-full h-8 text-xs justify-start text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-8 text-xs justify-start text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
+            >
               <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.wiki.newPage}
             </Button>
           </CardContent>
@@ -742,10 +841,10 @@ export function WikiView() {
                       <button
                         onClick={() => handleSelectPage(page)}
                         className={cn(
-                          'text-xs transition-colors hover:text-foreground',
+                          "text-xs transition-colors hover:text-foreground",
                           idx === breadcrumbs.length - 1
-                            ? 'font-semibold text-foreground'
-                            : 'text-muted-foreground'
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground",
                         )}
                       >
                         {page.icon} {page.title}
@@ -755,22 +854,33 @@ export function WikiView() {
 
                   {/* View/Edit mode tabs + History tab */}
                   <div className="ml-auto flex items-center gap-2">
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'content' | 'history')}>
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={(v) =>
+                        setActiveTab(v as "content" | "history")
+                      }
+                    >
                       <TabsList className="h-7">
-                        <TabsTrigger value="content" className="text-[10px] px-2 h-5">
+                        <TabsTrigger
+                          value="content"
+                          className="text-[10px] px-2 h-5"
+                        >
                           <BookOpen className="h-3 w-3 mr-1" />
-                          {mode === 'edit' ? t.wiki.editMode : t.wiki.viewMode}
+                          {mode === "edit" ? t.wiki.editMode : t.wiki.viewMode}
                         </TabsTrigger>
-                        <TabsTrigger value="history" className="text-[10px] px-2 h-5">
+                        <TabsTrigger
+                          value="history"
+                          className="text-[10px] px-2 h-5"
+                        >
                           <History className="h-3 w-3 mr-1" />
                           {t.wiki.history}
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
 
-                    {activeTab === 'content' && (
+                    {activeTab === "content" && (
                       <AnimatePresence mode="wait">
-                        {mode === 'view' ? (
+                        {mode === "view" ? (
                           <motion.div
                             key="view-btn"
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -784,7 +894,8 @@ export function WikiView() {
                               onClick={enterEditMode}
                               className="h-7 text-xs shadow-sm border-[oklch(0.55_0.15_160)/30] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
                             >
-                              <Edit3 className="h-3.5 w-3.5 mr-1" /> {t.wiki.edit}
+                              <Edit3 className="h-3.5 w-3.5 mr-1" />{" "}
+                              {t.wiki.edit}
                             </Button>
                           </motion.div>
                         ) : (
@@ -802,14 +913,16 @@ export function WikiView() {
                               onClick={exitEditMode}
                               className="h-7 text-xs text-muted-foreground"
                             >
-                              <X className="h-3.5 w-3.5 mr-1" /> {t.wiki.discard}
+                              <X className="h-3.5 w-3.5 mr-1" />{" "}
+                              {t.wiki.discard}
                             </Button>
                             <Button
                               size="sm"
                               onClick={handleSave}
                               className="h-7 text-xs bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
                             >
-                              <Save className="h-3.5 w-3.5 mr-1" /> {t.wiki.save}
+                              <Save className="h-3.5 w-3.5 mr-1" />{" "}
+                              {t.wiki.save}
                             </Button>
                           </motion.div>
                         )}
@@ -819,7 +932,7 @@ export function WikiView() {
                 </div>
 
                 {/* Version History Tab */}
-                {activeTab === 'history' ? (
+                {activeTab === "history" ? (
                   <ScrollArea className="flex-1">
                     <div className="px-6 py-5 max-w-3xl">
                       <motion.div
@@ -841,21 +954,26 @@ export function WikiView() {
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.2, delay: idx * 0.05 }}
                             >
-                              <Card className={cn(
-                                'overflow-hidden transition-all duration-200 hover:shadow-md',
-                                version.isCurrent && 'ring-1 ring-[oklch(0.55_0.15_160)/30]'
-                              )}>
+                              <Card
+                                className={cn(
+                                  "overflow-hidden transition-all duration-200 hover:shadow-md",
+                                  version.isCurrent &&
+                                    "ring-1 ring-[oklch(0.55_0.15_160)/30]",
+                                )}
+                              >
                                 <CardContent className="p-4">
                                   <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                       {/* Version dot with connecting line */}
                                       <div className="flex flex-col items-center">
-                                        <div className={cn(
-                                          'h-3 w-3 rounded-full border-2 shrink-0',
-                                          version.isCurrent
-                                            ? 'bg-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)]'
-                                            : 'bg-muted border-muted-foreground/30'
-                                        )} />
+                                        <div
+                                          className={cn(
+                                            "h-3 w-3 rounded-full border-2 shrink-0",
+                                            version.isCurrent
+                                              ? "bg-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)]"
+                                              : "bg-muted border-muted-foreground/30",
+                                          )}
+                                        />
                                         {idx < versions.length - 1 && (
                                           <div className="w-px h-8 bg-border/50 mt-1" />
                                         )}
@@ -875,14 +993,23 @@ export function WikiView() {
                                           <Avatar className="h-4 w-4">
                                             <AvatarFallback
                                               className="text-[6px] font-semibold"
-                                              style={{ backgroundColor: getUserAvatarColor(version.author) }}
+                                              style={{
+                                                backgroundColor:
+                                                  getUserAvatarColor(
+                                                    version.author,
+                                                  ),
+                                              }}
                                             >
                                               {getUserInitials(version.author)}
                                             </AvatarFallback>
                                           </Avatar>
-                                          <span className="font-medium">{getUserName(version.author)}</span>
+                                          <span className="font-medium">
+                                            {getUserName(version.author)}
+                                          </span>
                                           <span>·</span>
-                                          <span>{formatRelativeTime(version.date)}</span>
+                                          <span>
+                                            {formatRelativeTime(version.date)}
+                                          </span>
                                         </div>
                                       </div>
                                     </div>
@@ -891,12 +1018,14 @@ export function WikiView() {
                                     <div className="flex items-center gap-2">
                                       {version.addedLines > 0 && (
                                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                          +{version.addedLines} {t.wiki.addedLines}
+                                          +{version.addedLines}{" "}
+                                          {t.wiki.addedLines}
                                         </span>
                                       )}
                                       {version.removedLines > 0 && (
                                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                                          -{version.removedLines} {t.wiki.removedLines}
+                                          -{version.removedLines}{" "}
+                                          {t.wiki.removedLines}
                                         </span>
                                       )}
                                       {!version.isCurrent && (
@@ -923,7 +1052,7 @@ export function WikiView() {
                       </motion.div>
                     </div>
                   </ScrollArea>
-                ) : mode === 'edit' ? (
+                ) : mode === "edit" ? (
                   /* Edit Mode - Split Pane */
                   <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Formatting Toolbar - Sticky */}
@@ -932,79 +1061,82 @@ export function WikiView() {
                         <ToolbarButton
                           icon={<Bold className="h-3.5 w-3.5" />}
                           label={t.wiki.bold}
-                          onClick={() => insertFormat('**', '**')}
+                          onClick={() => insertFormat("**", "**")}
                         />
                         <ToolbarButton
                           icon={<Italic className="h-3.5 w-3.5" />}
                           label={t.wiki.italic}
-                          onClick={() => insertFormat('*', '*')}
+                          onClick={() => insertFormat("*", "*")}
                         />
                         <ToolbarButton
                           icon={<Strikethrough className="h-3.5 w-3.5" />}
                           label={t.wiki.strikethrough}
-                          onClick={() => insertFormat('~~', '~~')}
+                          onClick={() => insertFormat("~~", "~~")}
                         />
                         <ToolbarButton
                           icon={<Code className="h-3.5 w-3.5" />}
                           label={t.wiki.code}
-                          onClick={() => insertFormat('`', '`')}
+                          onClick={() => insertFormat("`", "`")}
                         />
                         <ToolbarButton separator />
 
                         <ToolbarButton
                           icon={<Heading1 className="h-3.5 w-3.5" />}
                           label={t.wiki.heading1}
-                          onClick={() => insertLinePrefix('# ')}
+                          onClick={() => insertLinePrefix("# ")}
                         />
                         <ToolbarButton
                           icon={<Heading2 className="h-3.5 w-3.5" />}
                           label={t.wiki.heading2}
-                          onClick={() => insertLinePrefix('## ')}
+                          onClick={() => insertLinePrefix("## ")}
                         />
                         <ToolbarButton
                           icon={<Heading3 className="h-3.5 w-3.5" />}
                           label={t.wiki.heading3}
-                          onClick={() => insertLinePrefix('### ')}
+                          onClick={() => insertLinePrefix("### ")}
                         />
                         <ToolbarButton separator />
 
                         <ToolbarButton
                           icon={<List className="h-3.5 w-3.5" />}
                           label={t.wiki.bulletList}
-                          onClick={() => insertLinePrefix('- ')}
+                          onClick={() => insertLinePrefix("- ")}
                         />
                         <ToolbarButton
                           icon={<ListOrdered className="h-3.5 w-3.5" />}
                           label={t.wiki.numberedList}
-                          onClick={() => insertLinePrefix('1. ')}
+                          onClick={() => insertLinePrefix("1. ")}
                         />
                         <ToolbarButton
                           icon={<Quote className="h-3.5 w-3.5" />}
                           label={t.wiki.quote}
-                          onClick={() => insertLinePrefix('> ')}
+                          onClick={() => insertLinePrefix("> ")}
                         />
                         <ToolbarButton
                           icon={<CodeSquare className="h-3.5 w-3.5" />}
                           label={t.wiki.codeBlock}
-                          onClick={() => insertFormat('```\n', '\n```')}
+                          onClick={() => insertFormat("```\n", "\n```")}
                         />
                         <ToolbarButton separator />
 
                         <ToolbarButton
                           icon={<Link2 className="h-3.5 w-3.5" />}
                           label={t.wiki.link}
-                          onClick={() => insertFormat('[', '](url)')}
+                          onClick={() => insertFormat("[", "](url)")}
                         />
                         <ToolbarButton
                           icon={<ImageIcon className="h-3.5 w-3.5" />}
                           label={t.wiki.image}
-                          onClick={() => insertFormat('![alt](', 'url)')}
+                          onClick={() => insertFormat("![alt](", "url)")}
                         />
                       </div>
                     </div>
 
                     {/* Editor + Preview Split */}
-                    <ResizablePanelGroup direction="horizontal" className="flex-1">
+                    <ResizablePanelGroup
+                      direction="horizontal"
+                      className="flex-1"
+                    >
                       <ResizablePanel defaultSize={50} minSize={30}>
                         <div className="h-full flex flex-col">
                           <div className="px-4 py-2 border-b bg-muted/20">
@@ -1016,7 +1148,9 @@ export function WikiView() {
                             <Textarea
                               ref={textareaRef}
                               value={editContent}
-                              onChange={(e) => handleContentChange(e.target.value)}
+                              onChange={(e) =>
+                                handleContentChange(e.target.value)
+                              }
                               className="border-0 rounded-none resize-none min-h-full focus-visible:ring-0 focus-visible:border-transparent p-4 text-sm font-mono leading-relaxed bg-transparent"
                               placeholder="Start writing..."
                             />
@@ -1043,8 +1177,12 @@ export function WikiView() {
                     {/* Bottom bar with word/char count */}
                     <div className="flex items-center justify-between px-4 py-1.5 border-t bg-muted/20 text-[10px] text-muted-foreground">
                       <div className="flex items-center gap-3">
-                        <span>{wordCount} {t.wiki.wordCount}</span>
-                        <span>{charCount} {t.wiki.charCount}</span>
+                        <span>
+                          {wordCount} {t.wiki.wordCount}
+                        </span>
+                        <span>
+                          {charCount} {t.wiki.charCount}
+                        </span>
                       </div>
                       {hasUnsavedChanges && (
                         <motion.div
@@ -1067,20 +1205,31 @@ export function WikiView() {
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{selectedPage.icon}</span>
                           <div>
-                            <h2 className="text-xl font-bold tracking-tight">{selectedPage.title}</h2>
+                            <h2 className="text-xl font-bold tracking-tight">
+                              {selectedPage.title}
+                            </h2>
                             <div className="flex items-center gap-2 mt-1.5">
                               <Avatar className="h-5 w-5">
                                 <AvatarFallback
                                   className="text-[8px] font-semibold"
-                                  style={{ backgroundColor: getUserAvatarColor(selectedPage.lastEditedBy) }}
+                                  style={{
+                                    backgroundColor: getUserAvatarColor(
+                                      selectedPage.lastEditedBy,
+                                    ),
+                                  }}
                                 >
                                   {getUserInitials(selectedPage.lastEditedBy)}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-xs text-muted-foreground">
-                                {t.wiki.lastEditedBy} <span className="font-semibold text-foreground">{getUserName(selectedPage.lastEditedBy)}</span>
+                                {t.wiki.lastEditedBy}{" "}
+                                <span className="font-semibold text-foreground">
+                                  {getUserName(selectedPage.lastEditedBy)}
+                                </span>
                               </span>
-                              <span className="text-xs text-muted-foreground/60">·</span>
+                              <span className="text-xs text-muted-foreground/60">
+                                ·
+                              </span>
                               <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {formatRelativeTime(selectedPage.updatedAt)}
@@ -1099,12 +1248,20 @@ export function WikiView() {
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => handleDuplicatePage(selectedPage)}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleDuplicatePage(selectedPage)
+                                }
+                              >
                                 <Copy className="h-4 w-4 mr-2" />
                                 {t.wiki.duplicatePage}
                               </DropdownMenuItem>
@@ -1166,9 +1323,7 @@ export function WikiView() {
               </div>
               {t.wiki.unsavedChanges}
             </DialogTitle>
-            <DialogDescription>
-              {t.wiki.unsavedWarning}
-            </DialogDescription>
+            <DialogDescription>{t.wiki.unsavedWarning}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
@@ -1178,11 +1333,7 @@ export function WikiView() {
             >
               {t.wiki.keepEditing}
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDiscard}
-            >
+            <Button variant="destructive" size="sm" onClick={handleDiscard}>
               {t.wiki.discardChanges}
             </Button>
           </DialogFooter>

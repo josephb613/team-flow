@@ -16,15 +16,23 @@ import { MembersView } from '@/components/views/members-view';
 import { TeamsView } from '@/components/views/teams-view';
 import { ReportsView } from '@/components/views/reports-view';
 import { AutomationsView } from '@/components/views/automations-view';
+import { OpportunitiesView } from '@/components/views/opportunities-view';
 import { SettingsView } from '@/components/views/settings-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
+import { InviteMemberDialog } from '@/components/invite-member-dialog';
 import { CreateTaskDialog } from '@/components/create-task-dialog';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
+import { CreateChannelDialog } from '@/components/create-channel-dialog';
+import { CreateTeamDialog } from '@/components/create-team-dialog';
+import { CreateOpportunityDialog } from '@/components/create-opportunity-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
+import { ProjectDetailDrawer } from '@/components/project-detail-drawer';
+import { MemberDetailDrawer } from '@/components/member-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
+import { WhatsNewDialog } from '@/components/whats-new-dialog';
 import { ConnectionStatus } from '@/components/connection-status';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
@@ -48,6 +56,7 @@ const viewMap: Record<string, React.ComponentType> = {
   teams: TeamsView,
   reports: ReportsView,
   automations: AutomationsView,
+  opportunities: OpportunitiesView,
   settings: SettingsView,
 };
 
@@ -239,8 +248,17 @@ export function MainApp() {
       {/* Task Detail Drawer */}
       <TaskDetailDrawer />
 
+      {/* Project Detail Drawer */}
+      <ProjectDetailDrawer />
+
+      {/* Member Detail Drawer */}
+      <MemberDetailDrawer />
+
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog />
+
+      {/* Invite Member Dialog */}
+      <InviteMemberDialog />
 
       {/* Create Task Dialog */}
       <CreateTaskDialog />
@@ -248,11 +266,23 @@ export function MainApp() {
       {/* Create Project Dialog */}
       <CreateProjectDialog />
 
+      {/* Create Channel Dialog */}
+      <CreateChannelDialog />
+
+      {/* Create Team Dialog */}
+      <CreateTeamDialog />
+
+      {/* Create Opportunity Dialog */}
+      <CreateOpportunityDialog />
+
       {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}
       <ShortcutsDialog />
 
       {/* Keyboard Shortcuts Dialog (new, triggered by ⌘/) */}
       <KeyboardShortcutsDialog />
+
+      {/* What's New Dialog */}
+      <WhatsNewDialog />
 
       {/* Toast Notifications */}
       <Toaster />

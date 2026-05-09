@@ -5,7 +5,10 @@ const httpServer = createServer()
 const io = new Server(httpServer, {
   path: '/',
   cors: {
-    origin: '*',
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? process.env.CORS_ORIGIN || 'http://localhost:3000'
+        : '*',
     methods: ['GET', 'POST'],
   },
   pingTimeout: 60000,

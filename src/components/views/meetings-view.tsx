@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { useState, useMemo, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import {
   Video,
   Clock,
@@ -24,35 +24,44 @@ import {
   ExternalLink,
   Timer,
   Radio,
-} from 'lucide-react';
-import { mockMeetings, mockUsers, mockProjects } from '@/lib/mock-data';
-import type { Meeting, MeetingStatus } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
+} from "lucide-react";
+import { mockMeetings, mockUsers, mockProjects } from "@/lib/mock-data";
+import type { Meeting, MeetingStatus, User, Project } from "@/lib/types";
+import { useApiData } from "@/hooks/use-api-data";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
-// Helper functions
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n: string) => n[0]).join('') : '??';
+// Helper functions (accept data arrays so they work with API or mock data)
+function getUserInitials(id: string, users: User[]) {
+  const user = users.find((u) => u.id === id);
+  return user
+    ? user.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+    : "??";
 }
 
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
+function getUserName(id: string, users: User[]) {
+  return users.find((u) => u.id === id)?.name || "Unknown";
 }
 
-function getUserAvatarColor(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
+function getUserAvatarColor(id: string, users: User[]) {
+  const user = users.find((u) => u.id === id);
   return user
     ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
     : undefined;
 }
 
-function getProjectById(id: string) {
-  return mockProjects.find((p) => p.id === id);
+function getProjectById(id: string, projects: Project[]) {
+  return projects.find((p) => p.id === id);
 }
 
-function formatMeetingDate(dateStr: string, t: ReturnType<typeof useTranslation>['t']) {
+function formatMeetingDate(
+  dateStr: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
   const date = new Date(dateStr);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
@@ -62,17 +71,17 @@ function formatMeetingDate(dateStr: string, t: ReturnType<typeof useTranslation>
 
   if (isToday) return t.meetings.today;
   if (isTomorrow) return t.meetings.tomorrow;
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
   });
 }
 
 function formatMeetingTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  return new Date(dateStr).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 }
@@ -86,7 +95,7 @@ function formatDuration(minutes: number) {
 
 // ─── Countdown Timer Hook ────────────────────────────────────────────────────
 function useCountdown(targetDate: Date) {
-  const [timeLeft, setTimeLeft] = useState('');
+  const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -94,7 +103,7 @@ function useCountdown(targetDate: Date) {
       const diff = targetDate.getTime() - now.getTime();
 
       if (diff <= 0) {
-        setTimeLeft('Starting now');
+        setTimeLeft("Starting now");
         return;
       }
 
@@ -125,7 +134,7 @@ function MeetingDurationBar({ meeting }: { meeting: Meeting }) {
   const meetingEnd = new Date(meetingDate.getTime() + meeting.duration * 60000);
   const now = new Date();
 
-  if (meeting.status !== 'in_progress') return null;
+  if (meeting.status !== "in_progress") return null;
 
   const totalDuration = meeting.duration * 60000; // in ms
   const elapsed = now.getTime() - meetingDate.getTime();
@@ -134,20 +143,28 @@ function MeetingDurationBar({ meeting }: { meeting: Meeting }) {
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-muted-foreground font-medium">Progress</span>
-        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">{Math.round(progress)}%</span>
+        <span className="text-[10px] text-muted-foreground font-medium">
+          Progress
+        </span>
+        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+          {Math.round(progress)}%
+        </span>
       </div>
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         />
       </div>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-[9px] text-muted-foreground">{formatMeetingTime(meeting.date)}</span>
-        <span className="text-[9px] text-muted-foreground">{formatMeetingTime(meetingEnd.toISOString())}</span>
+        <span className="text-[9px] text-muted-foreground">
+          {formatMeetingTime(meeting.date)}
+        </span>
+        <span className="text-[9px] text-muted-foreground">
+          {formatMeetingTime(meetingEnd.toISOString())}
+        </span>
       </div>
     </div>
   );
@@ -156,39 +173,46 @@ function MeetingDurationBar({ meeting }: { meeting: Meeting }) {
 // Status configuration with gradient border colors
 const statusConfig: Record<
   MeetingStatus,
-  { label: string; color: string; bg: string; borderGradient: string; icon: React.ReactNode; dotColor: string }
+  {
+    label: string;
+    color: string;
+    bg: string;
+    borderGradient: string;
+    icon: React.ReactNode;
+    dotColor: string;
+  }
 > = {
   scheduled: {
-    label: 'Scheduled',
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-500/10 border-teal-200 dark:border-teal-800',
-    borderGradient: 'from-teal-400 to-teal-600',
+    label: "Scheduled",
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-500/10 border-teal-200 dark:border-teal-800",
+    borderGradient: "from-teal-400 to-teal-600",
     icon: <CalendarClock className="h-3 w-3" />,
-    dotColor: 'bg-teal-500',
+    dotColor: "bg-teal-500",
   },
   in_progress: {
-    label: 'In Progress',
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-200 dark:border-amber-800',
-    borderGradient: 'from-amber-400 to-amber-600',
+    label: "In Progress",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-200 dark:border-amber-800",
+    borderGradient: "from-amber-400 to-amber-600",
     icon: <PlayCircle className="h-3 w-3" />,
-    dotColor: 'bg-amber-500',
+    dotColor: "bg-amber-500",
   },
   completed: {
-    label: 'Completed',
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
-    borderGradient: 'from-emerald-400 to-emerald-600',
+    label: "Completed",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800",
+    borderGradient: "from-emerald-400 to-emerald-600",
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-emerald-500',
+    dotColor: "bg-emerald-500",
   },
   cancelled: {
-    label: 'Cancelled',
-    color: 'text-red-500 dark:text-red-400',
-    bg: 'bg-red-500/10 border-red-200 dark:border-red-800',
-    borderGradient: 'from-red-400 to-red-600',
+    label: "Cancelled",
+    color: "text-red-500 dark:text-red-400",
+    bg: "bg-red-500/10 border-red-200 dark:border-red-800",
+    borderGradient: "from-red-400 to-red-600",
     icon: <XCircle className="h-3 w-3" />,
-    dotColor: 'bg-red-500',
+    dotColor: "bg-red-500",
   },
 };
 
@@ -203,19 +227,36 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
 };
 
 // Meeting card component with gradient left border
-function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof useTranslation>['t'] }) {
+function MeetingCard({
+  meeting,
+  t,
+  users,
+  projects,
+}: {
+  meeting: Meeting;
+  t: ReturnType<typeof useTranslation>["t"];
+  users: User[];
+  projects: Project[];
+}) {
   const status = statusConfig[meeting.status];
-  const project = meeting.projectId ? getProjectById(meeting.projectId) : null;
+  const project = meeting.projectId
+    ? getProjectById(meeting.projectId, projects)
+    : null;
 
   return (
     <motion.div variants={item}>
       <Card className="group hover:shadow-lg transition-all duration-200 overflow-hidden relative dark-card-glow">
         {/* Gradient left border */}
-        <div className={cn('absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b', status.borderGradient)} />
+        <div
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b",
+            status.borderGradient,
+          )}
+        />
 
         <CardContent className="p-4 sm:p-5 pl-5 sm:pl-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -229,9 +270,9 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                 <Badge
                   variant="outline"
                   className={cn(
-                    'text-[10px] px-1.5 py-0 font-medium shrink-0',
+                    "text-[10px] px-1.5 py-0 font-medium shrink-0",
                     status.bg,
-                    status.color
+                    status.color,
                   )}
                 >
                   <span className="mr-1 inline-flex">{status.icon}</span>
@@ -253,7 +294,7 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
                   <span>
-                    {formatMeetingTime(meeting.date)} ·{' '}
+                    {formatMeetingTime(meeting.date)} ·{" "}
                     {formatDuration(meeting.duration)}
                   </span>
                 </div>
@@ -269,7 +310,9 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                 {meeting.link && (
                   <div className="flex items-center gap-1.5 text-[oklch(0.55_0.15_160)]">
                     <ExternalLink className="h-3 w-3" />
-                    <span className="underline decoration-dotted">Meeting Link</span>
+                    <span className="underline decoration-dotted">
+                      Meeting Link
+                    </span>
                   </div>
                 )}
               </div>
@@ -284,9 +327,11 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                     >
                       <AvatarFallback
                         className="text-[8px] font-semibold"
-                        style={{ backgroundColor: getUserAvatarColor(id) }}
+                        style={{
+                          backgroundColor: getUserAvatarColor(id, users),
+                        }}
                       >
-                        {getUserInitials(id)}
+                        {getUserInitials(id, users)}
                       </AvatarFallback>
                     </Avatar>
                   ))}
@@ -308,11 +353,11 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
 
             {/* Right: Action button */}
             <div className="flex items-center gap-2 sm:flex-col sm:items-end shrink-0">
-              {meeting.status === 'in_progress' && (
+              {meeting.status === "in_progress" && (
                 <Button
                   size="sm"
                   className={cn(
-                    'h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm relative overflow-hidden'
+                    "h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm relative overflow-hidden",
                   )}
                 >
                   {/* Enhanced pulse animation with double ring */}
@@ -322,7 +367,7 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                   <span className="relative z-10">{t.meetings.joinNow}</span>
                 </Button>
               )}
-              {meeting.status === 'scheduled' && (
+              {meeting.status === "scheduled" && (
                 <Button
                   size="sm"
                   className="h-9 text-xs bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
@@ -331,12 +376,8 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                   {t.meetings.join}
                 </Button>
               )}
-              {meeting.status === 'completed' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 text-xs"
-                >
+              {meeting.status === "completed" && (
+                <Button variant="outline" size="sm" className="h-9 text-xs">
                   <Calendar className="h-3.5 w-3.5 mr-1.5" />
                   {t.meetings.notes}
                 </Button>
@@ -355,20 +396,23 @@ function TimelineItem({
   isFirst,
   isLast,
   t,
+  users,
+  projects,
 }: {
   meeting: Meeting;
   isFirst: boolean;
   isLast: boolean;
-  t: ReturnType<typeof useTranslation>['t'];
+  t: ReturnType<typeof useTranslation>["t"];
+  users: User[];
+  projects: Project[];
 }) {
   const status = statusConfig[meeting.status];
-  const project = meeting.projectId ? getProjectById(meeting.projectId) : null;
+  const project = meeting.projectId
+    ? getProjectById(meeting.projectId, projects)
+    : null;
 
   return (
-    <motion.div
-      variants={item}
-      className="flex gap-3 sm:gap-4"
-    >
+    <motion.div variants={item} className="flex gap-3 sm:gap-4">
       {/* Timeline line + dot */}
       <div className="flex flex-col items-center shrink-0 w-12">
         <div className="flex flex-col items-center">
@@ -378,12 +422,15 @@ function TimelineItem({
           </span>
           <div
             className={cn(
-              'h-4 w-4 rounded-full border-3 border-background shrink-0 z-10 shadow-sm ring-2',
-              meeting.status === 'in_progress' ? 'ring-amber-500/30' :
-              meeting.status === 'scheduled' ? 'ring-teal-500/30' :
-              meeting.status === 'completed' ? 'ring-emerald-500/30' :
-              'ring-red-500/30',
-              status.dotColor
+              "h-4 w-4 rounded-full border-3 border-background shrink-0 z-10 shadow-sm ring-2",
+              meeting.status === "in_progress"
+                ? "ring-amber-500/30"
+                : meeting.status === "scheduled"
+                  ? "ring-teal-500/30"
+                  : meeting.status === "completed"
+                    ? "ring-emerald-500/30"
+                    : "ring-red-500/30",
+              status.dotColor,
             )}
           />
         </div>
@@ -393,19 +440,23 @@ function TimelineItem({
       </div>
 
       {/* Content */}
-      <div className={cn('flex-1 min-w-0 pb-5', isLast && 'pb-0')}>
-        <div className={cn(
-          'flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl hover:bg-muted/30 transition-all duration-150 border border-transparent hover:border-border/50',
-        )}>
+      <div className={cn("flex-1 min-w-0 pb-5", isLast && "pb-0")}>
+        <div
+          className={cn(
+            "flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl hover:bg-muted/30 transition-all duration-150 border border-transparent hover:border-border/50",
+          )}
+        >
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="text-sm font-semibold truncate">{meeting.title}</h4>
+              <h4 className="text-sm font-semibold truncate">
+                {meeting.title}
+              </h4>
               <Badge
                 variant="outline"
                 className={cn(
-                  'text-[9px] px-1.5 py-0 font-medium shrink-0',
+                  "text-[9px] px-1.5 py-0 font-medium shrink-0",
                   status.bg,
-                  status.color
+                  status.color,
                 )}
               >
                 {status.label}
@@ -435,7 +486,7 @@ function TimelineItem({
             <MeetingDurationBar meeting={meeting} />
           </div>
 
-          {meeting.status === 'in_progress' ? (
+          {meeting.status === "in_progress" ? (
             <Button
               size="sm"
               className="h-8 text-[11px] shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white relative overflow-hidden"
@@ -445,7 +496,7 @@ function TimelineItem({
               <Video className="h-3 w-3 mr-1 relative z-10" />
               <span className="relative z-10">{t.meetings.joinNow}</span>
             </Button>
-          ) : meeting.status === 'scheduled' ? (
+          ) : meeting.status === "scheduled" ? (
             <Button
               size="sm"
               className="h-8 text-[11px] shrink-0 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
@@ -461,12 +512,14 @@ function TimelineItem({
 }
 
 // ─── Countdown Header ────────────────────────────────────────────────────────
-function NextMeetingCountdown() {
+function NextMeetingCountdown({ meetings }: { meetings: Meeting[] }) {
   const nextMeeting = useMemo(() => {
-    return mockMeetings
-      .filter((m) => m.status === 'scheduled' || m.status === 'in_progress')
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-  }, []);
+    return meetings
+      .filter((m) => m.status === "scheduled" || m.status === "in_progress")
+      .sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      )[0];
+  }, [meetings]);
 
   const meetingDate = nextMeeting ? new Date(nextMeeting.date) : new Date();
   const timeLeft = useCountdown(meetingDate);
@@ -481,21 +534,23 @@ function NextMeetingCountdown() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'flex items-center gap-3 px-4 py-2.5 rounded-xl border',
-        nextMeeting.status === 'in_progress'
-          ? 'bg-amber-500/5 border-amber-500/15'
+        "flex items-center gap-3 px-4 py-2.5 rounded-xl border",
+        nextMeeting.status === "in_progress"
+          ? "bg-amber-500/5 border-amber-500/15"
           : isStartingSoon
-          ? 'bg-emerald-500/5 border-emerald-500/15'
-          : 'bg-muted/30 border-border',
+            ? "bg-emerald-500/5 border-emerald-500/15"
+            : "bg-muted/30 border-border",
       )}
     >
-      <div className={cn(
-        'p-1.5 rounded-lg',
-        nextMeeting.status === 'in_progress'
-          ? 'bg-amber-500/15'
-          : 'bg-[oklch(0.55_0.15_160/0.1)]',
-      )}>
-        {nextMeeting.status === 'in_progress' ? (
+      <div
+        className={cn(
+          "p-1.5 rounded-lg",
+          nextMeeting.status === "in_progress"
+            ? "bg-amber-500/15"
+            : "bg-[oklch(0.55_0.15_160/0.1)]",
+        )}
+      >
+        {nextMeeting.status === "in_progress" ? (
           <Radio className="h-4 w-4 text-amber-500 animate-countdown-pulse" />
         ) : (
           <Timer className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
@@ -504,23 +559,27 @@ function NextMeetingCountdown() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-xs font-semibold truncate">{nextMeeting.title}</p>
-          {nextMeeting.status === 'in_progress' && (
+          {nextMeeting.status === "in_progress" && (
             <Badge className="text-[8px] px-1.5 py-0 h-4 bg-amber-500/15 text-amber-600 border-amber-500/15 font-bold">
               LIVE
             </Badge>
           )}
         </div>
         <p className="text-[10px] text-muted-foreground mt-0.5">
-          {nextMeeting.status === 'in_progress' ? 'In progress · ' : 'Starts in '}
-          <span className={cn(
-            'font-bold font-mono',
-            isStartingSoon && 'text-emerald-600 dark:text-emerald-400',
-          )}>
+          {nextMeeting.status === "in_progress"
+            ? "In progress · "
+            : "Starts in "}
+          <span
+            className={cn(
+              "font-bold font-mono",
+              isStartingSoon && "text-emerald-600 dark:text-emerald-400",
+            )}
+          >
             {timeLeft}
           </span>
         </p>
       </div>
-      {nextMeeting.status === 'in_progress' ? (
+      {nextMeeting.status === "in_progress" ? (
         <Button
           size="sm"
           className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white relative overflow-hidden shrink-0"
@@ -545,28 +604,46 @@ function NextMeetingCountdown() {
 
 export function MeetingsView() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<string>('upcoming');
-  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [activeTab, setActiveTab] = useState<string>("upcoming");
+  const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
+
+  // ── API Data ──────────────────────────────────────────────────────────
+  const { data: meetings, isLoading: meetingsLoading } = useApiData<Meeting[]>(
+    "/api/meetings",
+    { fallback: mockMeetings },
+  );
+  const { data: users, isLoading: usersLoading } = useApiData<User[]>(
+    "/api/users",
+    { fallback: mockUsers },
+  );
+  const { data: projects } = useApiData<Project[]>("/api/projects", {
+    fallback: mockProjects,
+  });
+
+  const meetingsData = meetings || [];
+  const usersData = users || [];
+  const projectsData = projects || [];
+  const isLoading = meetingsLoading || usersLoading;
 
   // Filter meetings by tab
   const filteredMeetings = useMemo(() => {
-    const sorted = [...mockMeetings].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    const sorted = [...meetingsData].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
     switch (activeTab) {
-      case 'upcoming':
+      case "upcoming":
         return sorted.filter(
-          (m) => m.status === 'scheduled' || m.status === 'in_progress'
+          (m) => m.status === "scheduled" || m.status === "in_progress",
         );
-      case 'past':
+      case "past":
         return sorted.filter(
-          (m) => m.status === 'completed' || m.status === 'cancelled'
+          (m) => m.status === "completed" || m.status === "cancelled",
         );
       default:
         return sorted;
     }
-  }, [activeTab]);
+  }, [activeTab, meetingsData]);
 
   // Group meetings by date for timeline
   const groupedMeetings = useMemo(() => {
@@ -580,32 +657,50 @@ export function MeetingsView() {
   }, [filteredMeetings, t]);
 
   // Stats
-  const upcomingCount = mockMeetings.filter(
-    (m) => m.status === 'scheduled' || m.status === 'in_progress'
+  const upcomingCount = meetingsData.filter(
+    (m) => m.status === "scheduled" || m.status === "in_progress",
   ).length;
-  const totalMeetings = mockMeetings.length;
-  const inProgressCount = mockMeetings.filter(m => m.status === 'in_progress').length;
+  const totalMeetings = meetingsData.length;
+  const inProgressCount = meetingsData.filter(
+    (m) => m.status === "in_progress",
+  ).length;
+
+  // ── Loading State ─────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="h-8 w-8 mx-auto mb-3 animate-spin rounded-full border-2 border-[oklch(0.55_0.15_160)] border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading meetings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       {/* Next Meeting Countdown */}
-      <NextMeetingCountdown />
+      <NextMeetingCountdown meetings={meetingsData} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">{t.meetings.title}</h2>
           <p className="text-sm text-muted-foreground">
-            {totalMeetings} {t.meetings.title.toLowerCase()} · {upcomingCount} {t.meetings.upcoming.toLowerCase()}
+            {totalMeetings} {t.meetings.title.toLowerCase()} · {upcomingCount}{" "}
+            {t.meetings.upcoming.toLowerCase()}
             {inProgressCount > 0 && (
-              <span className="text-amber-600 dark:text-amber-400 font-medium"> · {inProgressCount} {t.meetings.inProgress.toLowerCase()}</span>
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                {" "}
+                · {inProgressCount} {t.meetings.inProgress.toLowerCase()}
+              </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Tabs
             value={viewMode}
-            onValueChange={(v) => setViewMode(v as 'cards' | 'timeline')}
+            onValueChange={(v) => setViewMode(v as "cards" | "timeline")}
           >
             <TabsList className="h-8">
               <TabsTrigger value="cards" className="text-xs px-2.5">
@@ -660,14 +755,14 @@ export function MeetingsView() {
             </div>
             <p className="text-sm font-medium">No meetings found</p>
             <p className="text-xs mt-1">
-              {activeTab === 'upcoming'
-                ? 'No upcoming meetings scheduled'
-                : activeTab === 'past'
-                ? 'No past meetings to show'
-                : 'Schedule a meeting to get started'}
+              {activeTab === "upcoming"
+                ? "No upcoming meetings scheduled"
+                : activeTab === "past"
+                  ? "No past meetings to show"
+                  : "Schedule a meeting to get started"}
             </p>
           </motion.div>
-        ) : viewMode === 'cards' ? (
+        ) : viewMode === "cards" ? (
           <motion.div
             key={`cards-${activeTab}`}
             initial={{ opacity: 0, y: 8 }}
@@ -682,7 +777,13 @@ export function MeetingsView() {
               className="grid grid-cols-1 lg:grid-cols-2 gap-4"
             >
               {filteredMeetings.map((meeting) => (
-                <MeetingCard key={meeting.id} meeting={meeting} t={t} />
+                <MeetingCard
+                  key={meeting.id}
+                  meeting={meeting}
+                  t={t}
+                  users={usersData}
+                  projects={projectsData}
+                />
               ))}
             </motion.div>
           </motion.div>
@@ -697,7 +798,7 @@ export function MeetingsView() {
             <div className="space-y-1">
               {Object.entries(groupedMeetings).map(
                 ([dateLabel, meetings], groupIdx) => (
-                  <div key={dateLabel} className={groupIdx > 0 ? 'mt-6' : ''}>
+                  <div key={dateLabel} className={groupIdx > 0 ? "mt-6" : ""}>
                     {/* Date header */}
                     <div className="flex items-center gap-2 mb-3 px-1">
                       <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -705,7 +806,10 @@ export function MeetingsView() {
                         {dateLabel}
                       </span>
                       <Separator className="flex-1" />
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0"
+                      >
                         {meetings.length}
                       </Badge>
                     </div>
@@ -723,11 +827,13 @@ export function MeetingsView() {
                           isFirst={idx === 0}
                           isLast={idx === meetings.length - 1}
                           t={t}
+                          users={usersData}
+                          projects={projectsData}
                         />
                       ))}
                     </motion.div>
                   </div>
-                )
+                ),
               )}
             </div>
           </motion.div>

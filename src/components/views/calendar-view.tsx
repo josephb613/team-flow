@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,12 +22,14 @@ import {
   Users,
   Plus,
   Crosshair,
-} from 'lucide-react';
-import { mockCalendarEvents, mockProjects } from '@/lib/mock-data';
-import type { CalendarEvent } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
+  Loader2,
+} from "lucide-react";
+import { mockCalendarEvents, mockProjects, mockTasks } from "@/lib/mock-data";
+import { useApiData } from "@/hooks/use-api-data";
+import type { CalendarEvent } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import {
   format,
   startOfMonth,
@@ -42,42 +44,54 @@ import {
   isToday,
   parseISO,
   differenceInMonths,
-} from 'date-fns';
+} from "date-fns";
 
 // Event type configuration
-const eventTypeConfig: Record<CalendarEvent['type'], { color: string; bg: string; dotColor: string; borderClass: string; icon: React.ReactNode }> = {
+const eventTypeConfig: Record<
+  CalendarEvent["type"],
+  {
+    color: string;
+    bg: string;
+    dotColor: string;
+    borderClass: string;
+    icon: React.ReactNode;
+  }
+> = {
   deadline: {
-    color: 'text-red-600 dark:text-red-400',
-    bg: 'bg-red-500/10 border-red-200 dark:border-red-800',
-    dotColor: 'bg-red-500',
-    borderClass: 'border-l-red-500',
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-500/10 border-red-200 dark:border-red-800",
+    dotColor: "bg-red-500",
+    borderClass: "border-l-red-500",
     icon: <Flag className="h-3.5 w-3.5" />,
   },
   meeting: {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
-    dotColor: 'bg-emerald-500',
-    borderClass: 'border-l-emerald-500',
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800",
+    dotColor: "bg-emerald-500",
+    borderClass: "border-l-emerald-500",
     icon: <Users className="h-3.5 w-3.5" />,
   },
   milestone: {
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-200 dark:border-amber-800',
-    dotColor: 'bg-amber-500',
-    borderClass: 'border-l-amber-500',
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-200 dark:border-amber-800",
+    dotColor: "bg-amber-500",
+    borderClass: "border-l-amber-500",
     icon: <Target className="h-3.5 w-3.5" />,
   },
   reminder: {
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-500/10 border-purple-200 dark:border-purple-800',
-    dotColor: 'bg-purple-500',
-    borderClass: 'border-l-purple-500',
+    color: "text-purple-600 dark:text-purple-400",
+    bg: "bg-purple-500/10 border-purple-200 dark:border-purple-800",
+    dotColor: "bg-purple-500",
+    borderClass: "border-l-purple-500",
     icon: <Bell className="h-3.5 w-3.5" />,
   },
 };
 
-function getEventTypeLabel(type: CalendarEvent['type'], t: ReturnType<typeof useTranslation>['t']) {
-  const labels: Record<CalendarEvent['type'], string> = {
+function getEventTypeLabel(
+  type: CalendarEvent["type"],
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const labels: Record<CalendarEvent["type"], string> = {
     deadline: t.calendar.deadline,
     meeting: t.calendar.meeting,
     milestone: t.calendar.milestone,
@@ -86,14 +100,17 @@ function getEventTypeLabel(type: CalendarEvent['type'], t: ReturnType<typeof use
   return labels[type];
 }
 
-function getProjectName(id?: string) {
+function getProjectName(id: string | undefined, projects: typeof mockProjects) {
   if (!id) return null;
-  return mockProjects.find((p) => p.id === id)?.name || null;
+  return projects.find((p) => p.id === id)?.name || null;
 }
 
-function getProjectColor(id?: string) {
+function getProjectColor(
+  id: string | undefined,
+  projects: typeof mockProjects,
+) {
   if (!id) return null;
-  return mockProjects.find((p) => p.id === id)?.color || null;
+  return projects.find((p) => p.id === id)?.color || null;
 }
 
 // Animation variants
@@ -107,7 +124,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" as const } },
 };
 
 function CalendarDayCell({
@@ -141,24 +158,35 @@ function CalendarDayCell({
       onMouseDown={() => onDragStart(day)}
       onMouseEnter={() => isDragSelecting && onDragOver(day)}
       className={cn(
-        'relative flex flex-col items-center justify-start p-1.5 sm:p-2 min-h-[64px] sm:min-h-[84px] rounded-xl transition-all duration-200 text-left w-full group select-none',
-        'hover:bg-muted/50 focus:outline-none',
-        !isCurrentMonth && 'opacity-25',
-        isSelected && !isTodayDate && 'bg-primary/8 ring-2 ring-primary/30 shadow-sm',
-        isTodayDate && !isSelected && 'bg-emerald-500/5 ring-1 ring-emerald-500/20',
-        isTodayDate && isSelected && 'bg-emerald-500/10 ring-2 ring-emerald-500/40 shadow-sm',
-        isDragSelected && !isTodayDate && 'bg-emerald-500/10 ring-1 ring-emerald-500/30',
+        "relative flex flex-col items-center justify-start p-1.5 sm:p-2 min-h-[64px] sm:min-h-[84px] rounded-xl transition-all duration-200 text-left w-full group select-none",
+        "hover:bg-muted/50 focus:outline-none",
+        !isCurrentMonth && "opacity-25",
+        isSelected &&
+          !isTodayDate &&
+          "bg-primary/8 ring-2 ring-primary/30 shadow-sm",
+        isTodayDate &&
+          !isSelected &&
+          "bg-emerald-500/5 ring-1 ring-emerald-500/20",
+        isTodayDate &&
+          isSelected &&
+          "bg-emerald-500/10 ring-2 ring-emerald-500/40 shadow-sm",
+        isDragSelected &&
+          !isTodayDate &&
+          "bg-emerald-500/10 ring-1 ring-emerald-500/30",
       )}
     >
       <span
         className={cn(
-          'text-xs sm:text-sm font-semibold flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200',
-          isTodayDate && 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25',
-          isSelected && !isTodayDate && 'bg-primary text-primary-foreground shadow-md shadow-primary/25',
-          !isTodayDate && !isSelected && 'group-hover:bg-muted/80',
+          "text-xs sm:text-sm font-semibold flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200",
+          isTodayDate &&
+            "bg-emerald-500 text-white shadow-md shadow-emerald-500/25",
+          isSelected &&
+            !isTodayDate &&
+            "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+          !isTodayDate && !isSelected && "group-hover:bg-muted/80",
         )}
       >
-        {format(day, 'd')}
+        {format(day, "d")}
       </span>
 
       {/* Event dots with hover tooltips */}
@@ -169,12 +197,15 @@ function CalendarDayCell({
               const eventNames = events
                 .filter((e) => e.type === type)
                 .map((e) => e.title)
-                .join(', ');
+                .join(", ");
               return (
                 <Tooltip key={type}>
                   <TooltipTrigger asChild>
                     <span
-                      className={cn('w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ring-1 ring-white/50 dark:ring-background/50 shadow-sm cursor-default', eventTypeConfig[type].dotColor)}
+                      className={cn(
+                        "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ring-1 ring-white/50 dark:ring-background/50 shadow-sm cursor-default",
+                        eventTypeConfig[type].dotColor,
+                      )}
                     />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs max-w-[200px]">
@@ -185,7 +216,9 @@ function CalendarDayCell({
               );
             })}
             {eventTypes.length > 4 && (
-              <span className="text-[8px] text-muted-foreground font-medium">+{eventTypes.length - 4}</span>
+              <span className="text-[8px] text-muted-foreground font-medium">
+                +{eventTypes.length - 4}
+              </span>
             )}
           </div>
         </TooltipProvider>
@@ -194,25 +227,38 @@ function CalendarDayCell({
   );
 }
 
-function EventCard({ event }: { event: CalendarEvent }) {
+function EventCard({
+  event,
+  projects,
+}: {
+  event: CalendarEvent;
+  projects: typeof mockProjects;
+}) {
   const { t } = useTranslation();
   const config = eventTypeConfig[event.type];
-  const projectName = getProjectName(event.projectId);
-  const projectColor = getProjectColor(event.projectId);
+  const projectName = getProjectName(event.projectId, projects);
+  const projectColor = getProjectColor(event.projectId, projects);
   const label = getEventTypeLabel(event.type, t);
 
   return (
     <motion.div variants={item}>
-      <div className={cn(
-        'group p-3 rounded-xl border-l-[3px] bg-card hover:shadow-md transition-all duration-200 cursor-pointer border border-l-0 dark-card-glow',
-        'hover:translate-x-0.5',
-      )}>
-        <div className={cn('absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl', config.dotColor)} />
+      <div
+        className={cn(
+          "group p-3 rounded-xl border-l-[3px] bg-card hover:shadow-md transition-all duration-200 cursor-pointer border border-l-0 dark-card-glow",
+          "hover:translate-x-0.5",
+        )}
+      >
+        <div
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl",
+            config.dotColor,
+          )}
+        />
         <div className="flex items-start gap-3">
           <div
             className={cn(
-              'p-2 rounded-lg shrink-0',
-              config.bg.replace('border-', '').split(' ')[0],
+              "p-2 rounded-lg shrink-0",
+              config.bg.replace("border-", "").split(" ")[0],
             )}
           >
             <span className={config.color}>{config.icon}</span>
@@ -220,7 +266,14 @@ function EventCard({ event }: { event: CalendarEvent }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <h4 className="text-sm font-semibold truncate">{event.title}</h4>
-              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 shrink-0 font-medium', config.bg, config.color)}>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[9px] px-1.5 py-0 shrink-0 font-medium",
+                  config.bg,
+                  config.color,
+                )}
+              >
                 {label}
               </Badge>
             </div>
@@ -228,12 +281,13 @@ function EventCard({ event }: { event: CalendarEvent }) {
             <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
-                {format(parseISO(event.date), 'MMM d, yyyy')}
+                {format(parseISO(event.date), "MMM d, yyyy")}
               </div>
               {event.endDate && (
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  {format(parseISO(event.date), 'h:mm a')} – {format(parseISO(event.endDate), 'h:mm a')}
+                  {format(parseISO(event.date), "h:mm a")} –{" "}
+                  {format(parseISO(event.endDate), "h:mm a")}
                 </div>
               )}
             </div>
@@ -242,9 +296,11 @@ function EventCard({ event }: { event: CalendarEvent }) {
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: projectColor || '#10b981' }}
+                  style={{ backgroundColor: projectColor || "#10b981" }}
                 />
-                <span className="text-[10px] text-muted-foreground">{projectName}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {projectName}
+                </span>
               </div>
             )}
           </div>
@@ -260,6 +316,41 @@ export function CalendarView() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [direction, setDirection] = useState<number>(0);
 
+  // ─── API Data ──────────────────────────────────────────────────────────
+  const { data: eventsData, isLoading: eventsLoading } = useApiData(
+    "/api/meetings",
+    { fallback: mockCalendarEvents },
+  );
+  const { data: tasksData, isLoading: tasksLoading } = useApiData(
+    "/api/tasks",
+    { fallback: mockTasks },
+  );
+  const { data: projectsData, isLoading: projectsLoading } = useApiData(
+    "/api/projects",
+    { fallback: mockProjects },
+  );
+
+  // Transform tasks with due dates into calendar events
+  const taskEvents = useMemo<CalendarEvent[]>(() => {
+    if (!tasksData) return [];
+    const tasks = Array.isArray(tasksData) ? tasksData : [];
+    return tasks
+      .filter((task: any) => task.dueDate)
+      .map((task: any): CalendarEvent => ({
+        id: `task-${task.id}`,
+        title: task.title,
+        date: task.dueDate,
+        type: "deadline",
+        color: "#ef4444",
+        projectId: task.projectId,
+      }));
+  }, [tasksData]);
+
+  const meetingEvents = (eventsData as typeof mockCalendarEvents) ?? [];
+  const events = [...taskEvents, ...meetingEvents];
+  const projects = (projectsData as typeof mockProjects) ?? [];
+  const isLoading = eventsLoading || projectsLoading || tasksLoading;
+
   // Drag-to-select date range state
   const [isDragSelecting, setIsDragSelecting] = useState(false);
   const [dragStart, setDragStart] = useState<Date | null>(null);
@@ -267,7 +358,8 @@ export function CalendarView() {
   const [dragSelectedRange, setDragSelectedRange] = useState<Date[]>([]);
 
   // "Today" floating button visibility - derived from currentMonth
-  const showTodayButton = Math.abs(differenceInMonths(currentMonth, new Date())) > 0;
+  const showTodayButton =
+    Math.abs(differenceInMonths(currentMonth, new Date())) > 0;
 
   const handleDragStart = useCallback((day: Date) => {
     setIsDragSelecting(true);
@@ -276,26 +368,34 @@ export function CalendarView() {
     setDragSelectedRange([day]);
   }, []);
 
-  const handleDragOver = useCallback((day: Date) => {
-    if (!isDragSelecting || !dragStart) return;
-    setDragEnd(day);
-    // Calculate range
-    const start = dragStart < day ? dragStart : day;
-    const end = dragStart < day ? day : dragStart;
-    const range = eachDayOfInterval({ start, end });
-    setDragSelectedRange(range);
-  }, [isDragSelecting, dragStart]);
+  const handleDragOver = useCallback(
+    (day: Date) => {
+      if (!isDragSelecting || !dragStart) return;
+      setDragEnd(day);
+      // Calculate range
+      const start = dragStart < day ? dragStart : day;
+      const end = dragStart < day ? day : dragStart;
+      const range = eachDayOfInterval({ start, end });
+      setDragSelectedRange(range);
+    },
+    [isDragSelecting, dragStart],
+  );
 
   useEffect(() => {
     const handleMouseUp = () => {
-      if (isDragSelecting && dragStart && dragEnd && !isSameDay(dragStart, dragEnd)) {
+      if (
+        isDragSelecting &&
+        dragStart &&
+        dragEnd &&
+        !isSameDay(dragStart, dragEnd)
+      ) {
         // Range selected - could create an event for this range
         setSelectedDay(dragStart);
       }
       setIsDragSelecting(false);
     };
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => window.removeEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
   }, [isDragSelecting, dragStart, dragEnd]);
 
   // Generate calendar days
@@ -303,28 +403,34 @@ export function CalendarView() {
   const monthEnd = endOfMonth(currentMonth);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
-  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  const calendarDays = eachDayOfInterval({
+    start: calendarStart,
+    end: calendarEnd,
+  });
 
   // Get events for a specific day
-  const getEventsForDay = useCallback((day: Date) => {
-    return mockCalendarEvents.filter((event) => {
-      const eventDate = parseISO(event.date);
-      return isSameDay(eventDate, day);
-    });
-  }, []);
+  const getEventsForDay = useCallback(
+    (day: Date) => {
+      return events.filter((event) => {
+        const eventDate = parseISO(event.date);
+        return isSameDay(eventDate, day);
+      });
+    },
+    [events],
+  );
 
   // Selected day events
   const selectedDayEvents = selectedDay ? getEventsForDay(selectedDay) : [];
 
   // Total events for current month view
   const monthEvents = useMemo(() => {
-    return mockCalendarEvents.filter((event) => {
+    return events.filter((event) => {
       const eventDate = parseISO(event.date);
       return isSameMonth(eventDate, currentMonth);
     });
-  }, [currentMonth]);
+  }, [currentMonth, events]);
 
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const handlePrevMonth = () => {
     setDirection(-1);
@@ -347,7 +453,12 @@ export function CalendarView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">{t.calendar.title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold">{t.calendar.title}</h2>
+            {isLoading && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             {monthEvents.length} {t.calendar.events}
             {isDragSelecting && dragSelectedRange.length > 1 && (
@@ -377,14 +488,14 @@ export function CalendarView() {
             </Button>
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
-                key={format(currentMonth, 'yyyy-MM')}
+                key={format(currentMonth, "yyyy-MM")}
                 initial={{ opacity: 0, x: direction * 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: direction * -30 }}
                 transition={{ duration: 0.2 }}
                 className="text-sm font-bold min-w-[140px] text-center"
               >
-                {format(currentMonth, 'MMMM yyyy')}
+                {format(currentMonth, "MMMM yyyy")}
               </motion.span>
             </AnimatePresence>
             <Button
@@ -408,11 +519,28 @@ export function CalendarView() {
 
       {/* Legend with proper colored icons */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-medium text-muted-foreground">{t.calendar.legend}:</span>
-        {(Object.entries(eventTypeConfig) as [CalendarEvent['type'], typeof eventTypeConfig[CalendarEvent['type']]][]).map(([type, config]) => (
-          <div key={type} className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30">
-            <span className={cn('w-2.5 h-2.5 rounded-full shadow-sm', config.dotColor)} />
-            <span className={cn('text-xs font-medium', config.color)}>{getEventTypeLabel(type, t)}</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {t.calendar.legend}:
+        </span>
+        {(
+          Object.entries(eventTypeConfig) as [
+            CalendarEvent["type"],
+            (typeof eventTypeConfig)[CalendarEvent["type"]],
+          ][]
+        ).map(([type, config]) => (
+          <div
+            key={type}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/30"
+          >
+            <span
+              className={cn(
+                "w-2.5 h-2.5 rounded-full shadow-sm",
+                config.dotColor,
+              )}
+            />
+            <span className={cn("text-xs font-medium", config.color)}>
+              {getEventTypeLabel(type, t)}
+            </span>
           </div>
         ))}
       </div>
@@ -437,7 +565,7 @@ export function CalendarView() {
             {/* Calendar days with animated transitions */}
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
-                key={format(currentMonth, 'yyyy-MM')}
+                key={format(currentMonth, "yyyy-MM")}
                 initial={{ opacity: 0, x: direction * 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: direction * -20 }}
@@ -446,14 +574,18 @@ export function CalendarView() {
               >
                 {calendarDays.map((day) => {
                   const dayEvents = getEventsForDay(day);
-                  const isDragSelected = dragSelectedRange.some((d) => isSameDay(d, day));
+                  const isDragSelected = dragSelectedRange.some((d) =>
+                    isSameDay(d, day),
+                  );
                   return (
                     <CalendarDayCell
                       key={day.toISOString()}
                       day={day}
                       events={dayEvents}
                       isCurrentMonth={isSameMonth(day, currentMonth)}
-                      isSelected={selectedDay ? isSameDay(day, selectedDay) : false}
+                      isSelected={
+                        selectedDay ? isSameDay(day, selectedDay) : false
+                      }
                       isTodayDate={isToday(day)}
                       onSelect={setSelectedDay}
                       isDragSelecting={isDragSelecting}
@@ -474,8 +606,8 @@ export function CalendarView() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-bold">
                 {selectedDay
-                  ? `${t.calendar.eventsFor} ${format(selectedDay, 'EEEE, MMM d')}`
-                  : 'Select a day'}
+                  ? `${t.calendar.eventsFor} ${format(selectedDay, "EEEE, MMM d")}`
+                  : "Select a day"}
               </CardTitle>
               {selectedDayEvents.length > 0 && (
                 <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white">
@@ -499,7 +631,9 @@ export function CalendarView() {
                     <CalendarIcon className="h-8 w-8 opacity-30" />
                   </div>
                   <p className="text-sm font-medium">{t.calendar.noEvents}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Select another day to view events</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select another day to view events
+                  </p>
                 </motion.div>
               ) : (
                 <motion.div
@@ -510,7 +644,11 @@ export function CalendarView() {
                   className="space-y-2.5 max-h-[calc(100vh-320px)] overflow-y-auto"
                 >
                   {selectedDayEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      projects={projects}
+                    />
                   ))}
                 </motion.div>
               )}
@@ -526,7 +664,7 @@ export function CalendarView() {
             initial={{ opacity: 0, scale: 0.8, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             onClick={handleToday}
             className="fixed bottom-20 right-8 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[oklch(0.55_0.15_160)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.48_0.15_160)] transition-shadow"
           >

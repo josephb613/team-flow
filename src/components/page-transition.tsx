@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { PageId } from '@/lib/types';
+import { useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { PageId } from "@/lib/types";
 
 // Navigation order for determining direction
 const PAGE_ORDER: PageId[] = [
-  'dashboard',
-  'tasks',
-  'projects',
-  'calendar',
-  'messages',
-  'meetings',
-  'files',
-  'wiki',
-  'activity',
-  'members',
-  'teams',
-  'reports',
-  'automations',
-  'settings',
+  "dashboard",
+  "tasks",
+  "projects",
+  "calendar",
+  "messages",
+  "meetings",
+  "files",
+  "wiki",
+  "activity",
+  "members",
+  "teams",
+  "reports",
+  "automations",
+  "settings",
 ];
 
 function getDirection(from: PageId | null, to: PageId): number {
@@ -49,8 +49,8 @@ const variants = {
 };
 
 const transition = {
-  type: 'tween',
-  ease: [0.25, 0.46, 0.45, 0.94],
+  type: "tween" as const,
+  ease: [0.25, 0.46, 0.45, 0.94] as const,
   duration: 0.2,
 };
 
@@ -61,16 +61,19 @@ interface PageTransitionProps {
 
 export function PageTransition({ pageId, children }: PageTransitionProps) {
   const prevPageRef = useRef<PageId | null>(null);
-  const [direction, setDirection] = useState(0);
 
-  useEffect(() => {
+  // Compute direction synchronously (no state → no extra re-render)
+  const direction = useMemo(() => {
     const prevPage = prevPageRef.current;
     prevPageRef.current = pageId;
-    setDirection(getDirection(prevPage, pageId));
+    return getDirection(prevPage, pageId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]);
 
+  // AnimatePresence with initial={false} prevents animation on first mount.
+  // No need for a separate "mounted" state that would disrupt the React tree.
   return (
-    <AnimatePresence mode="wait" custom={direction}>
+    <AnimatePresence mode="wait" custom={direction} initial={false}>
       <motion.div
         key={pageId}
         custom={direction}
@@ -79,16 +82,8 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
         animate="center"
         exit="exit"
         transition={transition}
-        className="will-change-transform"
       >
-        {/* Content-ready subtle fade-in overlay */}
-        <motion.div
-          initial={{ opacity: 0.6 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.15, delay: 0.05 }}
-        >
-          {children}
-        </motion.div>
+        {children}
       </motion.div>
     </AnimatePresence>
   );
