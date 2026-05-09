@@ -14,6 +14,7 @@ import { WikiView } from '@/components/views/wiki-view';
 import { ActivityView } from '@/components/views/activity-view';
 import { MembersView } from '@/components/views/members-view';
 import { TeamsView } from '@/components/views/teams-view';
+import { TeamManagementView } from '@/components/views/team-management-view';
 import { ReportsView } from '@/components/views/reports-view';
 import { AutomationsView } from '@/components/views/automations-view';
 import { OpportunitiesView } from '@/components/views/opportunities-view';
@@ -54,6 +55,7 @@ const viewMap: Record<string, React.ComponentType> = {
   activity: ActivityView,
   members: MembersView,
   teams: TeamsView,
+  "team-management": TeamManagementView,
   reports: ReportsView,
   automations: AutomationsView,
   opportunities: OpportunitiesView,

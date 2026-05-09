@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
-import { useTranslation } from "@/lib/i18n";
-import { useApiData } from "@/hooks/use-api-data";
-import { mockOpportunities } from "@/lib/mock-data";
-import type { Opportunity, OpportunityStatus } from "@/lib/types";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -20,11 +21,27 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Plus,
+  Filter,
+  List,
+  Columns3,
+  Calendar,
+  GripVertical,
+  MoreHorizontal,
+  Search,
+  Building2,
+  User as UserIcon,
+} from "lucide-react";
+import { mockOpportunities, mockUsers } from "@/lib/mock-data";
+import { useApiData } from "@/hooks/use-api-data";
+import { useTranslation } from "@/lib/i18n";
+import type { Opportunity, User, BoardColumn } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { buildStatusConfig, DEFAULT_OPPORTUNITY_COLUMNS, getColumnLabel } from "@/lib/column-utils";
+
+// DnD Kit imports
 import {
   DndContext,
   DragOverlay,
@@ -34,130 +51,207 @@ import {
   useSensor,
   useSensors,
   type DragStartEvent,
+  type DragOverEvent,
   type DragEndEvent,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
   useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Search,
-  Plus,
-  Columns3,
-  List,
-  CalendarDays,
-  MoreHorizontal,
-  XCircle,
-  CheckCircle2,
-  Filter,
-  MessageSquare,
-  FileText,
-  Target,
-  AlertCircle,
-} from "lucide-react";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
-// ---- Status Configuration ----
-const STATUSES: OpportunityStatus[] = [
-  "prospection",
-  "qualification",
-  "proposition",
-  "negociation",
-  "gagnee",
-  "perdue",
-];
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-const statusConfig: Record<
-  OpportunityStatus,
-  {
-    color: string;
-    dotColor: string;
-    solidBg: string;
-    solidText: string;
-    borderColor: string;
-    icon: React.ReactNode;
-  }
-> = {
-  prospection: {
-    color: "text-blue-600 dark:text-blue-400",
-    dotColor: "bg-blue-500",
-    solidBg: "bg-blue-100 dark:bg-blue-900/50",
-    solidText: "text-blue-700 dark:text-blue-300",
-    borderColor: "border-blue-500",
-    icon: <Search className="h-3 w-3" />,
-  },
-  qualification: {
-    color: "text-indigo-600 dark:text-indigo-400",
-    dotColor: "bg-indigo-500",
-    solidBg: "bg-indigo-100 dark:bg-indigo-900/50",
-    solidText: "text-indigo-700 dark:text-indigo-300",
-    borderColor: "border-indigo-500",
-    icon: <Filter className="h-3 w-3" />,
-  },
-  proposition: {
-    color: "text-amber-600 dark:text-amber-400",
-    dotColor: "bg-amber-500",
-    solidBg: "bg-amber-100 dark:bg-amber-900/50",
-    solidText: "text-amber-700 dark:text-amber-300",
-    borderColor: "border-amber-500",
-    icon: <FileText className="h-3 w-3" />,
-  },
-  negociation: {
-    color: "text-orange-600 dark:text-orange-400",
-    dotColor: "bg-orange-500",
-    solidBg: "bg-orange-100 dark:bg-orange-900/50",
-    solidText: "text-orange-700 dark:text-orange-300",
-    borderColor: "border-orange-500",
-    icon: <MessageSquare className="h-3 w-3" />,
-  },
-  gagnee: {
-    color: "text-emerald-600 dark:text-emerald-400",
-    dotColor: "bg-emerald-500",
-    solidBg: "bg-emerald-100 dark:bg-emerald-900/50",
-    solidText: "text-emerald-700 dark:text-emerald-300",
-    borderColor: "border-emerald-500",
-    icon: <CheckCircle2 className="h-3 w-3" />,
-  },
-  perdue: {
-    color: "text-red-600 dark:text-red-400",
-    dotColor: "bg-red-500",
-    solidBg: "bg-red-100 dark:bg-red-900/50",
-    solidText: "text-red-700 dark:text-red-300",
-    borderColor: "border-red-500",
-    icon: <XCircle className="h-3 w-3" />,
-  },
-};
-
-// ---- Helpers ----
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+function getUserInitials(id: string | undefined, users: User[] = mockUsers) {
+  if (!id) return "??";
+  const user = users.find((u) => u.id === id);
+  return user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+    : "??";
 }
 
-function isOverdue(dateStr: string): boolean {
-  if (!dateStr) return false;
-  return new Date(dateStr) < new Date();
+function getUserName(id: string | undefined, users: User[] = mockUsers) {
+  if (!id) return "—";
+  return users.find((u) => u.id === id)?.name || "Unknown";
 }
 
-// ---- Sortable Card ----
-function OpportunityCard({
+function isOverdue(dueDate: string) {
+  if (!dueDate) return false;
+  return new Date(dueDate) < new Date();
+}
+
+// ── Sort types ───────────────────────────────────────────────────────────────
+
+type SortField = "title" | "organisation" | "dueDate" | "status" | "responsable";
+type SortDirection = "asc" | "desc";
+
+// ── Opportunity Card (Kanban) ────────────────────────────────────────────────
+
+function OppCardContent({
   opportunity,
-  isDragOverlay,
-  onRefresh,
+  onClick,
+  users,
+  statusConfig,
 }: {
   opportunity: Opportunity;
-  isDragOverlay?: boolean;
-  onRefresh: () => void;
+  onClick?: () => void;
+  users?: User[];
+  statusConfig: Record<string, ReturnType<typeof buildStatusConfig>[string]>;
 }) {
   const { t } = useTranslation();
+  const cfg = statusConfig[opportunity.status] || {
+    color: "text-muted-foreground",
+    bg: "bg-muted/50",
+    gradient: "from-muted/20 to-transparent",
+    headerBg: "bg-muted/50",
+    dotColor: "bg-muted-foreground",
+    icon: null,
+  };
+  const overdue = isOverdue(opportunity.dueDate);
+  const sl: Record<string, string> = {
+    nouveau: t.opportunities.statuses.nouveau,
+    en_preparation: t.opportunities.statuses.en_preparation,
+    soumis: t.opportunities.statuses.soumis,
+    entretien: t.opportunities.statuses.entretien,
+    accepte: t.opportunities.statuses.accepte,
+    refuse: t.opportunities.statuses.refuse,
+  };
+
+  return (
+    <div
+      onClick={onClick}
+      className="group relative bg-card rounded-xl border shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
+    >
+      <div className="p-3">
+        {/* Top row: organisation badge + menu */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            {opportunity.organisation ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 font-medium bg-muted/60 flex items-center gap-1"
+              >
+                <Building2 className="h-2.5 w-2.5" />
+                {opportunity.organisation}
+              </Badge>
+            ) : (
+              <span />
+            )}
+          </div>
+          <div className="flex items-center gap-0.5">
+            <div className="opacity-0 group-hover:opacity-40 transition-opacity cursor-grab p-0.5">
+              <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="text-destructive">
+                  {t.common.delete}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h4 className="text-sm font-medium mb-1 leading-snug">
+          {opportunity.title}
+        </h4>
+
+        {/* Description / Notes */}
+        {opportunity.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+            {opportunity.description}
+          </p>
+        )}
+
+        {/* Status badge */}
+        <div className="mb-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full",
+              cfg.bg,
+              cfg.color,
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dotColor)} />
+            {sl[opportunity.status] || opportunity.status}
+          </span>
+        </div>
+
+        {/* Footer: responsable + due date */}
+        <div className="flex items-center justify-between">
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5">
+                  <Avatar className="h-5 w-5 ring-1 ring-background">
+                    <AvatarFallback className="text-[7px] bg-muted font-medium">
+                      {getUserInitials(opportunity.responsableId, users)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[80px]">
+                    {getUserName(opportunity.responsableId, users)}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-xs">
+                  {getUserName(opportunity.responsableId, users)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div
+            className={cn(
+              "flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md",
+              overdue
+                ? "text-rose-600 dark:text-rose-400 bg-rose-500/10"
+                : "text-muted-foreground",
+            )}
+          >
+            <Calendar className="h-3 w-3" />
+            {opportunity.dueDate
+              ? new Date(opportunity.dueDate).toLocaleDateString("fr-FR", {
+                  month: "short",
+                  day: "numeric",
+                })
+              : "—"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sortable Opportunity Card ────────────────────────────────────────────────
+
+function SortableOppCard({
+  opportunity,
+  onClick,
+  users,
+  statusConfig,
+}: {
+  opportunity: Opportunity;
+  onClick: () => void;
+  users?: User[];
+  statusConfig: Record<string, ReturnType<typeof buildStatusConfig>[string]>;
+}) {
   const {
     attributes,
     listeners,
@@ -165,587 +259,648 @@ function OpportunityCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: opportunity.id });
+  } = useSortable({ id: opportunity.id, data: { type: "opportunity", opportunity } });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
-  const config = statusConfig[opportunity.status];
-  const overdue = isOverdue(opportunity.dueDate);
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      <OppCardContent
+        opportunity={opportunity}
+        onClick={onClick}
+        users={users}
+        statusConfig={statusConfig}
+      />
+    </motion.div>
+  );
+}
 
-  const handleDelete = async () => {
-    try {
-      const res = await fetch(`/api/opportunities/${opportunity.id}`, {
-        method: "DELETE",
+// ── Droppable Kanban Column ──────────────────────────────────────────────────
+
+function DroppableKanbanColumn({
+  status,
+  label,
+  opportunities,
+  isOver,
+  config,
+  children,
+}: {
+  status: string;
+  label: string;
+  opportunities: Opportunity[];
+  isOver: boolean;
+  config: ReturnType<typeof buildStatusConfig>[string];
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({
+    id: `column-${status}`,
+    data: { type: "column", status },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200",
+        isOver &&
+          "ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl",
+      )}
+    >
+      {/* Column header */}
+      <div
+        className={cn(
+          "flex items-center justify-between mb-3 px-3 py-2.5 rounded-xl",
+          config.headerBg,
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <div className={cn("p-1 rounded-md", config.bg)}>
+            <span className={config.color}>{config.icon}</span>
+          </div>
+          <span className="text-sm font-bold">{label}</span>
+          <span
+            className={cn(
+              "inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold text-white",
+              config.dotColor,
+            )}
+          >
+            {opportunities.length}
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Cards area */}
+      <div
+        className={cn(
+          "space-y-2.5 min-h-[200px] p-2 rounded-xl bg-gradient-to-b transition-colors duration-200",
+          config.gradient,
+          isOver && "bg-[oklch(0.55_0.15_160)]/5",
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Kanban View with DnD ─────────────────────────────────────────────────────
+
+function KanbanView({
+  opportunities: initialOpps,
+  users,
+  onOpportunityChanged,
+}: {
+  opportunities: Opportunity[];
+  users: User[];
+  onOpportunityChanged?: () => void;
+}) {
+  const { setCreateOpportunityDialogOpen } = useAppStore();
+  const columns = useAppStore((s) => s.columnsOpportunity);
+  const { t } = useTranslation();
+
+  const statusConfig = useMemo(() => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS), [columns]);
+  const statuses = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
+    return [...cols].sort((a, b) => a.order - b.order).map((c) => c.slug);
+  }, [columns]);
+  const sl: Record<string, string> = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
+    return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
+  }, [columns]);
+
+  const [opps, setOpps] = useState<Opportunity[]>([...initialOpps]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overColumn, setOverColumn] = useState<string | null>(null);
+  const [activeOppOriginalStatus, setActiveOppOriginalStatus] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const activeOpp = activeId ? opps.find((o) => o.id === activeId) : null;
+
+  function findContainer(id: string): string | undefined {
+    if (id.startsWith("column-")) {
+      return id.replace("column-", "");
+    }
+    const opp = opps.find((o) => o.id === id);
+    return opp?.status;
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const draggedOpp = opps.find((o) => o.id === event.active.id);
+    setActiveOppOriginalStatus(draggedOpp?.status ?? null);
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeContainer = findContainer(active.id as string);
+    const overContainer = findContainer(over.id as string);
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      setOverColumn(null);
+      return;
+    }
+
+    setOverColumn(overContainer);
+
+    setOpps((prev) =>
+      prev.map((opp) =>
+        opp.id === active.id ? { ...opp, status: overContainer as Opportunity["status"] } : opp,
+      ),
+    );
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    const overContainer = over ? findContainer(over.id as string) : undefined;
+    const oppId = active.id as string;
+    const originalStatus = activeOppOriginalStatus;
+
+    setActiveId(null);
+    setOverColumn(null);
+    setActiveOppOriginalStatus(null);
+
+    if (!over || !overContainer || !originalStatus) return;
+    if (originalStatus === overContainer) return;
+
+    fetch(`/api/opportunities/${oppId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: overContainer }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        onOpportunityChanged?.();
+      })
+      .catch(() => {
+        setOpps((prev) =>
+          prev.map((opp) =>
+            opp.id === oppId
+              ? { ...opp, status: originalStatus as Opportunity["status"] }
+              : opp,
+          ),
+        );
+        toast.error("Échec de la mise à jour du statut");
       });
-      if (!res.ok) throw new Error("Delete failed");
-      toast.success("Opportunité supprimée");
-      onRefresh();
-    } catch {
-      toast.error("Erreur lors de la suppression");
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)] scrollbar-thin">
+        {statuses.map((status) => {
+          const config = statusConfig[status];
+          const columnOpps = opps.filter((o) => o.status === status);
+
+          return (
+            <DroppableKanbanColumn
+              key={status}
+              status={status}
+              label={sl[status] || status}
+              opportunities={columnOpps}
+              isOver={overColumn === status}
+              config={config}
+            >
+              <SortableContext
+                items={columnOpps.map((o) => o.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <AnimatePresence>
+                  {columnOpps.map((opp) => (
+                    <SortableOppCard
+                      key={opp.id}
+                      opportunity={opp}
+                      onClick={() => {}}
+                      users={users}
+                      statusConfig={statusConfig}
+                    />
+                  ))}
+                </AnimatePresence>
+              </SortableContext>
+
+              {/* Add opportunity button */}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setCreateOpportunityDialogOpen(true)}
+                className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.15_160)]/40 hover:bg-[oklch(0.55_0.15_160)]/5 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t.opportunities.newOpportunity}
+              </motion.button>
+            </DroppableKanbanColumn>
+          );
+        })}
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeOpp ? (
+          <div className="w-[280px] sm:w-[300px] rotate-2 opacity-90 shadow-2xl">
+            <OppCardContent
+              opportunity={activeOpp}
+              users={users}
+              statusConfig={statusConfig}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+// ── List View ────────────────────────────────────────────────────────────────
+
+function ListView({
+  opportunities: propOpps,
+  users,
+}: {
+  opportunities: Opportunity[];
+  users: User[];
+}) {
+  const columns = useAppStore((s) => s.columnsOpportunity);
+  const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>("dueDate");
+  const [sortDir, setSortDir] = useState<SortDirection>("asc");
+
+  const statusConfig = useMemo(
+    () => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS),
+    [columns],
+  );
+  const sl: Record<string, string> = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
+    return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
+  }, [columns]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
     }
   };
 
-  const cardContent = (
-    <div
-      className={cn(
-        "mb-2 cursor-grab active:cursor-grabbing rounded-lg border bg-card p-3 transition-shadow hover:shadow-md relative",
-        isDragOverlay && "shadow-lg rotate-2",
-      )}
-      style={style}
-    >
-      {/* Left border strip */}
-      <div
-        className={cn("rounded-full absolute left-0 top-1 bottom-1", config.dotColor)}
-        style={{ width: 3 }}
-      />
+  const filteredAndSortedOpps = useMemo(() => {
+    let result = propOpps.filter(
+      (opp) =>
+        opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (opp.organisation &&
+          opp.organisation.toLowerCase().includes(searchQuery.toLowerCase())),
+    );
 
-      {/* Header with status badge */}
-      <div className="flex items-center justify-between mb-1.5 ml-1">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-            config.solidBg,
-            config.solidText,
-          )}
-        >
-          <span className={cn("h-1.5 w-1.5 rounded-full", config.dotColor)} />
-          {t.opportunities.statuses[opportunity.status as keyof typeof t.opportunities.statuses]}
-        </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-muted transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem
-              className="text-red-600 dark:text-red-400 text-xs"
-              onClick={handleDelete}
-            >
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "title":
+          cmp = a.title.localeCompare(b.title);
+          break;
+        case "organisation":
+          cmp = (a.organisation || "").localeCompare(b.organisation || "");
+          break;
+        case "dueDate":
+          cmp = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          break;
+        case "status":
+          cmp = a.status.localeCompare(b.status);
+          break;
+        case "responsable":
+          cmp = getUserName(a.responsableId, users).localeCompare(
+            getUserName(b.responsableId, users),
+          );
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
-      {/* Title */}
-      <h4 className="font-medium text-sm mb-1 ml-1 line-clamp-2">{opportunity.title}</h4>
-
-      {/* Description */}
-      {opportunity.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-1">
-          {opportunity.description}
-        </p>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50 ml-1">
-        {/* Due date */}
-        {opportunity.dueDate ? (
-          <span
-            className={cn(
-              "text-[10px] flex items-center gap-1",
-              overdue ? "text-red-500 font-medium" : "text-muted-foreground",
-            )}
-          >
-            <CalendarDays className="h-3 w-3" />
-            {new Date(opportunity.dueDate).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "short",
-            })}
-          </span>
-        ) : (
-          <span />
-        )}
-
-        {/* Creator avatar */}
-        {opportunity.creator && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar className="h-5 w-5">
-                  <AvatarFallback className="text-[8px] bg-muted">
-                    {getInitials(opportunity.creator.name)}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent>{opportunity.creator.name}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-    </div>
-  );
-
-  if (isDragOverlay) return <div>{cardContent}</div>;
+    return result;
+  }, [searchQuery, sortField, sortDir, propOpps, users]);
 
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners}>
-      {cardContent}
-    </div>
-  );
-}
-
-// ---- Kanban Column ----
-function KanbanColumn({
-  status,
-  opportunities,
-  onRefresh,
-}: {
-  status: OpportunityStatus;
-  opportunities: Opportunity[];
-  onRefresh: () => void;
-}) {
-  const { t } = useTranslation();
-  const config = statusConfig[status];
-
-  return (
-    <div className="flex-shrink-0 w-[272px] flex flex-col max-h-full">
-      {/* Column Header */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <span className={cn("h-2 w-2 rounded-full", config.dotColor)} />
-          <h3 className={cn("text-sm font-semibold", config.color)}>
-            {t.opportunities.statuses[status as keyof typeof t.opportunities.statuses]}
-          </h3>
-          <Badge variant="secondary" className="text-[10px] px-1.5">
-            {opportunities.length}
-          </Badge>
+    <div className="space-y-3">
+      {/* Search bar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t.opportunities.search}
+            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)]/30"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="flex-1 overflow-y-auto pr-1 space-y-0 min-h-[60px]">
-        <SortableContext
-          items={opportunities.map((o) => o.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {opportunities.map((opp) => (
-            <OpportunityCard key={opp.id} opportunity={opp} onRefresh={onRefresh} />
-          ))}
-        </SortableContext>
+      {/* Table */}
+      <div className="border rounded-xl overflow-hidden shadow-sm">
+        {/* Header row */}
+        <div className="grid grid-cols-[1fr_120px_110px_130px_150px_1fr] gap-4 px-4 py-2.5 bg-muted/50 border-b">
+          <button
+            onClick={() => handleSort("title")}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {t.opportunities.columns.title}
+          </button>
+          <button
+            onClick={() => handleSort("organisation")}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {t.opportunities.columns.organisation}
+          </button>
+          <button
+            onClick={() => handleSort("dueDate")}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {t.opportunities.columns.dueDate}
+          </button>
+          <button
+            onClick={() => handleSort("status")}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {t.opportunities.columns.status}
+          </button>
+          <button
+            onClick={() => handleSort("responsable")}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {t.opportunities.columns.responsable}
+          </button>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t.opportunities.columns.notes}
+          </span>
+        </div>
 
-        {opportunities.length === 0 && (
-          <div className="text-center py-8 text-xs text-muted-foreground/50">
-            Aucune
-          </div>
-        )}
+        {/* Rows */}
+        <div>
+          {filteredAndSortedOpps.map((opp, idx) => {
+            const cfg = statusConfig[opp.status] || {
+              color: "text-muted-foreground",
+              bg: "bg-muted/50",
+              gradient: "from-muted/20 to-transparent",
+              headerBg: "bg-muted/50",
+              dotColor: "bg-muted-foreground",
+              icon: null,
+            };
+            const overdue = isOverdue(opp.dueDate);
+
+            return (
+              <motion.div
+                key={opp.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: idx * 0.02 }}
+                className={cn(
+                  "grid grid-cols-[1fr_120px_110px_130px_150px_1fr] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer",
+                  idx % 2 === 1 && "bg-muted/10",
+                )}
+              >
+                {/* Title + description snippet */}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{opp.title}</p>
+                  {opp.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {opp.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Organisation */}
+                <div className="min-w-0">
+                  {opp.organisation ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 font-normal bg-muted/40 flex items-center gap-1 w-fit"
+                    >
+                      <Building2 className="h-2.5 w-2.5" />
+                      <span className="truncate">{opp.organisation}</span>
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground/40">—</span>
+                  )}
+                </div>
+
+                {/* Deadline */}
+                <div
+                  className={cn(
+                    "flex items-center gap-1 text-xs font-medium",
+                    overdue
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <Calendar className="h-3 w-3" />
+                  {opp.dueDate
+                    ? new Date(opp.dueDate).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "—"}
+                  {overdue && (
+                    <span className="text-[10px] text-rose-400 ml-1">
+                      (en retard)
+                    </span>
+                  )}
+                </div>
+
+                {/* Status */}
+                <div>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      cfg.bg,
+                      cfg.color,
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dotColor)} />
+                    {sl[opp.status] || opp.status}
+                  </span>
+                </div>
+
+                {/* Responsable */}
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-5 w-5 ring-1 ring-background">
+                    <AvatarFallback className="text-[7px] bg-muted font-medium">
+                      {getUserInitials(opp.responsableId, users)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {getUserName(opp.responsableId, users)}
+                  </span>
+                </div>
+
+                {/* Notes */}
+                <div className="min-w-0">
+                  <span className="text-xs text-muted-foreground line-clamp-1">
+                    {opp.description || "—"}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-// ---- Main Component ----
-export function OpportunitiesView() {
-  const { t } = useTranslation();
-  const opportunityViewMode = useAppStore((s) => s.opportunityViewMode);
-  const setOpportunityViewMode = useAppStore(
-    (s) => s.setOpportunityViewMode,
-  );
-  const setCreateOpportunityDialogOpen = useAppStore(
-    (s) => s.setCreateOpportunityDialogOpen,
-  );
-  const setOpportunityCount = useAppStore((s) => s.setOpportunityCount);
+// ── Main Opportunities View ──────────────────────────────────────────────────
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeDrag, setActiveDrag] = useState<Opportunity | null>(null);
+export function OpportunitiesView() {
+  const { opportunityViewMode, setOpportunityViewMode, setCreateOpportunityDialogOpen, setOpportunityCount } =
+    useAppStore();
+  const { t } = useTranslation();
 
   const {
-    data: apiData,
+    data: apiOpps,
     isLoading,
-    error,
     refetch,
   } = useApiData<Opportunity[]>("/api/opportunities", {
     fallback: mockOpportunities,
   });
 
-  const apiOpps = useMemo(() => apiData || [], [apiData]);
+  const opportunities = apiOpps ?? [];
 
   // Update sidebar badge
-  useMemo(() => {
-    setOpportunityCount(apiOpps.length);
-  }, [apiOpps, setOpportunityCount]);
+  useEffect(() => {
+    setOpportunityCount(opportunities.length);
+  }, [opportunities.length, setOpportunityCount]);
 
-  // Filtered opportunities
-  const opportunities = useMemo(() => {
-    if (!searchQuery.trim()) return apiOpps;
-    const q = searchQuery.toLowerCase();
-    return apiOpps.filter((o) => o.title.toLowerCase().includes(q));
-  }, [apiOpps, searchQuery]);
+  const { data: apiUsers } = useApiData<User[]>("/api/users", {
+    fallback: mockUsers,
+  });
+  const users = apiUsers ?? [];
 
-  // Group by status
-  const opportunitiesByStatus = useMemo(() => {
-    const map: Record<OpportunityStatus, Opportunity[]> = {} as Record<
-      OpportunityStatus,
-      Opportunity[]
-    >;
-    for (const status of STATUSES) {
-      map[status] = opportunities.filter((o) => o.status === status);
-    }
-    return map;
-  }, [opportunities]);
+  const wonCount = opportunities.filter((o) => o.status === "accepte").length;
+  const lostCount = opportunities.filter((o) => o.status === "refuse").length;
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
-  );
-
-  const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
-      const id = event.active.id as string;
-      const opp = opportunities.find((o) => o.id === id) || null;
-      setActiveDrag(opp);
-    },
-    [opportunities],
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      setActiveDrag(null);
-      const { active, over } = event;
-      if (!over) return;
-
-      const oppId = active.id as string;
-      let newStatus: OpportunityStatus | null = null;
-
-      // Check if dropped on a column
-      const overId = over.id as string;
-      if (STATUSES.includes(overId as OpportunityStatus)) {
-        newStatus = overId as OpportunityStatus;
-      } else {
-        const overOpp = opportunities.find((o) => o.id === overId);
-        if (overOpp) newStatus = overOpp.status;
-      }
-
-      if (!newStatus) return;
-
-      const opp = opportunities.find((o) => o.id === oppId);
-      if (!opp || opp.status === newStatus) return;
-
-      // PATCH API and refetch
-      fetch(`/api/opportunities/${oppId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Update failed");
-          return res.json();
-        })
-        .then(() => refetch())
-        .catch(() => {
-          toast.error("Erreur lors du changement de statut");
-        });
-    },
-    [opportunities, refetch],
-  );
-
-  // Computed
-  const totalCount = opportunities.length;
-  const wonCount = opportunities.filter((o) => o.status === "gagnee").length;
-  const lostCount = opportunities.filter((o) => o.status === "perdue").length;
-
-  // ------- RENDER: Loading -------
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-6 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ------- RENDER: Error -------
-  if (error && !apiData) {
-    return (
-      <div className="p-6">
-        <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20">
-          <CardContent className="flex items-center gap-3 p-4">
-            <AlertCircle className="h-5 w-5 text-red-500" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                Erreur de chargement
-              </p>
-              <p className="text-xs text-red-600 dark:text-red-400">
-                {error}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              className="text-xs"
-            >
-              Réessayer
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // ------- RENDER: Main -------
   return (
-    <div className="flex flex-col h-full">
-      {/* Stats Bar */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-2">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">
+          <h2 className="text-xl font-bold tracking-tight">
             {t.opportunities.title}
-          </h1>
-          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-            <span>{totalCount} total</span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {wonCount} {t.opportunities.statuses.gagnee.toLowerCase()}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              {lostCount} {t.opportunities.statuses.perdue.toLowerCase()}
-            </span>
-          </div>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            <span className="font-semibold text-foreground">
+              {opportunities.length}
+            </span>{" "}
+            total ·{" "}
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {wonCount}
+            </span>{" "}
+            {t.opportunities.statuses.accepte.toLowerCase()} ·{" "}
+            <span className="font-semibold text-red-500">
+              {lostCount}
+            </span>{" "}
+            {t.opportunities.statuses.refuse.toLowerCase()}
+          </p>
         </div>
-        <Button
-          onClick={() => setCreateOpportunityDialogOpen(true)}
-          size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.55_0.15_180)] text-white hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          {t.opportunities.newOpportunity}
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Tabs
+            value={opportunityViewMode}
+            onValueChange={(v) =>
+              setOpportunityViewMode(v as typeof opportunityViewMode)
+            }
+          >
+            <TabsList className="h-8 bg-muted/50 p-0.5">
+              <TabsTrigger
+                value="kanban"
+                className={cn(
+                  "text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm",
+                )}
+              >
+                <Columns3 className="h-3.5 w-3.5" /> {t.opportunities.kanban}
+              </TabsTrigger>
+              <TabsTrigger
+                value="list"
+                className="text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <List className="h-3.5 w-3.5" /> {t.opportunities.list}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Button
+            size="sm"
+            onClick={() => setCreateOpportunityDialogOpen(true)}
+            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm shadow-[oklch(0.55_0.15_160)]/20"
+          >
+            <Plus className="h-3.5 w-3.5" /> {t.opportunities.newOpportunity}
+          </Button>
+        </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 px-6 py-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t.opportunities.search}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-sm"
+      {/* Views */}
+      <AnimatePresence mode="wait">
+        {isLoading && opportunities.length === 0 && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center py-20"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-[oklch(0.55_0.15_160)]" />
+              <span className="text-sm text-muted-foreground">
+                {t.common.loading}
+              </span>
+            </div>
+          </motion.div>
+        )}
+        {!isLoading && opportunityViewMode === "kanban" && (
+          <KanbanView
+            key="kanban"
+            opportunities={opportunities}
+            users={users}
+            onOpportunityChanged={refetch}
           />
-        </div>
-        <Tabs
-          value={opportunityViewMode}
-          onValueChange={(v) =>
-            setOpportunityViewMode(v as "list" | "kanban")
-          }
-        >
-          <TabsList className="h-9">
-            <TabsTrigger value="kanban" className="gap-1.5 text-xs h-7">
-              <Columns3 className="h-3.5 w-3.5" />
-              {t.opportunities.kanban}
-            </TabsTrigger>
-            <TabsTrigger value="list" className="gap-1.5 text-xs h-7">
-              <List className="h-3.5 w-3.5" />
-              {t.opportunities.list}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden px-6 pb-6">
-        <AnimatePresence mode="wait">
-          {opportunityViewMode === "kanban" ? (
-            <motion.div
-              key="kanban"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="h-full"
-            >
-              {opportunities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <Target className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground">
-                    {t.opportunities.noResults}
-                  </p>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCorners}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="h-full overflow-x-auto">
-                    <div className="flex gap-4 h-full min-w-max pb-4">
-                      {STATUSES.map((status) => (
-                        <KanbanColumn
-                          key={status}
-                          status={status}
-                          opportunities={opportunitiesByStatus[status]}
-                          onRefresh={refetch}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <DragOverlay>
-                    {activeDrag && (
-                      <OpportunityCard
-                        opportunity={activeDrag}
-                        isDragOverlay
-                        onRefresh={refetch}
-                      />
-                    )}
-                  </DragOverlay>
-                </DndContext>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              className="h-full overflow-auto"
-            >
-              {opportunities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <Target className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground">
-                    {t.opportunities.noResults}
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border/50">
-                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">
-                        {t.opportunities.columns.title}
-                      </th>
-                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">
-                        {t.opportunities.columns.status}
-                      </th>
-                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">
-                        {t.opportunities.columns.dueDate}
-                      </th>
-                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">
-                        {t.opportunities.columns.creator}
-                      </th>
-                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">
-                        {t.opportunities.columns.createdAt}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {opportunities.map((opp) => {
-                      const config = statusConfig[opp.status];
-                      const overdue = isOverdue(opp.dueDate);
-                      return (
-                        <tr
-                          key={opp.id}
-                          className="border-b border-border/30 hover:bg-muted/40 transition-colors"
-                        >
-                          <td className="py-3 px-4">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {opp.title}
-                              </p>
-                              {opp.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                                  {opp.description}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                                config.solidBg,
-                                config.solidText,
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "h-1.5 w-1.5 rounded-full",
-                                  config.dotColor,
-                                )}
-                              />
-                              {t.opportunities.statuses[
-                                opp.status as keyof typeof t.opportunities.statuses
-                              ]}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            {opp.dueDate ? (
-                              <span
-                                className={cn(
-                                  "text-xs flex items-center gap-1",
-                                  overdue
-                                    ? "text-red-500 font-medium"
-                                    : "text-muted-foreground",
-                                )}
-                              >
-                                <CalendarDays className="h-3 w-3" />
-                                {new Date(
-                                  opp.dueDate,
-                                ).toLocaleDateString("fr-FR", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                                {overdue && (
-                                  <span className="text-[10px] text-red-400 ml-1">
-                                    (en retard)
-                                  </span>
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">
-                                —
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-5 w-5">
-                                <AvatarFallback className="text-[8px] bg-muted">
-                                  {opp.creator
-                                    ? getInitials(opp.creator.name)
-                                    : "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-xs text-muted-foreground">
-                                {opp.creator?.name || "—"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-xs text-muted-foreground">
-                            {new Date(opp.createdAt).toLocaleDateString(
-                              "fr-FR",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+        )}
+        {!isLoading && opportunityViewMode === "list" && (
+          <ListView
+            key="list"
+            opportunities={opportunities}
+            users={users}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

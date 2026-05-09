@@ -35,12 +35,12 @@ export type MeetingStatus =
   | "cancelled";
 
 export type OpportunityStatus =
-  | "prospection"
-  | "qualification"
-  | "proposition"
-  | "negociation"
-  | "gagnee"
-  | "perdue";
+  | "nouveau"
+  | "en_preparation"
+  | "soumis"
+  | "entretien"
+  | "accepte"
+  | "refuse";
 
 export interface WorkspaceMember {
   id: string;
@@ -147,12 +147,15 @@ export interface Opportunity {
   id: string;
   title: string;
   description: string;
+  organisation?: string;
   status: OpportunityStatus;
   dueDate: string;
+  responsableId?: string;
   workspaceId: string;
   creatorId: string;
   createdAt: string;
   creator?: User;
+  responsable?: User;
 }
 
 export interface FileItem {
@@ -174,6 +177,15 @@ export interface WikiPage {
   lastEditedBy: string;
   updatedAt: string;
   icon: string;
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  taskId: string;
+  userId: string;
+  createdAt: string;
+  user?: Pick<User, "id" | "name" | "avatar">;
 }
 
 export interface ActivityItem {

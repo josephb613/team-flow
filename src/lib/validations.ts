@@ -185,15 +185,17 @@ export const updateInvitationSchema = z.object({
 export const createOpportunitySchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(5000).optional().nullable(),
+  organisation: z.string().max(200).optional().nullable(),
   status: z.enum([
-    "prospection",
-    "qualification",
-    "proposition",
-    "negociation",
-    "gagnee",
-    "perdue",
-  ]).optional().default("prospection"),
+    "nouveau",
+    "en_preparation",
+    "soumis",
+    "entretien",
+    "accepte",
+    "refuse",
+  ]).optional().default("nouveau"),
   dueDate: z.string().datetime().optional().nullable(),
+  responsableId: z.string().optional().nullable(),
   workspaceId: z.string().min(1, "Workspace is required"),
   creatorId: z.string().optional().nullable(),
 });
@@ -222,6 +224,14 @@ export const createScopeSchema = z.object({
 });
 
 export const updateScopeSchema = createScopeSchema.partial();
+
+// ---- Team Member management schemas ----
+
+// ---- Comment schemas ----
+
+export const createCommentSchema = z.object({
+  content: z.string().min(1, "Content is required").max(2000),
+});
 
 // ---- Team Member management schemas ----
 

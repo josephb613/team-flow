@@ -14,6 +14,7 @@ export const GET = withErrorHandler(
       },
       include: {
         creator: true,
+        responsable: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -28,7 +29,7 @@ export const POST = withErrorHandler(
     const validation = validateBody(createOpportunitySchema, body);
     if (validation.error) return validation.error;
 
-    const { title, description, status, dueDate, workspaceId } =
+    const { title, description, organisation, status, dueDate, responsableId, workspaceId } =
       validation.data;
 
     // Verify the workspace belongs to the user
@@ -50,13 +51,16 @@ export const POST = withErrorHandler(
       data: {
         title,
         description: description || null,
-        status: status || "prospection",
+        organisation: organisation || null,
+        status: status || "nouveau",
         dueDate: dueDate ? new Date(dueDate) : null,
+        responsableId: responsableId || null,
         workspaceId,
         creatorId: user.id,
       },
       include: {
         creator: true,
+        responsable: true,
       },
     });
 

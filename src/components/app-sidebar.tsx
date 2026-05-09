@@ -327,6 +327,7 @@ const managePageIds: Set<string> = new Set([
   "teams",
   "reports",
   "automations",
+  "team-management",
 ]);
 const ventesPageIds: Set<string> = new Set(["opportunities"]);
 

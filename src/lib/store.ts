@@ -30,6 +30,8 @@ interface AppState {
   // Board Columns (for Kanban)
   columns: BoardColumn[];
   setColumns: (columns: BoardColumn[]) => void;
+  columnsOpportunity: BoardColumn[];
+  setColumnsOpportunity: (columns: BoardColumn[]) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -245,6 +247,8 @@ export const useAppStore = create<AppState>((set) => ({
   // Board Columns
   columns: [],
   setColumns: (columns) => set({ columns }),
+  columnsOpportunity: [],
+  setColumnsOpportunity: (columns) => set({ columnsOpportunity: columns }),
 
   // Sidebar
   sidebarCollapsed: false,

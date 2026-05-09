@@ -69,6 +69,42 @@ const DEFAULT_BG_COLORS: Record<string, { bg: string; gradient: string; headerBg
     headerBg: "bg-emerald-100 dark:bg-emerald-900/40",
     dotColor: "bg-emerald-400",
   },
+  "nouveau": {
+    bg: "bg-indigo-50 dark:bg-indigo-950/30",
+    gradient: "from-indigo-100 to-indigo-50 dark:from-indigo-950/40 dark:to-indigo-950/20",
+    headerBg: "bg-indigo-100 dark:bg-indigo-900/40",
+    dotColor: "bg-indigo-400",
+  },
+  "en_preparation": {
+    bg: "bg-sky-50 dark:bg-sky-950/30",
+    gradient: "from-sky-100 to-sky-50 dark:from-sky-950/40 dark:to-sky-950/20",
+    headerBg: "bg-sky-100 dark:bg-sky-900/40",
+    dotColor: "bg-sky-400",
+  },
+  "soumis": {
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    gradient: "from-amber-100 to-amber-50 dark:from-amber-950/40 dark:to-amber-950/20",
+    headerBg: "bg-amber-100 dark:bg-amber-900/40",
+    dotColor: "bg-amber-400",
+  },
+  "entretien": {
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    gradient: "from-purple-100 to-purple-50 dark:from-purple-950/40 dark:to-purple-950/20",
+    headerBg: "bg-purple-100 dark:bg-purple-900/40",
+    dotColor: "bg-purple-400",
+  },
+  "accepte": {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    gradient: "from-emerald-100 to-emerald-50 dark:from-emerald-950/40 dark:to-emerald-950/20",
+    headerBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    dotColor: "bg-emerald-400",
+  },
+  "refuse": {
+    bg: "bg-red-50 dark:bg-red-950/30",
+    gradient: "from-red-100 to-red-50 dark:from-red-950/40 dark:to-red-950/20",
+    headerBg: "bg-red-100 dark:bg-red-900/40",
+    dotColor: "bg-red-400",
+  },
 };
 
 function hexToOklchClass(color: string, opacity: number): string {
@@ -91,7 +127,17 @@ export function buildStatusConfig(columns: BoardColumn[]): Record<string, Column
     const defaults = DEFAULT_BG_COLORS[col.slug];
 
     if (defaults) {
-      const colorBase = col.slug === "todo" ? "slate" : col.slug === "in_progress" ? "cyan" : col.slug === "review" ? "amber" : "emerald";
+      const colorBase =
+        col.slug === "todo" ? "slate" :
+        col.slug === "in_progress" ? "cyan" :
+        col.slug === "review" ? "amber" :
+        col.slug === "done" ? "emerald" :
+        col.slug === "nouveau" ? "indigo" :
+        col.slug === "en_preparation" ? "sky" :
+        col.slug === "soumis" ? "amber" :
+        col.slug === "entretien" ? "purple" :
+        col.slug === "accepte" ? "emerald" :
+        col.slug === "refuse" ? "red" : "slate";
       config[col.slug] = {
         color: `text-${colorBase}-600 dark:text-${colorBase}-400`,
         icon: <IconComponent className="h-4 w-4" />,
@@ -149,4 +195,13 @@ export const DEFAULT_COLUMNS: BoardColumn[] = [
   { id: "default-in_progress", name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true, workspaceId: "" },
   { id: "default-review", name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true, workspaceId: "" },
   { id: "default-done", name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true, workspaceId: "" },
+];
+
+export const DEFAULT_OPPORTUNITY_COLUMNS: BoardColumn[] = [
+  { id: "default-opp-nouveau", name: "Nouveau", slug: "nouveau", color: "#6366f1", icon: "lightbulb", order: 0, isDefault: true, workspaceId: "" },
+  { id: "default-opp-en_preparation", name: "En préparation", slug: "en_preparation", color: "#0ea5e9", icon: "clock", order: 1, isDefault: true, workspaceId: "" },
+  { id: "default-opp-soumis", name: "Soumis", slug: "soumis", color: "#f59e0b", icon: "arrow-right", order: 2, isDefault: true, workspaceId: "" },
+  { id: "default-opp-entretien", name: "Entretien", slug: "entretien", color: "#8b5cf6", icon: "message-circle", order: 3, isDefault: true, workspaceId: "" },
+  { id: "default-opp-accepte", name: "Accepté", slug: "accepte", color: "#10b981", icon: "check-circle-2", order: 4, isDefault: true, workspaceId: "" },
+  { id: "default-opp-refuse", name: "Refusé", slug: "refuse", color: "#ef4444", icon: "flag", order: 5, isDefault: true, workspaceId: "" },
 ];
