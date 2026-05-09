@@ -3,34 +3,75 @@
 // ========================
 
 export type PageId =
-  | 'dashboard'
-  | 'tasks'
-  | 'projects'
-  | 'calendar'
-  | 'messages'
-  | 'meetings'
-  | 'files'
-  | 'wiki'
-  | 'activity'
-  | 'members'
-  | 'teams'
-  | 'reports'
-  | 'automations'
-  | 'settings';
+  | "dashboard"
+  | "tasks"
+  | "projects"
+  | "project-detail"
+  | "calendar"
+  | "messages"
+  | "meetings"
+  | "files"
+  | "wiki"
+  | "activity"
+  | "members"
+  | "teams"
+  | "team-management"
+  | "reports"
+  | "automations"
+  | "opportunities"
+  | "settings";
 
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
-export type MemberRole = 'admin' | 'member' | 'guest';
-export type MeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type KnownTaskStatus = "todo" | "in_progress" | "review" | "done";
+export type TaskStatus = KnownTaskStatus | (string & {});
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+export type ProjectStatus = "active" | "on_hold" | "completed" | "archived";
+export type MemberRole = "admin" | "member" | "guest";
+export type ScopePermission = "read" | "write" | "admin";
+export type ScopeType = "functional" | "permission";
+export type MeetingStatus =
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
+export type OpportunityStatus =
+  | "prospection"
+  | "qualification"
+  | "proposition"
+  | "negociation"
+  | "gagnee"
+  | "perdue";
+
+export interface WorkspaceMember {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  role: MemberRole;
+  joinedAt: string;
+  user: User;
+}
 
 export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  description?: string;
   color: string;
   icon: string;
   createdAt: string;
+  members?: WorkspaceMember[];
+  columns?: BoardColumn[];
+}
+
+export interface BoardColumn {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  icon: string;
+  order: number;
+  isDefault: boolean;
+  workspaceId: string;
 }
 
 export interface User {
@@ -39,7 +80,7 @@ export interface User {
   email: string;
   avatar: string;
   role: MemberRole;
-  status: 'online' | 'away' | 'offline' | 'busy';
+  status: "online" | "away" | "offline" | "busy";
 }
 
 export interface Project {
@@ -84,7 +125,7 @@ export interface Message {
 export interface Channel {
   id: string;
   name: string;
-  type: 'project' | 'direct' | 'team';
+  type: "project" | "direct" | "team";
   members: string[];
   lastMessage?: Message;
   unread: number;
@@ -102,10 +143,22 @@ export interface Meeting {
   projectId?: string;
 }
 
+export interface Opportunity {
+  id: string;
+  title: string;
+  description: string;
+  status: OpportunityStatus;
+  dueDate: string;
+  workspaceId: string;
+  creatorId: string;
+  createdAt: string;
+  creator?: User;
+}
+
 export interface FileItem {
   id: string;
   name: string;
-  type: 'document' | 'spreadsheet' | 'presentation' | 'image' | 'pdf' | 'other';
+  type: "document" | "spreadsheet" | "presentation" | "image" | "pdf" | "other";
   size: number;
   url: string;
   uploadedBy: string;
@@ -125,7 +178,21 @@ export interface WikiPage {
 
 export interface ActivityItem {
   id: string;
-  type: 'task_created' | 'task_completed' | 'comment_added' | 'project_updated' | 'member_joined' | 'file_uploaded' | 'meeting_scheduled';
+  type:
+    | "task_created"
+    | "task_completed"
+    | "task_updated"
+    | "task_deleted"
+    | "task_reopened"
+    | "comment_added"
+    | "project_created"
+    | "project_updated"
+    | "project_deleted"
+    | "member_joined"
+    | "file_uploaded"
+    | "meeting_created"
+    | "meeting_scheduled"
+    | "wiki_created";
   userId: string;
   description: string;
   targetId: string;
@@ -142,6 +209,54 @@ export interface Team {
   projects: string[];
 }
 
+export interface TeamRole {
+  id: string;
+  teamId: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon: string;
+}
+
+export interface TeamScope {
+  id: string;
+  teamId: string;
+  name: string;
+  description?: string;
+  type: ScopeType;
+  icon: string;
+  color: string;
+}
+
+export interface MemberScopeDetail {
+  id: string;
+  scopeId: string;
+  scope: TeamScope;
+  permission: ScopePermission;
+}
+
+export interface TeamMemberDetailed {
+  id: string;
+  userId: string;
+  teamId: string;
+  roleId: string | null;
+  role: TeamRole | null;
+  user: User;
+  scopes: MemberScopeDetail[];
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  workspaceId: string;
+  invitedById: string;
+  role: MemberRole;
+  token: string;
+  status: "pending" | "accepted" | "declined";
+  createdAt: string;
+  invitedBy?: { id: string; name: string; email: string };
+}
+
 export interface Automation {
   id: string;
   name: string;
@@ -154,7 +269,13 @@ export interface Automation {
 
 export interface Notification {
   id: string;
-  type: 'mention' | 'assignment' | 'comment' | 'deadline' | 'invitation' | 'system';
+  type:
+    | "mention"
+    | "assignment"
+    | "comment"
+    | "deadline"
+    | "invitation"
+    | "system";
   title: string;
   message: string;
   read: boolean;
@@ -167,7 +288,7 @@ export interface CalendarEvent {
   title: string;
   date: string;
   endDate?: string;
-  type: 'deadline' | 'meeting' | 'milestone' | 'reminder';
+  type: "deadline" | "meeting" | "milestone" | "reminder";
   color: string;
   projectId?: string;
 }

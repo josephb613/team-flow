@@ -11,6 +11,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
+  password  String?
   avatar    String?
   role      String   @default("member")
   status    String   @default("offline")
@@ -27,6 +28,8 @@ model User {
   wikiEdits         WikiPage[]
   channelMemberships ChannelMember[]
   meetingMemberships MeetingMember[]
+  sentInvitations     Invitation[]    @relation("SentInvitations")
+  createdOpportunities Opportunity[]  @relation("CreatedOpportunities")
 }
 
 model Workspace {
@@ -47,6 +50,27 @@ model Workspace {
   files       FileItem[]
   wikiPages   WikiPage[]
   activityLogs ActivityLog[]
+  invitations  Invitation[]
+  opportunities Opportunity[]
+  columns      BoardColumn[]
+}
+
+model BoardColumn {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  color       String   @default("#6366f1")
+  icon        String   @default("circle")
+  order       Int      @default(0)
+  isDefault   Boolean  @default(false)
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, order])
 }
 
 model WorkspaceMember {
@@ -62,22 +86,60 @@ model WorkspaceMember {
   @@unique([userId, workspaceId])
 }
 
-model Project {
+model Invitation {
   id          String   @id @default(cuid())
-  name        String
-  description String?
-  color       String   @default("#10b981")
-  icon        String   @default("📋")
-  status      String   @default("active")
+  email       String
   workspaceId String
+  invitedById String
+  role        String   @default("member")
+  token       String   @unique @default(cuid())
+  status      String   @default("pending") // pending | accepted | declined
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User     @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([email, workspaceId])
+  @@index([workspaceId])
+  @@index([token])
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  color       String    @default("#10b981")
+  icon        String    @default("📋")
+  status      String    @default("active")
+  dueDate     DateTime?
+  workspaceId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks     Task[]
   meetings  Meeting[]
 
   @@index([workspaceId])
+}
+
+model Opportunity {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("prospection")
+  dueDate     DateTime?
+  workspaceId String
+  creatorId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator   User?     @relation("CreatedOpportunities", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([creatorId])
 }
 
 model Task {
@@ -205,19 +267,67 @@ model Team {
 
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   teamMembers TeamMember[]
+  roles       TeamRole[]
+  scopes      Scope[]
 
   @@index([workspaceId])
 }
 
+model TeamRole {
+  id          String       @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  color       String       @default("#6366f1")
+  icon        String       @default("👤")
+  createdAt   DateTime     @default(now())
+
+  team    Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@unique([teamId, name])
+}
+
 model TeamMember {
-  id     String @id @default(cuid())
+  id     String  @id @default(cuid())
   teamId String
   userId String
+  roleId String?
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   TeamRole?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  team   Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scopes MemberScope[]
 
   @@unique([teamId, userId])
+}
+
+model Scope {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  type        String   @default("functional")
+  icon        String   @default("🎯")
+  color       String   @default("#6366f1")
+  createdAt   DateTime @default(now())
+
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberScopes MemberScope[]
+
+  @@unique([teamId, name])
+}
+
+model MemberScope {
+  id         String @id @default(cuid())
+  memberId   String
+  scopeId    String
+  permission String @default("write")
+
+  member TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  scope  Scope      @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, scopeId])
 }
 
 model Automation {

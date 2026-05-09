@@ -1,26 +1,26 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
 import {
   Plus,
   LayoutGrid,
@@ -37,47 +37,59 @@ import {
   TrendingUp,
   ArrowUpRight,
   Sparkles,
-} from 'lucide-react';
-import { mockProjects, mockUsers, mockTeams } from '@/lib/mock-data';
-import { useTranslation } from '@/lib/i18n';
-import type { Project, ProjectStatus } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { mockProjects, mockUsers, mockTeams } from "@/lib/mock-data";
+import { useApiData } from "@/hooks/use-api-data";
+import { useTranslation } from "@/lib/i18n";
+import { useAppStore } from "@/lib/store";
+import type { Project, ProjectStatus } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 // ── Status Configuration ─────────────────────────────────────────────────────
 
-const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: React.ReactNode; dotColor: string; solidBg: string; solidText: string }> = {
+const statusConfig: Record<
+  ProjectStatus,
+  {
+    color: string;
+    bg: string;
+    icon: React.ReactNode;
+    dotColor: string;
+    solidBg: string;
+    solidText: string;
+  }
+> = {
   active: {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-200 dark:border-emerald-800",
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-emerald-500',
-    solidBg: 'bg-emerald-100 dark:bg-emerald-900/50',
-    solidText: 'text-emerald-700 dark:text-emerald-300',
+    dotColor: "bg-emerald-500",
+    solidBg: "bg-emerald-100 dark:bg-emerald-900/50",
+    solidText: "text-emerald-700 dark:text-emerald-300",
   },
   on_hold: {
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-200 dark:border-amber-800',
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-200 dark:border-amber-800",
     icon: <PauseCircle className="h-3 w-3" />,
-    dotColor: 'bg-amber-500',
-    solidBg: 'bg-amber-100 dark:bg-amber-900/50',
-    solidText: 'text-amber-700 dark:text-amber-300',
+    dotColor: "bg-amber-500",
+    solidBg: "bg-amber-100 dark:bg-amber-900/50",
+    solidText: "text-amber-700 dark:text-amber-300",
   },
   completed: {
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-500/10 border-teal-200 dark:border-teal-800',
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-500/10 border-teal-200 dark:border-teal-800",
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-teal-500',
-    solidBg: 'bg-teal-100 dark:bg-teal-900/50',
-    solidText: 'text-teal-700 dark:text-teal-300',
+    dotColor: "bg-teal-500",
+    solidBg: "bg-teal-100 dark:bg-teal-900/50",
+    solidText: "text-teal-700 dark:text-teal-300",
   },
   archived: {
-    color: 'text-slate-500 dark:text-slate-400',
-    bg: 'bg-slate-500/10 border-slate-200 dark:border-slate-800',
+    color: "text-slate-500 dark:text-slate-400",
+    bg: "bg-slate-500/10 border-slate-200 dark:border-slate-800",
     icon: <Archive className="h-3 w-3" />,
-    dotColor: 'bg-slate-400',
-    solidBg: 'bg-slate-100 dark:bg-slate-800/50',
-    solidText: 'text-slate-600 dark:text-slate-300',
+    dotColor: "bg-slate-400",
+    solidBg: "bg-slate-100 dark:bg-slate-800/50",
+    solidText: "text-slate-600 dark:text-slate-300",
   },
 };
 
@@ -85,11 +97,16 @@ const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: Rea
 
 function getUserInitials(id: string) {
   const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
+  return user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+    : "??";
 }
 
 function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
+  return mockUsers.find((u) => u.id === id)?.name || "Unknown";
 }
 
 // ── Animation Variants ───────────────────────────────────────────────────────
@@ -104,24 +121,57 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
 };
 
 // ── Avatar Stack ─────────────────────────────────────────────────────────────
 
-function AvatarStack({ memberIds, max = 4, size = 'sm' }: { memberIds: string[]; max?: number; size?: 'sm' | 'md' }) {
-  const dims = size === 'sm' ? { avatar: 'h-6 w-6', text: 'text-[8px]', overlap: '-space-x-2', moreText: 'text-[10px]' }
-    : { avatar: 'h-7 w-7', text: 'text-[9px]', overlap: '-space-x-2', moreText: 'text-[10px]' };
+function AvatarStack({
+  memberIds = [],
+  max = 4,
+  size = "sm",
+}: {
+  memberIds?: string[];
+  max?: number;
+  size?: "sm" | "md";
+}) {
+  const dims =
+    size === "sm"
+      ? {
+          avatar: "h-6 w-6",
+          text: "text-[8px]",
+          overlap: "-space-x-2",
+          moreText: "text-[10px]",
+        }
+      : {
+          avatar: "h-7 w-7",
+          text: "text-[9px]",
+          overlap: "-space-x-2",
+          moreText: "text-[10px]",
+        };
 
   return (
     <div className="flex items-center">
-      <div className={cn('flex', dims.overlap)}>
+      <div className={cn("flex", dims.overlap)}>
         {memberIds.slice(0, max).map((id, idx) => (
           <TooltipProvider key={id} delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Avatar className={cn(dims.avatar, 'border-2 border-background ring-1 ring-muted/50', idx > 0 && 'ml-0')}>
-                  <AvatarFallback className={cn(dims.text, 'bg-muted font-semibold')}>
+                <Avatar
+                  className={cn(
+                    dims.avatar,
+                    "border-2 border-background ring-1 ring-muted/50",
+                    idx > 0 && "ml-0",
+                  )}
+                >
+                  <AvatarFallback
+                    className={cn(dims.text, "bg-muted font-semibold")}
+                  >
                     {getUserInitials(id)}
                   </AvatarFallback>
                 </Avatar>
@@ -134,7 +184,12 @@ function AvatarStack({ memberIds, max = 4, size = 'sm' }: { memberIds: string[];
         ))}
       </div>
       {memberIds.length > max && (
-        <span className={cn(dims.moreText, 'text-muted-foreground ml-2 font-medium')}>
+        <span
+          className={cn(
+            dims.moreText,
+            "text-muted-foreground ml-2 font-medium",
+          )}
+        >
           +{memberIds.length - max}
         </span>
       )}
@@ -144,15 +199,25 @@ function AvatarStack({ memberIds, max = 4, size = 'sm' }: { memberIds: string[];
 
 // ── Progress Bar with Label ──────────────────────────────────────────────────
 
-function ProgressBar({ value, color, size = 'md' }: { value: number; color: string; size?: 'sm' | 'md' | 'lg' }) {
-  const height = size === 'sm' ? 'h-1.5' : size === 'md' ? 'h-2' : 'h-2.5';
+function ProgressBar({
+  value,
+  color,
+  size = "md",
+}: {
+  value: number;
+  color: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const height = size === "sm" ? "h-1.5" : size === "md" ? "h-2" : "h-2.5";
   return (
-    <div className={cn('w-full bg-muted/50 rounded-full overflow-hidden', height)}>
+    <div
+      className={cn("w-full bg-muted/50 rounded-full overflow-hidden", height)}
+    >
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${value}%` }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className={cn('h-full rounded-full', height)}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className={cn("h-full rounded-full", height)}
         style={{
           background: `linear-gradient(90deg, ${color}, ${color}dd)`,
         }}
@@ -165,8 +230,14 @@ function ProgressBar({ value, color, size = 'md' }: { value: number; color: stri
 
 function ProjectGridCard({ project }: { project: Project }) {
   const { t } = useTranslation();
+  const setSelectedProject = useAppStore((s) => s.setSelectedProject);
   const status = statusConfig[project.status];
-  const statusLabels: Record<ProjectStatus, string> = { active: t.projects.active, on_hold: t.projects.onHold, completed: t.projects.completed, archived: t.projects.archived };
+  const statusLabels: Record<ProjectStatus, string> = {
+    active: t.projects.active,
+    on_hold: t.projects.onHold,
+    completed: t.projects.completed,
+    archived: t.projects.archived,
+  };
   const remainingTasks = project.taskCount - project.completedTasks;
 
   return (
@@ -174,6 +245,7 @@ function ProjectGridCard({ project }: { project: Project }) {
       variants={item}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="group"
+      onClick={() => setSelectedProject(project as unknown as Record<string, unknown>)}
     >
       <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-0 shadow-sm">
         {/* Accent strip / gradient top border */}
@@ -190,7 +262,10 @@ function ProjectGridCard({ project }: { project: Project }) {
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm"
-                style={{ backgroundColor: project.color + '18', color: project.color }}
+                style={{
+                  backgroundColor: project.color + "18",
+                  color: project.color,
+                }}
               >
                 {project.icon}
               </div>
@@ -199,9 +274,9 @@ function ProjectGridCard({ project }: { project: Project }) {
                 <div className="mt-1">
                   <span
                     className={cn(
-                      'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                      "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
                       status.solidBg,
-                      status.solidText
+                      status.solidText,
                     )}
                   >
                     {status.icon}
@@ -210,28 +285,47 @@ function ProjectGridCard({ project }: { project: Project }) {
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Description */}
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">{project.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+            {project.description}
+          </p>
 
           {/* Progress */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t.dashboard.projectProgress}</span>
-              <span className="text-xs font-bold" style={{ color: project.color }}>{project.progress}%</span>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {t.dashboard.projectProgress}
+              </span>
+              <span
+                className="text-xs font-bold"
+                style={{ color: project.color }}
+              >
+                {project.progress}%
+              </span>
             </div>
-            <ProgressBar value={project.progress} color={project.color} size="md" />
+            <ProgressBar
+              value={project.progress}
+              color={project.color}
+              size="md"
+            />
           </div>
 
           {/* Stats row */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              <span className="font-medium">{project.completedTasks}/{project.taskCount}</span>
+              <span className="font-medium">
+                {project.completedTasks}/{project.taskCount}
+              </span>
             </div>
             {remainingTasks > 0 && (
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -239,7 +333,7 @@ function ProjectGridCard({ project }: { project: Project }) {
                 <span className="font-medium">{remainingTasks} left</span>
               </div>
             )}
-            {project.progress >= 80 && project.status === 'active' && (
+            {project.progress >= 80 && project.status === "active" && (
               <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                 <TrendingUp className="h-3 w-3" />
                 On track
@@ -252,9 +346,9 @@ function ProjectGridCard({ project }: { project: Project }) {
             <AvatarStack memberIds={project.members} max={4} size="sm" />
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
               <Calendar className="h-3 w-3" />
-              {new Date(project.dueDate).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
+              {new Date(project.dueDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
               })}
             </div>
           </div>
@@ -268,19 +362,26 @@ function ProjectGridCard({ project }: { project: Project }) {
 
 function ProjectListRow({ project }: { project: Project }) {
   const { t } = useTranslation();
+  const setSelectedProject = useAppStore((s) => s.setSelectedProject);
   const status = statusConfig[project.status];
-  const statusLabels: Record<ProjectStatus, string> = { active: t.projects.active, on_hold: t.projects.onHold, completed: t.projects.completed, archived: t.projects.archived };
+  const statusLabels: Record<ProjectStatus, string> = {
+    active: t.projects.active,
+    on_hold: t.projects.onHold,
+    completed: t.projects.completed,
+    archived: t.projects.archived,
+  };
 
   return (
     <motion.div
       variants={item}
-      whileHover={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+      whileHover={{ backgroundColor: "rgba(0,0,0,0.02)" }}
       className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3.5 items-center cursor-pointer transition-colors"
+      onClick={() => setSelectedProject(project as unknown as Record<string, unknown>)}
     >
       {/* Icon */}
       <div
         className="w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0 shadow-sm"
-        style={{ backgroundColor: project.color + '18', color: project.color }}
+        style={{ backgroundColor: project.color + "18", color: project.color }}
       >
         {project.icon}
       </div>
@@ -288,16 +389,18 @@ function ProjectListRow({ project }: { project: Project }) {
       {/* Name + Description */}
       <div className="min-w-0">
         <p className="text-sm font-semibold truncate">{project.name}</p>
-        <p className="text-xs text-muted-foreground truncate">{project.description}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {project.description}
+        </p>
       </div>
 
       {/* Status badge */}
       <div className="hidden sm:block w-24">
         <span
           className={cn(
-            'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+            "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
             status.solidBg,
-            status.solidText
+            status.solidText,
           )}
         >
           {status.icon}
@@ -308,9 +411,15 @@ function ProjectListRow({ project }: { project: Project }) {
       {/* Progress */}
       <div className="hidden md:flex items-center gap-2.5 w-36">
         <div className="flex-1">
-          <ProgressBar value={project.progress} color={project.color} size="sm" />
+          <ProgressBar
+            value={project.progress}
+            color={project.color}
+            size="sm"
+          />
         </div>
-        <span className="text-[10px] font-bold text-muted-foreground w-8 text-right">{project.progress}%</span>
+        <span className="text-[10px] font-bold text-muted-foreground w-8 text-right">
+          {project.progress}%
+        </span>
       </div>
 
       {/* Members */}
@@ -322,9 +431,9 @@ function ProjectListRow({ project }: { project: Project }) {
       <div className="flex items-center gap-3 w-32">
         <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
           <Calendar className="h-3 w-3" />
-          {new Date(project.dueDate).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
+          {new Date(project.dueDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
           })}
         </div>
       </div>
@@ -337,25 +446,43 @@ function ProjectListRow({ project }: { project: Project }) {
 function StatusFilterTabs({
   statusFilter,
   setStatusFilter,
+  projects,
 }: {
   statusFilter: string;
   setStatusFilter: (v: string) => void;
+  projects: typeof mockProjects;
 }) {
   const { t } = useTranslation();
   const tabs = [
-    { value: 'all', label: t.projects.all, icon: null },
-    { value: 'active', label: t.projects.active, icon: <CheckCircle2 className="h-3 w-3" /> },
-    { value: 'on_hold', label: t.projects.onHold, icon: <PauseCircle className="h-3 w-3" /> },
-    { value: 'completed', label: t.projects.completed, icon: <CheckCircle2 className="h-3 w-3" /> },
-    { value: 'archived', label: t.projects.archived, icon: <Archive className="h-3 w-3" /> },
+    { value: "all", label: t.projects.all, icon: null },
+    {
+      value: "active",
+      label: t.projects.active,
+      icon: <CheckCircle2 className="h-3 w-3" />,
+    },
+    {
+      value: "on_hold",
+      label: t.projects.onHold,
+      icon: <PauseCircle className="h-3 w-3" />,
+    },
+    {
+      value: "completed",
+      label: t.projects.completed,
+      icon: <CheckCircle2 className="h-3 w-3" />,
+    },
+    {
+      value: "archived",
+      label: t.projects.archived,
+      icon: <Archive className="h-3 w-3" />,
+    },
   ];
 
   const counts: Record<string, number> = {
-    all: mockProjects.length,
-    active: mockProjects.filter((p) => p.status === 'active').length,
-    on_hold: mockProjects.filter((p) => p.status === 'on_hold').length,
-    completed: mockProjects.filter((p) => p.status === 'completed').length,
-    archived: mockProjects.filter((p) => p.status === 'archived').length,
+    all: projects.length,
+    active: projects.filter((p) => p.status === "active").length,
+    on_hold: projects.filter((p) => p.status === "on_hold").length,
+    completed: projects.filter((p) => p.status === "completed").length,
+    archived: projects.filter((p) => p.status === "archived").length,
   };
 
   return (
@@ -365,20 +492,20 @@ function StatusFilterTabs({
           key={tab.value}
           onClick={() => setStatusFilter(tab.value)}
           className={cn(
-            'relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200',
+            "relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
             statusFilter === tab.value
-              ? 'bg-background shadow-sm text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {tab.icon}
           {tab.label}
           <span
             className={cn(
-              'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold',
+              "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold",
               statusFilter === tab.value
-                ? 'bg-[oklch(0.55_0.15_160)]/10 text-[oklch(0.55_0.15_160)]'
-                : 'bg-muted text-muted-foreground'
+                ? "bg-[oklch(0.55_0.15_160)]/10 text-[oklch(0.55_0.15_160)]"
+                : "bg-muted text-muted-foreground",
             )}
           >
             {counts[tab.value] || 0}
@@ -389,7 +516,7 @@ function StatusFilterTabs({
       <motion.div
         className="absolute bottom-0 h-0.5 bg-[oklch(0.55_0.15_160)] rounded-full"
         layoutId="statusUnderline"
-        style={{ display: 'none' }} // Hidden since using pill style
+        style={{ display: "none" }} // Hidden since using pill style
       />
     </div>
   );
@@ -399,40 +526,67 @@ function StatusFilterTabs({
 
 export function ProjectsView() {
   const { t } = useTranslation();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [teamFilter, setTeamFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [teamFilter, setTeamFilter] = useState<string>("all");
+  const deletedProjectIds = useAppStore((s) => s.deletedProjectIds);
+
+  // ─── API Data ──────────────────────────────────────────────────────────
+  const { data: projectsData, isLoading } = useApiData("/api/projects", {
+    fallback: mockProjects,
+  });
+  const { data: teamsData } = useApiData("/api/teams", {
+    fallback: mockTeams,
+  });
+  const { data: usersData } = useApiData("/api/users", {
+    fallback: mockUsers,
+  });
+  const projects = (projectsData as typeof mockProjects) ?? [];
+  const teams = (teamsData as typeof mockTeams) ?? [];
+  const users = (usersData as typeof mockUsers) ?? [];
 
   // Filter projects
-  const filteredProjects = mockProjects.filter((project) => {
+  const filteredProjects = projects.filter((project) => {
+    if (deletedProjectIds.includes(project.id)) return false;
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || project.status === statusFilter;
     const matchesTeam =
-      teamFilter === 'all' ||
-      mockTeams.some(
-        (team) => team.id === teamFilter && team.projects.includes(project.id)
+      teamFilter === "all" ||
+      teams.some(
+        (team) => team.id === teamFilter && team.projects.includes(project.id),
       );
     return matchesSearch && matchesStatus && matchesTeam;
   });
 
-  const activeCount = mockProjects.filter((p) => p.status === 'active').length;
-  const totalCount = mockProjects.length;
+  const activeCount = projects.filter((p) => p.status === "active" && !deletedProjectIds.includes(p.id)).length;
+  const totalCount = projects.filter((p) => !deletedProjectIds.includes(p.id)).length;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">{t.projects.title}</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            {t.projects.title}
+          </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{totalCount}</span> {t.projects.title} · <span className="font-semibold text-emerald-600 dark:text-emerald-400">{activeCount}</span> {t.projects.active}
+            <span className="font-semibold text-foreground">{totalCount}</span>{" "}
+            {t.projects.title} ·{" "}
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {activeCount}
+            </span>{" "}
+            {t.projects.active}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'list')}>
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as "grid" | "list")}
+          >
             <TabsList className="h-8 bg-muted/50 p-0.5">
               <TabsTrigger
                 value="grid"
@@ -461,7 +615,11 @@ export function ProjectsView() {
       {/* Filters bar */}
       <div className="flex flex-col gap-3">
         {/* Status filter tabs */}
-        <StatusFilterTabs statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+        <StatusFilterTabs
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          projects={projects}
+        />
 
         {/* Search + team filter */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -480,8 +638,10 @@ export function ProjectsView() {
               <SelectValue placeholder={t.projects.team} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t.projects.all} {t.projects.team}s</SelectItem>
-              {mockTeams.map((team) => (
+              <SelectItem value="all">
+                {t.projects.all} {t.projects.team}s
+              </SelectItem>
+              {teams.map((team) => (
                 <SelectItem key={team.id} value={team.id}>
                   {team.name}
                 </SelectItem>
@@ -493,7 +653,7 @@ export function ProjectsView() {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        {viewMode === 'grid' ? (
+        {viewMode === "grid" ? (
           <motion.div
             key="grid"
             initial={{ opacity: 0, y: 8 }}
@@ -505,7 +665,9 @@ export function ProjectsView() {
               <div className="text-center py-16 text-muted-foreground">
                 <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-semibold">{t.projects.noResults}</p>
-                <p className="text-xs mt-1 text-muted-foreground/70">Try adjusting your filters</p>
+                <p className="text-xs mt-1 text-muted-foreground/70">
+                  Try adjusting your filters
+                </p>
               </div>
             ) : (
               <motion.div
@@ -532,7 +694,9 @@ export function ProjectsView() {
               <div className="text-center py-16 text-muted-foreground">
                 <FolderKanban className="h-12 w-12 mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-semibold">{t.projects.noResults}</p>
-                <p className="text-xs mt-1 text-muted-foreground/70">Try adjusting your filters</p>
+                <p className="text-xs mt-1 text-muted-foreground/70">
+                  Try adjusting your filters
+                </p>
               </div>
             ) : (
               <div className="border rounded-xl overflow-hidden shadow-sm">
@@ -540,9 +704,15 @@ export function ProjectsView() {
                 <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 bg-muted/50 border-b text-xs font-semibold text-muted-foreground">
                   <span className="w-9"></span>
                   <span>{t.projects.title}</span>
-                  <span className="hidden sm:block w-24">{t.projects.status}</span>
-                  <span className="hidden md:block w-36">{t.dashboard.projectProgress}</span>
-                  <span className="hidden lg:block w-24">{t.projects.team}</span>
+                  <span className="hidden sm:block w-24">
+                    {t.projects.status}
+                  </span>
+                  <span className="hidden md:block w-36">
+                    {t.dashboard.projectProgress}
+                  </span>
+                  <span className="hidden lg:block w-24">
+                    {t.projects.team}
+                  </span>
                   <span className="w-32">{t.tasks.dueDate}</span>
                 </div>
 

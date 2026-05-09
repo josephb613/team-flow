@@ -1,6 +1,17 @@
-import { create } from 'zustand';
-import type { PageId, Workspace, Notification, TaskStatus } from './types';
-import type { Locale } from './i18n';
+import { create } from "zustand";
+import { signOut } from "next-auth/react";
+import type {
+  PageId,
+  Workspace,
+  Notification,
+  TaskStatus,
+  User,
+  Channel,
+  WorkspaceMember,
+  Invitation,
+  BoardColumn,
+} from "./types";
+import type { Locale } from "./i18n";
 
 interface AppState {
   // Navigation
@@ -12,6 +23,13 @@ interface AppState {
   activeWorkspaceId: string;
   setActiveWorkspace: (id: string) => void;
   addWorkspace: (workspace: Workspace) => void;
+  updateWorkspace: (id: string, data: Partial<Workspace>) => void;
+  removeWorkspace: (id: string) => void;
+  setWorkspaces: (workspaces: Workspace[]) => void;
+
+  // Board Columns (for Kanban)
+  columns: BoardColumn[];
+  setColumns: (columns: BoardColumn[]) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -25,6 +43,7 @@ interface AppState {
 
   // Notifications
   notifications: Notification[];
+  setNotifications: (notifications: Notification[]) => void;
   notificationCenterOpen: boolean;
   setNotificationCenterOpen: (open: boolean) => void;
   notificationPanelOpen: boolean;
@@ -33,13 +52,19 @@ interface AppState {
   markNotificationRead: (id: string) => void;
   removeNotification: (id: string) => void;
 
+  // Users & Channels (loaded from API)
+  users: User[];
+  setUsers: (users: User[]) => void;
+  channels: Channel[];
+  setChannels: (channels: Channel[]) => void;
+
   // Favorites
   favorites: string[];
   toggleFavorite: (pageId: string) => void;
 
   // Task view mode
-  taskViewMode: 'list' | 'kanban' | 'my_tasks';
-  setTaskViewMode: (mode: 'list' | 'kanban' | 'my_tasks') => void;
+  taskViewMode: "list" | "kanban" | "my_tasks";
+  setTaskViewMode: (mode: "list" | "kanban" | "my_tasks") => void;
 
   // i18n / Locale
   locale: Locale;
@@ -52,9 +77,34 @@ interface AppState {
   setSelectedTask: (task: Record<string, unknown> | null) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
 
+  // Project detail drawer
+  projectDetailOpen: boolean;
+  setProjectDetailOpen: (open: boolean) => void;
+  selectedProject: Record<string, unknown> | null;
+  setSelectedProject: (project: Record<string, unknown> | null) => void;
+  // Track locally deleted project IDs so they disappear from the list
+  deletedProjectIds: string[];
+  addDeletedProjectId: (id: string) => void;
+
+  // Member detail drawer
+  memberDetailOpen: boolean;
+  setMemberDetailOpen: (open: boolean) => void;
+  selectedMember: (User & { workspaceRole?: string; joinedAt?: string }) | null;
+  setSelectedMember: (
+    member: (User & { workspaceRole?: string; joinedAt?: string }) | null,
+  ) => void;
+
   // Create workspace dialog
   createWorkspaceDialogOpen: boolean;
   setCreateWorkspaceDialogOpen: (open: boolean) => void;
+
+  // Invite member dialog
+  inviteMemberDialogOpen: boolean;
+  setInviteMemberDialogOpen: (open: boolean) => void;
+
+  // Pending invitations
+  pendingInvitations: Invitation[];
+  setPendingInvitations: (invitations: Invitation[]) => void;
 
   // Create task dialog
   createTaskDialogOpen: boolean;
@@ -64,6 +114,23 @@ interface AppState {
   createProjectDialogOpen: boolean;
   setCreateProjectDialogOpen: (open: boolean) => void;
 
+  // Create team dialog
+  createTeamDialogOpen: boolean;
+  setCreateTeamDialogOpen: (open: boolean) => void;
+  deletedTeamIds: string[];
+  addDeletedTeamId: (id: string) => void;
+  teamRefetchKey: number;
+  triggerTeamRefetch: () => void;
+
+  // Team management
+  teamManagementId: string | null;
+  setTeamManagementId: (id: string | null) => void;
+
+  // Create channel dialog
+  createChannelDialogOpen: boolean;
+  setCreateChannelDialogOpen: (open: boolean) => void;
+  addChannel: (channel: Channel) => void;
+
   // Shortcuts help dialog
   shortcutsHelpOpen: boolean;
   setShortcutsHelpOpen: (open: boolean) => void;
@@ -72,6 +139,22 @@ interface AppState {
   keyboardShortcutsOpen: boolean;
   setKeyboardShortcutsOpen: (open: boolean) => void;
 
+  // What's new dialog
+  whatsNewDialogOpen: boolean;
+  setWhatsNewDialogOpen: (open: boolean) => void;
+
+  // Opportunity view mode
+  opportunityViewMode: "list" | "kanban";
+  setOpportunityViewMode: (mode: "list" | "kanban") => void;
+
+  // Create opportunity dialog
+  createOpportunityDialogOpen: boolean;
+  setCreateOpportunityDialogOpen: (open: boolean) => void;
+
+  // Opportunity count for sidebar badge
+  opportunityCount: number;
+  setOpportunityCount: (count: number) => void;
+
   // Recent items
   recentItems: string[];
   addRecentItem: (pageId: string) => void;
@@ -79,6 +162,18 @@ interface AppState {
   // Global API loading indicator
   isApiLoading: boolean;
   setApiLoading: (loading: boolean) => void;
+
+  // Counts for sidebar badges (updated by useDashboardData)
+  taskCount: number;
+  projectCount: number;
+  messageCount: number;
+  meetingCount: number;
+  setCounts: (counts: {
+    taskCount?: number;
+    projectCount?: number;
+    messageCount?: number;
+    meetingCount?: number;
+  }) => void;
 
   // Auth
   isAuthenticated: boolean;
@@ -89,45 +184,67 @@ interface AppState {
     avatar: string;
     role: string;
   } | null;
-  login: (email: string, password: string) => void;
+  setCurrentUser: (
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      avatar: string;
+      role: string;
+    } | null,
+  ) => void;
+  login: () => void;
   logout: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   // Navigation
-  activePage: 'dashboard',
+  activePage: "dashboard",
   setActivePage: (page) => set({ activePage: page }),
 
-  // Workspace
-  workspaces: [
-    {
-      id: 'ws-1',
-      name: 'Acme Corp',
-      slug: 'acme-corp',
-      color: '#10b981',
-      icon: '🏢',
-      createdAt: '2024-01-15',
-    },
-    {
-      id: 'ws-2',
-      name: 'Design Team',
-      slug: 'design-team',
-      color: '#f59e0b',
-      icon: '🎨',
-      createdAt: '2024-03-20',
-    },
-    {
-      id: 'ws-3',
-      name: 'Side Project',
-      slug: 'side-project',
-      color: '#ef4444',
-      icon: '🚀',
-      createdAt: '2024-06-10',
-    },
-  ],
-  activeWorkspaceId: 'ws-1',
-  setActiveWorkspace: (id) => set({ activeWorkspaceId: id, activePage: 'dashboard' }),
-  addWorkspace: (workspace) => set((s) => ({ workspaces: [...s.workspaces, workspace] })),
+  // Workspace - start empty, loaded from API after login
+  workspaces: [],
+  activeWorkspaceId: "",
+  setActiveWorkspace: (id) =>
+    set({ activeWorkspaceId: id, activePage: "dashboard" }),
+  addWorkspace: (workspace) =>
+    set((s) => ({
+      workspaces: [...s.workspaces, workspace],
+      activeWorkspaceId: s.activeWorkspaceId || workspace.id,
+    })),
+  updateWorkspace: (id, data) =>
+    set((s) => ({
+      workspaces: s.workspaces.map((w) =>
+        w.id === id ? { ...w, ...data } : w,
+      ),
+    })),
+  removeWorkspace: (id) =>
+    set((s) => {
+      const remaining = s.workspaces.filter((w) => w.id !== id);
+      const newActiveId =
+        s.activeWorkspaceId === id
+          ? remaining.length > 0
+            ? remaining[0].id
+            : ""
+          : s.activeWorkspaceId;
+      return {
+        workspaces: remaining,
+        activeWorkspaceId: newActiveId,
+        activePage: newActiveId ? s.activePage : "dashboard",
+      };
+    }),
+  setWorkspaces: (workspaces) =>
+    set((s) => ({
+      workspaces,
+      activeWorkspaceId:
+        workspaces.length > 0 && !s.activeWorkspaceId
+          ? workspaces[0].id
+          : s.activeWorkspaceId,
+    })),
+
+  // Board Columns
+  columns: [],
+  setColumns: (columns) => set({ columns }),
 
   // Sidebar
   sidebarCollapsed: false,
@@ -139,89 +256,9 @@ export const useAppStore = create<AppState>((set) => ({
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
 
-  // Notifications
-  notifications: [
-    {
-      id: 'n1',
-      type: 'assignment',
-      title: 'New task assigned',
-      message: 'You have been assigned "Design homepage mockup"',
-      read: false,
-      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n2',
-      type: 'comment',
-      title: 'New comment',
-      message: 'Sarah commented on "API Integration"',
-      read: false,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n3',
-      type: 'deadline',
-      title: 'Deadline approaching',
-      message: 'Sprint 4 ends in 2 days',
-      read: false,
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n4',
-      type: 'mention',
-      title: 'Mentioned in discussion',
-      message: '@you in #general channel',
-      read: true,
-      timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n5',
-      type: 'invitation',
-      title: 'Workspace invitation',
-      message: 'You were invited to join "Marketing Team"',
-      read: false,
-      timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n6',
-      type: 'system',
-      title: 'System update',
-      message: 'TeamFlow v2.4 is now available with new features',
-      read: true,
-      timestamp: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n7',
-      type: 'assignment',
-      title: 'New task assigned',
-      message: 'You have been assigned "Review pull request #142"',
-      read: true,
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n8',
-      type: 'comment',
-      title: 'Reply to your comment',
-      message: 'Mike replied to your comment on "Database migration"',
-      read: true,
-      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n9',
-      type: 'deadline',
-      title: 'Overdue task',
-      message: 'Task "Write unit tests" is 1 day overdue',
-      read: false,
-      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n10',
-      type: 'mention',
-      title: 'Mentioned in wiki',
-      message: '@you in "Architecture Decisions" page',
-      read: true,
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ],
+  // Notifications - start empty, loaded from API after login
+  notifications: [],
+  setNotifications: (notifications) => set({ notifications }),
   notificationCenterOpen: false,
   setNotificationCenterOpen: (open) => set({ notificationCenterOpen: open }),
   notificationPanelOpen: false,
@@ -233,7 +270,7 @@ export const useAppStore = create<AppState>((set) => ({
   markNotificationRead: (id) =>
     set((s) => ({
       notifications: s.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
+        n.id === id ? { ...n, read: true } : n,
       ),
     })),
   removeNotification: (id) =>
@@ -241,8 +278,14 @@ export const useAppStore = create<AppState>((set) => ({
       notifications: s.notifications.filter((n) => n.id !== id),
     })),
 
+  // Users & Channels - start empty, loaded from API after login
+  users: [],
+  setUsers: (users) => set({ users }),
+  channels: [],
+  setChannels: (channels) => set({ channels }),
+
   // Favorites
-  favorites: ['dashboard', 'tasks', 'messages'],
+  favorites: [],
   toggleFavorite: (pageId) =>
     set((s) => ({
       favorites: s.favorites.includes(pageId)
@@ -251,29 +294,61 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   // Task view mode
-  taskViewMode: 'kanban',
+  taskViewMode: "kanban",
   setTaskViewMode: (mode) => set({ taskViewMode: mode }),
 
   // i18n / Locale
-  locale: 'fr',
+  locale: "fr",
   setLocale: (locale) => set({ locale }),
 
   // Task detail drawer
   taskDetailOpen: false,
   setTaskDetailOpen: (open) => set({ taskDetailOpen: open }),
   selectedTask: null,
-  setSelectedTask: (task) => set({ selectedTask: task, taskDetailOpen: task !== null }),
+  setSelectedTask: (task) =>
+    set({ selectedTask: task, taskDetailOpen: task !== null }),
   updateTaskStatus: (taskId, status) =>
     set((s) => {
       if (!s.selectedTask) return s;
-      const task = s.selectedTask as Record<string, unknown> & { id: string; status: TaskStatus };
+      const task = s.selectedTask as Record<string, unknown> & {
+        id: string;
+        status: TaskStatus;
+      };
       if (task.id !== taskId) return s;
       return { selectedTask: { ...task, status } };
     }),
 
+  // Project detail drawer
+  projectDetailOpen: false,
+  setProjectDetailOpen: (open) => set({ projectDetailOpen: open }),
+  selectedProject: null,
+  setSelectedProject: (project) =>
+    set({ selectedProject: project, projectDetailOpen: project !== null }),
+  deletedProjectIds: [],
+  addDeletedProjectId: (id) =>
+    set((s) => ({
+      deletedProjectIds: [...s.deletedProjectIds, id],
+    })),
+
+  // Member detail drawer
+  memberDetailOpen: false,
+  setMemberDetailOpen: (open) => set({ memberDetailOpen: open }),
+  selectedMember: null,
+  setSelectedMember: (member) =>
+    set({ selectedMember: member, memberDetailOpen: member !== null }),
+
   // Create workspace dialog
   createWorkspaceDialogOpen: false,
-  setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
+  setCreateWorkspaceDialogOpen: (open) =>
+    set({ createWorkspaceDialogOpen: open }),
+
+  // Invite member dialog
+  inviteMemberDialogOpen: false,
+  setInviteMemberDialogOpen: (open) => set({ inviteMemberDialogOpen: open }),
+
+  // Pending invitations
+  pendingInvitations: [],
+  setPendingInvitations: (invitations) => set({ pendingInvitations: invitations }),
 
   // Create task dialog
   createTaskDialogOpen: false,
@@ -283,6 +358,28 @@ export const useAppStore = create<AppState>((set) => ({
   createProjectDialogOpen: false,
   setCreateProjectDialogOpen: (open) => set({ createProjectDialogOpen: open }),
 
+  // Create team dialog
+  createTeamDialogOpen: false,
+  setCreateTeamDialogOpen: (open) => set({ createTeamDialogOpen: open }),
+  deletedTeamIds: [],
+  addDeletedTeamId: (id) =>
+    set((s) => ({
+      deletedTeamIds: [...s.deletedTeamIds, id],
+    })),
+  teamRefetchKey: 0,
+  triggerTeamRefetch: () =>
+    set((s) => ({ teamRefetchKey: s.teamRefetchKey + 1 })),
+
+  // Team management
+  teamManagementId: null,
+  setTeamManagementId: (id) => set({ teamManagementId: id }),
+
+  // Create channel dialog
+  createChannelDialogOpen: false,
+  setCreateChannelDialogOpen: (open) => set({ createChannelDialogOpen: open }),
+  addChannel: (channel) =>
+    set((s) => ({ channels: [...s.channels, channel] })),
+
   // Shortcuts help dialog
   shortcutsHelpOpen: false,
   setShortcutsHelpOpen: (open) => set({ shortcutsHelpOpen: open }),
@@ -291,8 +388,25 @@ export const useAppStore = create<AppState>((set) => ({
   keyboardShortcutsOpen: false,
   setKeyboardShortcutsOpen: (open) => set({ keyboardShortcutsOpen: open }),
 
+  // What's new dialog
+  whatsNewDialogOpen: false,
+  setWhatsNewDialogOpen: (open) => set({ whatsNewDialogOpen: open }),
+
+  // Opportunity view mode
+  opportunityViewMode: "kanban",
+  setOpportunityViewMode: (mode) => set({ opportunityViewMode: mode }),
+
+  // Create opportunity dialog
+  createOpportunityDialogOpen: false,
+  setCreateOpportunityDialogOpen: (open) =>
+    set({ createOpportunityDialogOpen: open }),
+
+  // Opportunity count for sidebar badge
+  opportunityCount: 0,
+  setOpportunityCount: (count) => set({ opportunityCount: count }),
+
   // Recent items
-  recentItems: ['dashboard', 'tasks', 'messages'],
+  recentItems: [],
   addRecentItem: (pageId) =>
     set((s) => {
       const filtered = s.recentItems.filter((id) => id !== pageId);
@@ -303,19 +417,38 @@ export const useAppStore = create<AppState>((set) => ({
   isApiLoading: false,
   setApiLoading: (loading) => set({ isApiLoading: loading }),
 
+  // Counts for sidebar badges
+  taskCount: 0,
+  projectCount: 0,
+  messageCount: 0,
+  meetingCount: 0,
+  setCounts: (counts) => set((s) => ({ ...s, ...counts })),
+
   // Auth
   isAuthenticated: false,
   currentUser: null,
-  login: () =>
+  setCurrentUser: (user) =>
     set({
-      isAuthenticated: true,
-      currentUser: {
-        id: 'u-1',
-        name: 'Alex Thompson',
-        email: 'alex@acmecorp.com',
-        avatar: '',
-        role: 'Admin',
-      },
+      isAuthenticated: user !== null,
+      currentUser: user,
     }),
-  logout: () => set({ isAuthenticated: false, currentUser: null }),
+  // login is a no-op now; real auth is handled by NextAuth via setCurrentUser
+  login: () => {
+    // Auth is managed by NextAuth session (see page.tsx).
+    // Call setCurrentUser with real session data instead.
+  },
+  logout: () => {
+    set({
+      isAuthenticated: false,
+      currentUser: null,
+      workspaces: [],
+      activeWorkspaceId: "",
+      notifications: [],
+      users: [],
+      channels: [],
+      favorites: [],
+      recentItems: [],
+    });
+    signOut({ callbackUrl: "/" });
+  },
 }));

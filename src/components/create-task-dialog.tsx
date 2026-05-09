@@ -1,32 +1,37 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useCallback } from 'react';
-import { useAppStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useState, useMemo, useCallback } from "react";
+import { useAppStore } from "@/lib/store";
+import { useTranslation } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { toast } from 'sonner';
-import { mockProjects, mockUsers } from '@/lib/mock-data';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { toast } from "sonner";
+import { mockProjects, mockUsers } from "@/lib/mock-data";
+import { useApiData } from "@/hooks/use-api-data";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
   Sparkles,
@@ -42,23 +47,47 @@ import {
   Plus,
   X,
   ChevronDown,
-} from 'lucide-react';
-import type { DateRange } from 'react-day-picker';
+} from "lucide-react";
+import type { DateRange } from "react-day-picker";
 
 const TITLE_MAX_LENGTH = 120;
 
 const statusOptions = [
-  { value: 'todo', labelKey: 'todo' as const, color: 'bg-slate-400' },
-  { value: 'in_progress', labelKey: 'inProgress' as const, color: 'bg-amber-500' },
-  { value: 'review', labelKey: 'inReview' as const, color: 'bg-cyan-500' },
-  { value: 'done', labelKey: 'done' as const, color: 'bg-emerald-500' },
+  { value: "todo", labelKey: "todo" as const, color: "bg-slate-400" },
+  {
+    value: "in_progress",
+    labelKey: "inProgress" as const,
+    color: "bg-amber-500",
+  },
+  { value: "review", labelKey: "inReview" as const, color: "bg-cyan-500" },
+  { value: "done", labelKey: "done" as const, color: "bg-emerald-500" },
 ];
 
 const priorityOptions = [
-  { value: 'urgent', labelKey: 'urgent' as const, color: 'bg-rose-500', border: 'border-l-rose-500' },
-  { value: 'high', labelKey: 'high' as const, color: 'bg-amber-500', border: 'border-l-amber-500' },
-  { value: 'medium', labelKey: 'medium' as const, color: 'bg-cyan-500', border: 'border-l-cyan-500' },
-  { value: 'low', labelKey: 'low' as const, color: 'bg-emerald-500', border: 'border-l-emerald-500' },
+  {
+    value: "urgent",
+    labelKey: "urgent" as const,
+    color: "bg-rose-500",
+    border: "border-l-rose-500",
+  },
+  {
+    value: "high",
+    labelKey: "high" as const,
+    color: "bg-amber-500",
+    border: "border-l-amber-500",
+  },
+  {
+    value: "medium",
+    labelKey: "medium" as const,
+    color: "bg-cyan-500",
+    border: "border-l-cyan-500",
+  },
+  {
+    value: "low",
+    labelKey: "low" as const,
+    color: "bg-emerald-500",
+    border: "border-l-emerald-500",
+  },
 ];
 
 interface Subtask {
@@ -70,35 +99,48 @@ export function CreateTaskDialog() {
   const { createTaskDialogOpen, setCreateTaskDialogOpen } = useAppStore();
   const { t } = useTranslation();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('todo');
-  const [priority, setPriority] = useState('medium');
-  const [projectId, setProjectId] = useState('');
-  const [assigneeId, setAssigneeId] = useState('');
+  // ─── API Data ──────────────────────────────────────────────────────────
+  const { data: projectsData } = useApiData("/api/projects", {
+    fallback: mockProjects,
+  });
+  const { data: usersData } = useApiData("/api/users", {
+    fallback: mockUsers,
+  });
+  const projects = (projectsData as typeof mockProjects) || mockProjects;
+  const users = (usersData as typeof mockUsers) || mockUsers;
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState("todo");
+  const [priority, setPriority] = useState("medium");
+  const [projectId, setProjectId] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
-  const [newSubtask, setNewSubtask] = useState('');
+  const [newSubtask, setNewSubtask] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [titleError, setTitleError] = useState('');
+  const [titleError, setTitleError] = useState("");
+  const [projectError, setProjectError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedPriority = priorityOptions.find((p) => p.value === priority);
 
   const resetForm = useCallback(() => {
-    setTitle('');
-    setDescription('');
-    setStatus('todo');
-    setPriority('medium');
-    setProjectId('');
-    setAssigneeId('');
+    setTitle("");
+    setDescription("");
+    setStatus("todo");
+    setPriority("medium");
+    setProjectId("");
+    setAssigneeId("");
     setDueDate(undefined);
-    setTagInput('');
+    setTagInput("");
     setTags([]);
     setSubtasks([]);
-    setNewSubtask('');
-    setTitleError('');
+    setNewSubtask("");
+    setTitleError("");
+    setProjectError("");
   }, []);
 
   const handleOpenChange = (open: boolean) => {
@@ -110,7 +152,7 @@ export function CreateTaskDialog() {
     const trimmed = tagInput.trim();
     if (trimmed && !tags.includes(trimmed) && tags.length < 8) {
       setTags([...tags, trimmed]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
@@ -119,7 +161,7 @@ export function CreateTaskDialog() {
   };
 
   const handleTagKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       addTag();
     }
@@ -129,7 +171,7 @@ export function CreateTaskDialog() {
     const trimmed = newSubtask.trim();
     if (trimmed && subtasks.length < 10) {
       setSubtasks([...subtasks, { id: `st-${Date.now()}`, title: trimmed }]);
-      setNewSubtask('');
+      setNewSubtask("");
     }
   };
 
@@ -138,56 +180,82 @@ export function CreateTaskDialog() {
   };
 
   const handleSubtaskKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       addSubtask();
     }
   };
 
   const validate = (): boolean => {
+    let valid = true;
     if (!title.trim()) {
       setTitleError(t.createTask.titleRequired);
-      return false;
+      valid = false;
+    } else {
+      setTitleError("");
     }
-    setTitleError('');
-    return true;
+    if (!projectId) {
+      setProjectError(t.createTask.projectRequired);
+      valid = false;
+    } else {
+      setProjectError("");
+    }
+    return valid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || isSubmitting) return;
 
-    // In a real app, this would call the API
-    console.log('Creating task:', {
-      title,
-      description,
-      status,
-      priority,
-      projectId,
-      assigneeId,
-      dueDate: dueDate?.toISOString(),
-      tags,
-      subtasks: subtasks.map((s) => ({ ...s, completed: false })),
-    });
-    toast.success(t.toast.taskCreated);
-    setCreateTaskDialogOpen(false);
-    resetForm();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          priority,
+          projectId: projectId || null,
+          assigneeId: assigneeId || null,
+          dueDate: dueDate?.toISOString() || null,
+          tags,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to create task");
+      }
+
+      toast.success(t.toast.taskCreated);
+      setCreateTaskDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create task",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const selectedProject = mockProjects.find((p) => p.id === projectId);
-  const selectedAssignee = mockUsers.find((u) => u.id === assigneeId);
+  const selectedProject = projects.find((p) => p.id === projectId);
+  const selectedAssignee = users.find((u) => u.id === assigneeId);
 
   return (
     <Dialog open={createTaskDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-[580px] p-0 gap-0 overflow-hidden"
+        className="sm:max-w-[580px] max-h-[90vh] p-0 gap-0 overflow-y-auto"
         showCloseButton={false}
       >
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         >
           {/* Gradient Header */}
           <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.15_160/0.08)] via-[oklch(0.55_0.15_160/0.04)] to-transparent border-b">
@@ -213,16 +281,20 @@ export function CreateTaskDialog() {
           {/* Form Content with Priority Border */}
           <div
             className={cn(
-              'border-l-[3px] transition-colors duration-300',
-              selectedPriority?.border || 'border-l-cyan-500'
+              "border-l-[3px] transition-colors duration-300",
+              selectedPriority?.border || "border-l-cyan-500",
             )}
           >
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {/* Task Title */}
               <div className="space-y-2">
-                <Label htmlFor="task-title" className="text-sm font-medium flex items-center gap-1.5">
+                <Label
+                  htmlFor="task-title"
+                  className="text-sm font-medium flex items-center gap-1.5"
+                >
                   <Type className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.createTask.taskTitle} <span className="text-destructive text-xs">*</span>
+                  {t.createTask.taskTitle}{" "}
+                  <span className="text-destructive text-xs">*</span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -231,13 +303,13 @@ export function CreateTaskDialog() {
                     value={title}
                     onChange={(e) => {
                       setTitle(e.target.value.slice(0, TITLE_MAX_LENGTH));
-                      if (titleError) setTitleError('');
+                      if (titleError) setTitleError("");
                     }}
                     className={cn(
-                      'h-10 pr-16',
+                      "h-10 pr-16",
                       titleError
-                        ? 'border-destructive focus-visible:ring-destructive/30'
-                        : 'focus-visible:ring-[oklch(0.55_0.15_160/0.3)]'
+                        ? "border-destructive focus-visible:ring-destructive/30"
+                        : "focus-visible:ring-[oklch(0.55_0.15_160/0.3)]",
                     )}
                     autoFocus
                   />
@@ -261,10 +333,15 @@ export function CreateTaskDialog() {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="task-desc" className="text-sm font-medium flex items-center gap-1.5">
+                <Label
+                  htmlFor="task-desc"
+                  className="text-sm font-medium flex items-center gap-1.5"
+                >
                   <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                   {t.createTask.description}
-                  <span className="text-[10px] text-muted-foreground/60 ml-1">({t.createTask.markdownHint})</span>
+                  <span className="text-[10px] text-muted-foreground/60 ml-1">
+                    ({t.createTask.markdownHint})
+                  </span>
                 </Label>
                 <Textarea
                   id="task-desc"
@@ -280,7 +357,8 @@ export function CreateTaskDialog() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium flex items-center gap-1.5">
                     <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t.createTask.status} <span className="text-destructive text-xs">*</span>
+                    {t.createTask.status}{" "}
+                    <span className="text-destructive text-xs">*</span>
                   </Label>
                   <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
@@ -290,7 +368,9 @@ export function CreateTaskDialog() {
                       {statusOptions.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           <span className="flex items-center gap-2">
-                            <span className={cn('w-2 h-2 rounded-full', opt.color)} />
+                            <span
+                              className={cn("w-2 h-2 rounded-full", opt.color)}
+                            />
                             {t.tasks[opt.labelKey]}
                           </span>
                         </SelectItem>
@@ -312,7 +392,9 @@ export function CreateTaskDialog() {
                       {priorityOptions.map((opt) => (
                         <SelectItem key={opt.value} value={opt.value}>
                           <span className="flex items-center gap-2">
-                            <span className={cn('w-2 h-2 rounded-full', opt.color)} />
+                            <span
+                              className={cn("w-2 h-2 rounded-full", opt.color)}
+                            />
                             {t.tasks[opt.labelKey]}
                           </span>
                         </SelectItem>
@@ -327,10 +409,23 @@ export function CreateTaskDialog() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium flex items-center gap-1.5">
                     <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-                    {t.createTask.project}
+                    {t.createTask.project}{" "}
+                    <span className="text-destructive text-xs">*</span>
                   </Label>
-                  <Select value={projectId} onValueChange={setProjectId}>
-                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                  <Select
+                    value={projectId}
+                    onValueChange={(v) => {
+                      setProjectId(v);
+                      if (projectError) setProjectError("");
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        "h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]",
+                        projectError &&
+                          "border-destructive focus-visible:ring-destructive/30",
+                      )}
+                    >
                       <SelectValue placeholder={t.createTask.selectProject}>
                         {selectedProject ? (
                           <span className="flex items-center gap-2">
@@ -338,13 +433,17 @@ export function CreateTaskDialog() {
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: selectedProject.color }}
                             />
-                            <span className="truncate">{selectedProject.name}</span>
+                            <span className="truncate">
+                              {selectedProject.name}
+                            </span>
                           </span>
-                        ) : t.createTask.selectProject}
+                        ) : (
+                          t.createTask.selectProject
+                        )}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {mockProjects.map((project) => (
+                      {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           <span className="flex items-center gap-2">
                             <span
@@ -357,6 +456,18 @@ export function CreateTaskDialog() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <AnimatePresence>
+                    {projectError && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="text-xs text-destructive"
+                      >
+                        {projectError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="space-y-2">
@@ -370,27 +481,43 @@ export function CreateTaskDialog() {
                         {selectedAssignee ? (
                           <span className="flex items-center gap-2">
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white text-[10px] font-medium shrink-0">
-                              {selectedAssignee.name.split(' ').map((n) => n[0]).join('')}
+                              {selectedAssignee.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
                             </span>
-                            <span className="truncate">{selectedAssignee.name}</span>
+                            <span className="truncate">
+                              {selectedAssignee.name}
+                            </span>
                           </span>
-                        ) : t.createTask.unassigned}
+                        ) : (
+                          t.createTask.unassigned
+                        )}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {mockUsers.map((user) => (
+                      {users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           <span className="flex items-center gap-2">
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white text-[10px] font-medium shrink-0">
-                              {user.name.split(' ').map((n) => n[0]).join('')}
+                              {user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
                             </span>
                             <span className="truncate">{user.name}</span>
-                            <span className={cn(
-                              'w-1.5 h-1.5 rounded-full ml-auto shrink-0',
-                              user.status === 'online' ? 'bg-emerald-500' :
-                              user.status === 'away' ? 'bg-amber-500' :
-                              user.status === 'busy' ? 'bg-rose-500' : 'bg-muted-foreground/40'
-                            )} />
+                            <span
+                              className={cn(
+                                "w-1.5 h-1.5 rounded-full ml-auto shrink-0",
+                                user.status === "online"
+                                  ? "bg-emerald-500"
+                                  : user.status === "away"
+                                    ? "bg-amber-500"
+                                    : user.status === "busy"
+                                      ? "bg-rose-500"
+                                      : "bg-muted-foreground/40",
+                              )}
+                            />
                           </span>
                         </SelectItem>
                       ))}
@@ -410,16 +537,16 @@ export function CreateTaskDialog() {
                     <Button
                       variant="outline"
                       className={cn(
-                        'h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.15_160/0.3)]',
-                        !dueDate && 'text-muted-foreground'
+                        "h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.15_160/0.3)]",
+                        !dueDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarDays className="mr-2 h-4 w-4" />
                       {dueDate
                         ? dueDate.toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
                           })
                         : t.createTask.selectDate}
                       <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
@@ -433,7 +560,9 @@ export function CreateTaskDialog() {
                         setDueDate(date);
                         setCalendarOpen(false);
                       }}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -442,7 +571,10 @@ export function CreateTaskDialog() {
 
               {/* Tags */}
               <div className="space-y-2">
-                <Label htmlFor="task-tags" className="text-sm font-medium flex items-center gap-1.5">
+                <Label
+                  htmlFor="task-tags"
+                  className="text-sm font-medium flex items-center gap-1.5"
+                >
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   {t.createTask.tags}
                 </Label>
@@ -472,7 +604,9 @@ export function CreateTaskDialog() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder={tags.length === 0 ? t.createTask.tagsPlaceholder : ''}
+                    placeholder={
+                      tags.length === 0 ? t.createTask.tagsPlaceholder : ""
+                    }
                     className="flex-1 min-w-[80px] bg-transparent outline-none placeholder:text-muted-foreground/60 text-sm"
                   />
                 </div>
@@ -493,7 +627,7 @@ export function CreateTaskDialog() {
                   {subtasks.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       className="space-y-1.5 overflow-hidden"
                     >
@@ -507,7 +641,9 @@ export function CreateTaskDialog() {
                           className="flex items-center gap-2 group"
                         >
                           <div className="h-4 w-4 rounded border border-muted-foreground/30 shrink-0" />
-                          <span className="text-sm flex-1 truncate">{subtask.title}</span>
+                          <span className="text-sm flex-1 truncate">
+                            {subtask.title}
+                          </span>
                           <button
                             type="button"
                             onClick={() => removeSubtask(subtask.id)}
@@ -553,11 +689,20 @@ export function CreateTaskDialog() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!title.trim()}
+                  disabled={!title.trim() || isSubmitting}
                   className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.44_0.12_160)] text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
-                  <CheckSquare className="h-4 w-4 mr-1.5" />
-                  {t.createTask.create}
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      {t.createTask.create}...
+                    </span>
+                  ) : (
+                    <>
+                      <CheckSquare className="h-4 w-4 mr-1.5" />
+                      {t.createTask.create}
+                    </>
+                  )}
                 </Button>
               </div>
             </form>

@@ -162,12 +162,12 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const cardHover = {
   rest: { scale: 1, y: 0 },
-  hover: { scale: 1.02, y: -4, transition: { duration: 0.25, ease: 'easeOut' } },
+  hover: { scale: 1.02, y: -4, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
 // ─── Premium Staggered Skeleton Card ─────────────────────────────────────────
@@ -292,14 +292,14 @@ export function DashboardView() {
   ];
 
   const getUserName = useCallback(
-    (id: string) => users.find((u: DataRecord) => u.id === id)?.name || 'Unknown',
+    (id: string): string => (users.find((u: DataRecord) => u.id === id)?.name as string) || 'Unknown',
     [users]
   );
-  const getUserInitials = useCallback((id: string) => {
+  const getUserInitials = useCallback((id: string): string => {
     const user = users.find((u: DataRecord) => u.id === id);
-    return user ? (user.name as string).split(' ').map((n: string) => n[0]).join('') : '??';
+    return user ? ((user.name as string) || '').split(' ').map((n: string) => n[0]).join('') : '??';
   }, [users]);
-  const getUserColor = useCallback((id: string) => {
+  const getUserColor = useCallback((id: string): string => {
     const colors = [
       'bg-emerald-500/20 text-emerald-700',
       'bg-amber-500/20 text-amber-700',
@@ -311,7 +311,7 @@ export function DashboardView() {
       'bg-orange-500/20 text-orange-700',
     ];
     const idx = users.findIndex((u: DataRecord) => u.id === id);
-    return colors[idx % colors.length];
+    return colors[Math.abs(idx) % colors.length];
   }, [users]);
 
   const priorityColors: Record<string, string> = {
@@ -761,23 +761,23 @@ export function DashboardView() {
                         >
                           {task.priority as string}
                         </Badge>
-                        <span className="text-[11px] text-muted-foreground">{getUserName(task.assigneeId as string)}</span>
+                        <span className="text-[11px] text-muted-foreground">{(task.assignee as DataRecord)?.name as string || 'Inconnu'}</span>
                       </div>
                       {/* Subtask Progress */}
-                      {task.subtasks && Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
+                      {task.subtasks != null && Array.isArray(task.subtasks) && (task.subtasks as DataRecord[]).length > 0 && (
                         <div className="flex items-center gap-2 mt-2">
                           <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                             <motion.div
                               className="h-full rounded-full bg-emerald-500"
                               initial={{ width: 0 }}
                               animate={{
-                                width: `${(task.subtasks.filter((s: DataRecord) => s.completed).length / task.subtasks.length) * 100}%`,
+                                width: `${(((task.subtasks as DataRecord[]).filter((s: DataRecord) => s.completed).length / (task.subtasks as DataRecord[]).length) * 100)}%`,
                               }}
                               transition={{ duration: 0.8, delay: 0.2 + idx * 0.1 }}
                             />
                           </div>
                           <span className="text-[10px] text-muted-foreground font-medium">
-                            {task.subtasks.filter((s: DataRecord) => s.completed).length}/{task.subtasks.length}
+                            {(task.subtasks as DataRecord[]).filter((s: DataRecord) => s.completed).length}/{(task.subtasks as DataRecord[]).length}
                           </span>
                         </div>
                       )}
@@ -1129,9 +1129,9 @@ export function DashboardView() {
                         variant="outline"
                         className="text-[9px] px-2 py-0 h-4 font-semibold"
                         style={{
-                          backgroundColor: project.color + '10',
-                          color: project.color,
-                          borderColor: project.color + '30',
+                          backgroundColor: (project.color as string) + '10',
+                          color: project.color as string,
+                          borderColor: (project.color as string) + '30',
                         }}
                       >
                         {project.progress as number}%

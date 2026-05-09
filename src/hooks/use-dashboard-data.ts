@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { mockTasks, mockProjects, mockUsers, mockActivities, mockMeetings } from '@/lib/mock-data';
-import { useAppStore } from '@/lib/store';
+import { useState, useEffect, useCallback } from "react";
+import { useAppStore } from "@/lib/store";
 
 interface DashboardStats {
   totalTasks: number;
@@ -34,8 +33,8 @@ export function useDashboardData(): DashboardData {
   const [tasks, setTasks] = useState<DataRecord[]>([]);
   const [projects, setProjects] = useState<DataRecord[]>([]);
   const [users, setUsers] = useState<DataRecord[]>([]);
-  const [activities, setActivities] = useState<DataRecord[]>([]);
-  const [meetings, setMeetings] = useState<DataRecord[]>([]);
+  const [activities] = useState<DataRecord[]>([]);
+  const [meetings] = useState<DataRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -45,10 +44,14 @@ export function useDashboardData(): DashboardData {
     useAppStore.getState().setApiLoading(true);
     setError(null);
     try {
+      const activeWsId = useAppStore.getState().activeWorkspaceId;
+      const usersUrl = activeWsId
+        ? `/api/users?workspaceId=${activeWsId}`
+        : "/api/users";
       const [tasksRes, projectsRes, usersRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/projects'),
-        fetch('/api/users'),
+        fetch("/api/tasks"),
+        fetch("/api/projects"),
+        fetch(usersUrl),
       ]);
 
       let fetchedTasks: DataRecord[] = [];
@@ -56,34 +59,36 @@ export function useDashboardData(): DashboardData {
       let fetchedUsers: DataRecord[] = [];
 
       if (tasksRes.ok) {
-        const tasksData = await tasksRes.json();
-        fetchedTasks = Array.isArray(tasksData) ? tasksData : tasksData.tasks || [];
+        const data = await tasksRes.json();
+        fetchedTasks = Array.isArray(data) ? data : data.tasks || [];
       }
       if (projectsRes.ok) {
-        const projectsData = await projectsRes.json();
-        fetchedProjects = Array.isArray(projectsData) ? projectsData : projectsData.projects || [];
+        const data = await projectsRes.json();
+        fetchedProjects = Array.isArray(data) ? data : data.projects || [];
       }
       if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        fetchedUsers = Array.isArray(usersData) ? usersData : usersData.users || [];
+        const data = await usersRes.json();
+        fetchedUsers = Array.isArray(data) ? data : data.users || [];
       }
 
-      // Gracefully fall back to mock data if API returns empty arrays
-      setTasks(fetchedTasks.length > 0 ? fetchedTasks : mockTasks as unknown as DataRecord[]);
-      setProjects(fetchedProjects.length > 0 ? fetchedProjects : mockProjects as unknown as DataRecord[]);
-      setUsers(fetchedUsers.length > 0 ? fetchedUsers : mockUsers as unknown as DataRecord[]);
-      // Activities and meetings still use mock data (no API endpoint)
-      setActivities(mockActivities as unknown as DataRecord[]);
-      setMeetings(mockMeetings as unknown as DataRecord[]);
+      setTasks(fetchedTasks);
+      setProjects(fetchedProjects);
+      setUsers(fetchedUsers);
+
+      // Update store counts for sidebar badges
+      useAppStore.getState().setCounts({
+        taskCount: fetchedTasks.length,
+        projectCount: fetchedProjects.length,
+        meetingCount: 0,
+      });
+
       setLastUpdated(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      // Fall back to mock data on error
-      setTasks(mockTasks as unknown as DataRecord[]);
-      setProjects(mockProjects as unknown as DataRecord[]);
-      setUsers(mockUsers as unknown as DataRecord[]);
-      setActivities(mockActivities as unknown as DataRecord[]);
-      setMeetings(mockMeetings as unknown as DataRecord[]);
+      console.error("useDashboardData fetch error:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+      setTasks([]);
+      setProjects([]);
+      setUsers([]);
     } finally {
       setIsLoading(false);
       useAppStore.getState().setApiLoading(false);
@@ -96,21 +101,36 @@ export function useDashboardData(): DashboardData {
 
   // Calculate stats from real data
   const totalTasks = tasks.length || 0;
-  const activeProjects = projects.filter((p: DataRecord) => p.status === 'active').length || 0;
-  const inProgress = tasks.filter((t: DataRecord) => t.status === 'in_progress').length || 0;
-  const doneTasks = tasks.filter((t: DataRecord) => t.status === 'done').length || 0;
-  const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const doneTasks =
+    tasks.filter((t: DataRecord) => t.status === "done").length || 0;
+  const activeProjects =
+    projects.filter((p: DataRecord) => p.status === "active").length || 0;
+  const inProgress =
+    tasks.filter((t: DataRecord) => t.status === "in_progress").length || 0;
+  const completionRate =
+    totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   const stats: DashboardStats = {
     totalTasks,
     activeProjects,
     inProgress,
     completionRate,
-    taskTrend: 12,
-    projectTrend: 8,
-    inProgressTrend: -3,
-    completionTrend: 5,
+    taskTrend: 0,
+    projectTrend: 0,
+    inProgressTrend: 0,
+    completionTrend: 0,
   };
 
-  return { stats, tasks, projects, users, activities, meetings, isLoading, error, refetch: fetchData, lastUpdated };
+  return {
+    stats,
+    tasks,
+    projects,
+    users,
+    activities,
+    meetings,
+    isLoading,
+    error,
+    refetch: fetchData,
+    lastUpdated,
+  };
 }
