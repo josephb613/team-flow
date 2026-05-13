@@ -12,6 +12,14 @@ export const createTaskSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
   assigneeId: z.string().optional().nullable(),
   creatorId: z.string().optional().nullable(),
+  subtasks: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        completed: z.boolean().optional().default(false),
+      }),
+    )
+    .optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -30,6 +38,8 @@ export const updateTaskSchema = z.object({
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   description: z.string().max(2000).optional().nullable(),
+  logo: z.string().max(500).optional().nullable(),
+  sourceUrl: z.string().url().max(2000).optional().nullable(),
   color: z.string().optional(),
   icon: z.string().optional(),
   dueDate: z.string().datetime().optional().nullable(),
@@ -39,6 +49,8 @@ export const createProjectSchema = z.object({
 export const updateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(2000).optional().nullable(),
+  logo: z.string().max(500).optional().nullable(),
+  sourceUrl: z.string().url().max(2000).optional().nullable(),
   color: z.string().optional(),
   icon: z.string().optional(),
   status: z.enum(["active", "on_hold", "completed", "archived"]).optional(),
@@ -186,14 +198,7 @@ export const createOpportunitySchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(5000).optional().nullable(),
   organisation: z.string().max(200).optional().nullable(),
-  status: z.enum([
-    "nouveau",
-    "en_preparation",
-    "soumis",
-    "entretien",
-    "accepte",
-    "refuse",
-  ]).optional().default("nouveau"),
+  status: z.string().min(1).max(50).optional().default("nouveau"),
   dueDate: z.string().datetime().optional().nullable(),
   responsableId: z.string().optional().nullable(),
   workspaceId: z.string().min(1, "Workspace is required"),

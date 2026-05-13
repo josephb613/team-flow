@@ -39,7 +39,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { mockProjects, mockUsers, mockTeams } from "@/lib/mock-data";
-import { useApiData } from "@/hooks/use-api-data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import type { Project, ProjectStatus } from "@/lib/types";
@@ -245,7 +246,7 @@ function ProjectGridCard({ project }: { project: Project }) {
       variants={item}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="group"
-      onClick={() => setSelectedProject(project as unknown as Record<string, unknown>)}
+      onClick={() => setSelectedProject(project)}
     >
       <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-0 shadow-sm">
         {/* Accent strip / gradient top border */}
@@ -261,13 +262,17 @@ function ProjectGridCard({ project }: { project: Project }) {
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm overflow-hidden"
                 style={{
                   backgroundColor: project.color + "18",
                   color: project.color,
                 }}
               >
-                {project.icon}
+                {project.logo ? (
+                  <img src={project.logo} alt={project.name} className="w-full h-full object-cover" />
+                ) : (
+                  project.icon
+                )}
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-bold truncate">{project.name}</h3>
@@ -376,14 +381,18 @@ function ProjectListRow({ project }: { project: Project }) {
       variants={item}
       whileHover={{ backgroundColor: "rgba(0,0,0,0.02)" }}
       className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3.5 items-center cursor-pointer transition-colors"
-      onClick={() => setSelectedProject(project as unknown as Record<string, unknown>)}
+      onClick={() => setSelectedProject(project)}
     >
       {/* Icon */}
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0 shadow-sm"
+        className="w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0 shadow-sm overflow-hidden"
         style={{ backgroundColor: project.color + "18", color: project.color }}
       >
-        {project.icon}
+        {project.logo ? (
+          <img src={project.logo} alt={project.name} className="w-full h-full object-cover" />
+        ) : (
+          project.icon
+        )}
       </div>
 
       {/* Name + Description */}
@@ -531,16 +540,25 @@ export function ProjectsView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [teamFilter, setTeamFilter] = useState<string>("all");
   const deletedProjectIds = useAppStore((s) => s.deletedProjectIds);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+
+  const wsParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
 
   // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: projectsData, isLoading } = useApiData("/api/projects", {
-    fallback: mockProjects,
+  const { data: projectsData, isLoading } = useQuery({
+    queryKey: ["projects", activeWorkspaceId],
+    queryFn: () => fetchJson<typeof mockProjects>(`/api/projects${wsParams}`),
+    placeholderData: mockProjects,
   });
-  const { data: teamsData } = useApiData("/api/teams", {
-    fallback: mockTeams,
+  const { data: teamsData } = useQuery({
+    queryKey: ["teams", activeWorkspaceId],
+    queryFn: () => fetchJson<typeof mockTeams>(`/api/teams${wsParams}`),
+    placeholderData: mockTeams,
   });
-  const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+  const { data: usersData } = useQuery({
+    queryKey: ["users", activeWorkspaceId],
+    queryFn: () => fetchJson<typeof mockUsers>(`/api/users${wsParams}`),
+    placeholderData: mockUsers,
   });
   const projects = (projectsData as typeof mockProjects) ?? [];
   const teams = (teamsData as typeof mockTeams) ?? [];

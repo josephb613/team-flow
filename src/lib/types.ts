@@ -71,6 +71,7 @@ export interface BoardColumn {
   icon: string;
   order: number;
   isDefault: boolean;
+  boardType: "tasks" | "opportunities";
   workspaceId: string;
 }
 
@@ -87,6 +88,8 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  logo: string;
+  sourceUrl?: string;
   color: string;
   icon: string;
   status: ProjectStatus;

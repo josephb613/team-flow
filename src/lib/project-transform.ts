@@ -12,6 +12,8 @@ export interface PrismaProjectWithRelations {
   id: string;
   name: string;
   description: string | null;
+  logo: string | null;
+  sourceUrl: string | null;
   color: string;
   icon: string;
   status: string;
@@ -95,6 +97,8 @@ export function transformProject(raw: PrismaProjectWithRelations): ProjectWithTa
     id: raw.id,
     name: raw.name,
     description: raw.description ?? "",
+    logo: raw.logo ?? "",
+    sourceUrl: raw.sourceUrl ?? undefined,
     color: raw.color,
     icon: raw.icon,
     status: raw.status as Project["status"],

@@ -191,17 +191,17 @@ export function getColumnLabel(slug: string, columns: BoardColumn[]): string {
 }
 
 export const DEFAULT_COLUMNS: BoardColumn[] = [
-  { id: "default-todo", name: "À faire", slug: "todo", color: "#64748b", icon: "circle", order: 0, isDefault: true, workspaceId: "" },
-  { id: "default-in_progress", name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true, workspaceId: "" },
-  { id: "default-review", name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true, workspaceId: "" },
-  { id: "default-done", name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true, workspaceId: "" },
+  { id: "default-todo", name: "À faire", slug: "todo", color: "#64748b", icon: "circle", order: 0, isDefault: true, boardType: "tasks", workspaceId: "" },
+  { id: "default-in_progress", name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true, boardType: "tasks", workspaceId: "" },
+  { id: "default-review", name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true, boardType: "tasks", workspaceId: "" },
+  { id: "default-done", name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true, boardType: "tasks", workspaceId: "" },
 ];
 
 export const DEFAULT_OPPORTUNITY_COLUMNS: BoardColumn[] = [
-  { id: "default-opp-nouveau", name: "Nouveau", slug: "nouveau", color: "#6366f1", icon: "lightbulb", order: 0, isDefault: true, workspaceId: "" },
-  { id: "default-opp-en_preparation", name: "En préparation", slug: "en_preparation", color: "#0ea5e9", icon: "clock", order: 1, isDefault: true, workspaceId: "" },
-  { id: "default-opp-soumis", name: "Soumis", slug: "soumis", color: "#f59e0b", icon: "arrow-right", order: 2, isDefault: true, workspaceId: "" },
-  { id: "default-opp-entretien", name: "Entretien", slug: "entretien", color: "#8b5cf6", icon: "message-circle", order: 3, isDefault: true, workspaceId: "" },
-  { id: "default-opp-accepte", name: "Accepté", slug: "accepte", color: "#10b981", icon: "check-circle-2", order: 4, isDefault: true, workspaceId: "" },
-  { id: "default-opp-refuse", name: "Refusé", slug: "refuse", color: "#ef4444", icon: "flag", order: 5, isDefault: true, workspaceId: "" },
+  { id: "default-opp-nouveau", name: "Nouveau", slug: "nouveau", color: "#6366f1", icon: "lightbulb", order: 0, isDefault: true, boardType: "opportunities", workspaceId: "" },
+  { id: "default-opp-en_preparation", name: "En préparation", slug: "en_preparation", color: "#0ea5e9", icon: "clock", order: 1, isDefault: true, boardType: "opportunities", workspaceId: "" },
+  { id: "default-opp-soumis", name: "Soumis", slug: "soumis", color: "#f59e0b", icon: "arrow-right", order: 2, isDefault: true, boardType: "opportunities", workspaceId: "" },
+  { id: "default-opp-entretien", name: "Entretien", slug: "entretien", color: "#8b5cf6", icon: "message-circle", order: 3, isDefault: true, boardType: "opportunities", workspaceId: "" },
+  { id: "default-opp-accepte", name: "Accepté", slug: "accepte", color: "#10b981", icon: "check-circle-2", order: 4, isDefault: true, boardType: "opportunities", workspaceId: "" },
+  { id: "default-opp-refuse", name: "Refusé", slug: "refuse", color: "#ef4444", icon: "flag", order: 5, isDefault: true, boardType: "opportunities", workspaceId: "" },
 ];

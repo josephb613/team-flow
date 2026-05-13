@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -174,6 +175,7 @@ export function TaskDetailDrawer() {
   const { taskDetailOpen, setTaskDetailOpen, selectedTask, updateTaskStatus, columns, currentUser } =
     useAppStore();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [taskDetail, setTaskDetail] = useState<TaskDetailResponse | null>(null);
@@ -192,7 +194,7 @@ export function TaskDetailDrawer() {
   const users = (usersData as User[]) || mockUsers;
 
   // ─── Fetch full task detail when drawer opens ──────────────────────────
-  const taskId = selectedTask ? (selectedTask as unknown as Task).id : null;
+  const taskId = selectedTask?.id ?? null;
 
   useEffect(() => {
     if (!taskDetailOpen || !taskId) {
@@ -256,7 +258,7 @@ export function TaskDetailDrawer() {
 
   if (!selectedTask) return null;
 
-  const task = taskDetail ? taskDetail : (selectedTask as unknown as Task);
+  const task = (taskDetail ?? selectedTask) as Task;
   const status = statusConfig[task.status];
   const statusLabel = columns.find((c) => c.slug === task.status)?.name || task.status;
   const priority = priorityConfig[task.priority];
@@ -290,6 +292,9 @@ export function TaskDetailDrawer() {
           .replace("{from}", oldLabel)
           .replace("{to}", newLabel),
       );
+
+      // Invalider le cache pour que les vues (Kanban/Liste) se mettent à jour
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
       // Refresh activity logs after status change
       const actRes = await fetch(
@@ -347,6 +352,7 @@ export function TaskDetailDrawer() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success(t.taskDetail.taskDeleted);
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setTaskDetailOpen(false);
     } catch {
       toast.error(t.taskDetail.taskDeleteFailed || "Failed to delete task");
@@ -437,7 +443,12 @@ export function TaskDetailDrawer() {
                     <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem
                         className="gap-2"
-                        onClick={() => toast.info(t.taskDetail.editMode)}
+                        onClick={() => {
+                          if (!taskDetail) return;
+                          useAppStore.getState().setEditingTask(taskDetail as Task);
+                          useAppStore.getState().setTaskDetailOpen(false);
+                          useAppStore.getState().setCreateTaskDialogOpen(true);
+                        }}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         <span className="text-sm">{t.common.edit}</span>

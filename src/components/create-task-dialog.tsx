@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -86,8 +87,11 @@ interface Subtask {
 }
 
 export function CreateTaskDialog() {
-  const { createTaskDialogOpen, setCreateTaskDialogOpen, columns } = useAppStore();
+  const { createTaskDialogOpen, setCreateTaskDialogOpen, columns, editingTask, setEditingTask } = useAppStore();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  const isEditMode = editingTask !== null;
 
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: projectsData } = useApiData("/api/projects", {
@@ -120,6 +124,25 @@ export function CreateTaskDialog() {
   const [projectError, setProjectError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pré-remplir le formulaire en mode édition
+  useEffect(() => {
+    if (editingTask && createTaskDialogOpen) {
+      setTitle(editingTask.title || "");
+      setDescription(editingTask.description || "");
+      setStatus(editingTask.status || "todo");
+      setPriority(editingTask.priority || "medium");
+      setProjectId(editingTask.projectId || "");
+      setAssigneeId(editingTask.assigneeId || "");
+      setDueDate(editingTask.dueDate ? new Date(editingTask.dueDate) : undefined);
+      setTagInput("");
+      setTags(editingTask.tags || []);
+      setSubtasks([]);
+      setNewSubtask("");
+      setTitleError("");
+      setProjectError("");
+    }
+  }, [editingTask, createTaskDialogOpen]);
+
   const selectedPriority = priorityOptions.find((p) => p.value === priority);
 
   const resetForm = useCallback(() => {
@@ -140,7 +163,10 @@ export function CreateTaskDialog() {
 
   const handleOpenChange = (open: boolean) => {
     setCreateTaskDialogOpen(open);
-    if (!open) resetForm();
+    if (!open) {
+      resetForm();
+      setEditingTask(null);
+    }
   };
 
   const addTag = () => {
@@ -189,7 +215,7 @@ export function CreateTaskDialog() {
     } else {
       setTitleError("");
     }
-    if (!projectId) {
+    if (!projectId && !isEditMode) {
       setProjectError(t.createTask.projectRequired);
       valid = false;
     } else {
@@ -204,33 +230,46 @@ export function CreateTaskDialog() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
+      const method = isEditMode ? "PATCH" : "POST";
+      const url = isEditMode ? `/api/tasks/${editingTask!.id}` : "/api/tasks";
+      const body: Record<string, unknown> = {
+        title: title.trim(),
+        description: description.trim() || null,
+        status,
+        priority,
+        projectId: projectId || null,
+        assigneeId: assigneeId || null,
+        dueDate: dueDate?.toISOString() || null,
+        tags,
+      };
+      if (!isEditMode) {
+        body.subtasks = subtasks.map((s) => ({
+          title: s.title,
+          completed: false,
+        }));
+      }
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || null,
-          status,
-          priority,
-          projectId: projectId || null,
-          assigneeId: assigneeId || null,
-          dueDate: dueDate?.toISOString() || null,
-          tags,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create task");
+        throw new Error(errorData.error || `Failed to ${isEditMode ? "update" : "create"} task`);
       }
 
-      toast.success(t.toast.taskCreated);
+      toast.success(isEditMode ? t.toast.taskUpdated : t.toast.taskCreated);
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       setCreateTaskDialogOpen(false);
       resetForm();
+      setEditingTask(null);
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error(`Error ${isEditMode ? "updating" : "creating"} task:`, error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create task",
+        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} task`,
       );
     } finally {
       setIsSubmitting(false);
@@ -264,7 +303,7 @@ export function CreateTaskDialog() {
                   <CheckSquare className="h-4 w-4" />
                 </div>
                 <span className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.12_160)] bg-clip-text text-transparent font-bold">
-                  {t.createTask.title}
+                  {isEditMode ? t.createTask.editTitle : t.createTask.title}
                 </span>
               </DialogTitle>
               <DialogDescription className="sr-only">
@@ -608,7 +647,8 @@ export function CreateTaskDialog() {
                 </div>
               </div>
 
-              {/* Subtasks */}
+              {/* Subtasks - masquées en mode édition */}
+              {!isEditMode && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1.5">
                   <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
@@ -672,6 +712,7 @@ export function CreateTaskDialog() {
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -691,12 +732,12 @@ export function CreateTaskDialog() {
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      {t.createTask.create}...
+                      {isEditMode ? t.createTask.update : t.createTask.create}...
                     </span>
                   ) : (
                     <>
                       <CheckSquare className="h-4 w-4 mr-1.5" />
-                      {t.createTask.create}
+                      {isEditMode ? t.createTask.update : t.createTask.create}
                     </>
                   )}
                 </Button>

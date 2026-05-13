@@ -31,15 +31,25 @@ import {
   Search,
   Building2,
   User as UserIcon,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { mockOpportunities, mockUsers } from "@/lib/mock-data";
-import { useApiData } from "@/hooks/use-api-data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
 import type { Opportunity, User, BoardColumn } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildStatusConfig, DEFAULT_OPPORTUNITY_COLUMNS, getColumnLabel } from "@/lib/column-utils";
+import { AddColumnButton, ColumnHeaderMenu } from "@/components/column-manager";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // DnD Kit imports
 import {
@@ -96,11 +106,13 @@ type SortDirection = "asc" | "desc";
 function OppCardContent({
   opportunity,
   onClick,
+  onDelete,
   users,
   statusConfig,
 }: {
   opportunity: Opportunity;
   onClick?: () => void;
+  onDelete?: () => void;
   users?: User[];
   statusConfig: Record<string, ReturnType<typeof buildStatusConfig>[string]>;
 }) {
@@ -144,7 +156,10 @@ function OppCardContent({
               <span />
             )}
           </div>
-          <div className="flex items-center gap-0.5">
+          <div
+            className="flex items-center gap-0.5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="opacity-0 group-hover:opacity-40 transition-opacity cursor-grab p-0.5">
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
@@ -159,7 +174,10 @@ function OppCardContent({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onSelect={() => onDelete?.()}
+                >
                   {t.common.delete}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -168,13 +186,13 @@ function OppCardContent({
         </div>
 
         {/* Title */}
-        <h4 className="text-sm font-medium mb-1 leading-snug">
+        <h4 className="text-sm font-medium mb-1 leading-snug truncate">
           {opportunity.title}
         </h4>
 
         {/* Description / Notes */}
         {opportunity.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3 overflow-hidden break-words">
             {opportunity.description}
           </p>
         )}
@@ -244,11 +262,13 @@ function OppCardContent({
 function SortableOppCard({
   opportunity,
   onClick,
+  onDelete,
   users,
   statusConfig,
 }: {
   opportunity: Opportunity;
   onClick: () => void;
+  onDelete?: () => void;
   users?: User[];
   statusConfig: Record<string, ReturnType<typeof buildStatusConfig>[string]>;
 }) {
@@ -282,6 +302,7 @@ function SortableOppCard({
       <OppCardContent
         opportunity={opportunity}
         onClick={onClick}
+        onDelete={onDelete}
         users={users}
         statusConfig={statusConfig}
       />
@@ -297,6 +318,11 @@ function DroppableKanbanColumn({
   opportunities,
   isOver,
   config,
+  column,
+  allColumns,
+  boardType,
+  workspaceId,
+  onColumnsChanged,
   children,
 }: {
   status: string;
@@ -304,6 +330,11 @@ function DroppableKanbanColumn({
   opportunities: Opportunity[];
   isOver: boolean;
   config: ReturnType<typeof buildStatusConfig>[string];
+  column?: BoardColumn;
+  allColumns?: BoardColumn[];
+  boardType?: "tasks" | "opportunities";
+  workspaceId?: string;
+  onColumnsChanged?: (columns: BoardColumn[]) => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef } = useDroppable({
@@ -315,7 +346,7 @@ function DroppableKanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200",
+        "flex-shrink-0 w-[280px] min-w-0 max-w-[280px] sm:w-[300px] sm:max-w-[300px] transition-all duration-200",
         isOver &&
           "ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl",
       )}
@@ -341,13 +372,24 @@ function DroppableKanbanColumn({
             {opportunities.length}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        {column && allColumns && boardType && workspaceId && onColumnsChanged ? (
+          <ColumnHeaderMenu
+            column={column}
+            columns={allColumns}
+            boardType={boardType}
+            workspaceId={workspaceId}
+            itemCount={opportunities.length}
+            onColumnsChanged={onColumnsChanged}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       {/* Cards area */}
@@ -369,30 +411,52 @@ function DroppableKanbanColumn({
 function KanbanView({
   opportunities: initialOpps,
   users,
-  onOpportunityChanged,
+  onCardClick,
+  onDelete,
 }: {
   opportunities: Opportunity[];
   users: User[];
-  onOpportunityChanged?: () => void;
+  onCardClick?: (opp: Opportunity) => void;
+  onDelete?: (opp: Opportunity) => void;
 }) {
   const { setCreateOpportunityDialogOpen } = useAppStore();
-  const columns = useAppStore((s) => s.columnsOpportunity);
+  const queryClient = useQueryClient();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const allColumns = useAppStore((s) => s.columnsOpportunity);
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumns, activeWorkspaceId],
+  );
+  const setColumnsOpportunity = useAppStore((s) => s.setColumnsOpportunity);
   const { t } = useTranslation();
 
-  const statusConfig = useMemo(() => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS), [columns]);
+  const colsForDisplay = useMemo(
+    () => (columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS),
+    [columns],
+  );
+  const statusConfig = useMemo(
+    () => buildStatusConfig(colsForDisplay),
+    [colsForDisplay],
+  );
   const statuses = useMemo(() => {
-    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
-    return [...cols].sort((a, b) => a.order - b.order).map((c) => c.slug);
-  }, [columns]);
+    return [...colsForDisplay].sort((a, b) => a.order - b.order).map((c) => c.slug);
+  }, [colsForDisplay]);
   const sl: Record<string, string> = useMemo(() => {
-    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
-    return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
-  }, [columns]);
+    return Object.fromEntries(colsForDisplay.map((c) => [c.slug, c.name]));
+  }, [colsForDisplay]);
+
+  // Map slug -> full column object for ColumnHeaderMenu
+  const columnBySlug: Record<string, BoardColumn> = useMemo(() => {
+    return Object.fromEntries(colsForDisplay.map((c) => [c.slug, c]));
+  }, [colsForDisplay]);
 
   const [opps, setOpps] = useState<Opportunity[]>([...initialOpps]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
   const [activeOppOriginalStatus, setActiveOppOriginalStatus] = useState<string | null>(null);
+
+  // Synchronise l'état local quand les données react-query changent
+  useEffect(() => { setOpps(initialOpps); }, [initialOpps]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -459,7 +523,7 @@ function KanbanView({
     })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        onOpportunityChanged?.();
+        queryClient.invalidateQueries({ queryKey: ["opportunities"] });
       })
       .catch(() => {
         setOpps((prev) =>
@@ -494,6 +558,11 @@ function KanbanView({
               opportunities={columnOpps}
               isOver={overColumn === status}
               config={config}
+              column={columnBySlug[status]}
+              allColumns={colsForDisplay}
+              boardType="opportunities"
+              workspaceId={activeWorkspaceId}
+              onColumnsChanged={(fresh) => setColumnsOpportunity(fresh)}
             >
               <SortableContext
                 items={columnOpps.map((o) => o.id)}
@@ -504,7 +573,8 @@ function KanbanView({
                     <SortableOppCard
                       key={opp.id}
                       opportunity={opp}
-                      onClick={() => {}}
+                      onClick={() => onCardClick?.(opp)}
+                      onDelete={() => onDelete?.(opp)}
                       users={users}
                       statusConfig={statusConfig}
                     />
@@ -525,6 +595,11 @@ function KanbanView({
             </DroppableKanbanColumn>
           );
         })}
+        <AddColumnButton
+          boardType="opportunities"
+          workspaceId={activeWorkspaceId}
+          onColumnsChanged={(fresh) => setColumnsOpportunity(fresh)}
+        />
       </div>
 
       {/* Drag Overlay */}
@@ -548,11 +623,20 @@ function KanbanView({
 function ListView({
   opportunities: propOpps,
   users,
+  onCardClick,
+  onDelete,
 }: {
   opportunities: Opportunity[];
   users: User[];
+  onCardClick?: (opp: Opportunity) => void;
+  onDelete?: (opp: Opportunity) => void;
 }) {
-  const columns = useAppStore((s) => s.columnsOpportunity);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const allColumns = useAppStore((s) => s.columnsOpportunity);
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumns, activeWorkspaceId],
+  );
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("dueDate");
@@ -684,6 +768,7 @@ function ListView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: idx * 0.02 }}
+                onClick={() => onCardClick?.(opp)}
                 className={cn(
                   "grid grid-cols-[1fr_120px_110px_130px_150px_1fr] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer",
                   idx % 2 === 1 && "bg-muted/10",
@@ -784,14 +869,17 @@ function ListView({
 export function OpportunitiesView() {
   const { opportunityViewMode, setOpportunityViewMode, setCreateOpportunityDialogOpen, setOpportunityCount } =
     useAppStore();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
-  const {
-    data: apiOpps,
-    isLoading,
-    refetch,
-  } = useApiData<Opportunity[]>("/api/opportunities", {
-    fallback: mockOpportunities,
+  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const wsParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
+
+  const { data: apiOpps, isLoading } = useQuery({
+    queryKey: ["opportunities", activeWorkspaceId],
+    queryFn: () => fetchJson<Opportunity[]>(`/api/opportunities${wsParams}`),
+    placeholderData: mockOpportunities,
   });
 
   const opportunities = apiOpps ?? [];
@@ -801,13 +889,45 @@ export function OpportunitiesView() {
     setOpportunityCount(opportunities.length);
   }, [opportunities.length, setOpportunityCount]);
 
-  const { data: apiUsers } = useApiData<User[]>("/api/users", {
-    fallback: mockUsers,
+  const { data: apiUsers } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => fetchJson<User[]>("/api/users"),
+    placeholderData: mockUsers,
   });
   const users = apiUsers ?? [];
 
   const wonCount = opportunities.filter((o) => o.status === "accepte").length;
   const lostCount = opportunities.filter((o) => o.status === "refuse").length;
+
+  const allColumnsMain = useAppStore((s) => s.columnsOpportunity);
+  const columns = useMemo(
+    () => allColumnsMain.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumnsMain, activeWorkspaceId],
+  );
+  const statusConfig = useMemo(
+    () => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS),
+    [columns],
+  );
+  const statusLabels: Record<string, string> = useMemo(() => {
+    const cols = columns.length > 0 ? columns : DEFAULT_OPPORTUNITY_COLUMNS;
+    return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
+  }, [columns]);
+
+  const handleDelete = useCallback(
+    async (opp: Opportunity) => {
+      try {
+        const res = await fetch(`/api/opportunities/${opp.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        toast.success("Opportunité supprimée");
+        queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+      } catch {
+        toast.error("Échec de la suppression");
+      }
+    },
+    [queryClient],
+  );
 
   return (
     <div className="space-y-4">
@@ -890,7 +1010,8 @@ export function OpportunitiesView() {
             key="kanban"
             opportunities={opportunities}
             users={users}
-            onOpportunityChanged={refetch}
+            onCardClick={setSelectedOpp}
+            onDelete={handleDelete}
           />
         )}
         {!isLoading && opportunityViewMode === "list" && (
@@ -898,9 +1019,122 @@ export function OpportunitiesView() {
             key="list"
             opportunities={opportunities}
             users={users}
+            onCardClick={setSelectedOpp}
+            onDelete={handleDelete}
           />
         )}
       </AnimatePresence>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedOpp} onOpenChange={(open) => !open && setSelectedOpp(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {selectedOpp?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOpp && (
+            <div className="space-y-4">
+              {/* Organisation */}
+              {selectedOpp.organisation && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{selectedOpp.organisation}</span>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t.opportunities.columns.status}</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                    statusConfig[selectedOpp.status]?.bg,
+                    statusConfig[selectedOpp.status]?.color,
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", statusConfig[selectedOpp.status]?.dotColor)} />
+                  {statusLabels[selectedOpp.status] || selectedOpp.status}
+                </span>
+              </div>
+
+              {/* Deadline */}
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className={cn(
+                  "text-sm",
+                  isOverdue(selectedOpp.dueDate) && "text-rose-600 dark:text-rose-400 font-medium",
+                )}>
+                  {selectedOpp.dueDate
+                    ? new Date(selectedOpp.dueDate).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "—"}
+                  {isOverdue(selectedOpp.dueDate) && " (en retard)"}
+                </span>
+              </div>
+
+              {/* Responsable */}
+              <div className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                <Avatar className="h-5 w-5 ring-1 ring-background">
+                  <AvatarFallback className="text-[7px] bg-muted font-medium">
+                    {getUserInitials(selectedOpp.responsableId, users)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm">{getUserName(selectedOpp.responsableId, users)}</span>
+              </div>
+
+              {/* Description / Notes */}
+              {selectedOpp.description && (
+                <div className="pt-2 border-t">
+                  <p className="text-sm font-medium mb-1">{t.opportunities.columns.notes}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {selectedOpp.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Created */}
+              <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
+                <p>Créé le {new Date(selectedOpp.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </div>
+
+              {/* Delete button */}
+              <div className="pt-2 border-t">
+                {/* Edit button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 mb-2"
+                  onClick={() => {
+                    useAppStore.getState().setEditingOpportunity(selectedOpp!);
+                    setSelectedOpp(null);
+                    useAppStore.getState().setCreateOpportunityDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {t.common.edit}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full gap-1.5"
+                  onClick={() => {
+                    setSelectedOpp(null);
+                    handleDelete(selectedOpp);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {t.common.delete}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

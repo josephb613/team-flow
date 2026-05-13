@@ -596,7 +596,7 @@ export function FilesView() {
     "/api/users",
     { fallback: mockUsers },
   );
-  const apiFiles = (filesData as typeof mockFiles) ?? [];
+  const apiFiles = useMemo(() => (filesData as typeof mockFiles) ?? [], [filesData]);
   const users = (usersData as typeof mockUsers) ?? [];
   const isLoading = filesLoading || usersLoading;
   const currentUser = useAppStore((s) => s.currentUser);

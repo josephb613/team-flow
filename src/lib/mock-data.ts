@@ -31,32 +31,32 @@ export const mockUsers: User[] = [
 export const mockProjects: Project[] = [
   {
     id: 'p-1', name: 'Website Redesign', description: 'Complete redesign of the company website with modern UI/UX',
-    color: '#10b981', icon: '🌐', status: 'active', progress: 65, members: ['u-1', 'u-2', 'u-3'],
+    logo: '', color: '#10b981', icon: '🌐', status: 'active', progress: 65, members: ['u-1', 'u-2', 'u-3'],
     taskCount: 24, completedTasks: 16, dueDate: '2025-03-15', createdAt: '2024-11-01',
   },
   {
     id: 'p-2', name: 'Mobile App V2', description: 'Second version of our mobile application',
-    color: '#f59e0b', icon: '📱', status: 'active', progress: 40, members: ['u-2', 'u-4', 'u-5'],
+    logo: '', color: '#f59e0b', icon: '📱', status: 'active', progress: 40, members: ['u-2', 'u-4', 'u-5'],
     taskCount: 32, completedTasks: 13, dueDate: '2025-04-30', createdAt: '2024-12-01',
   },
   {
     id: 'p-3', name: 'API Integration', description: 'Third-party API integrations and microservices',
-    color: '#ef4444', icon: '⚡', status: 'active', progress: 80, members: ['u-1', 'u-3', 'u-6'],
+    logo: '', color: '#ef4444', icon: '⚡', status: 'active', progress: 80, members: ['u-1', 'u-3', 'u-6'],
     taskCount: 18, completedTasks: 14, dueDate: '2025-02-28', createdAt: '2024-10-15',
   },
   {
     id: 'p-4', name: 'Marketing Campaign', description: 'Q1 2025 marketing campaign planning and execution',
-    color: '#8b5cf6', icon: '📢', status: 'on_hold', progress: 25, members: ['u-4', 'u-7'],
+    logo: '', color: '#8b5cf6', icon: '📢', status: 'on_hold', progress: 25, members: ['u-4', 'u-7'],
     taskCount: 15, completedTasks: 4, dueDate: '2025-05-01', createdAt: '2025-01-01',
   },
   {
     id: 'p-5', name: 'Data Analytics Dashboard', description: 'Real-time analytics dashboard for business insights',
-    color: '#06b6d4', icon: '📊', status: 'active', progress: 55, members: ['u-1', 'u-6', 'u-8'],
+    logo: '', color: '#06b6d4', icon: '📊', status: 'active', progress: 55, members: ['u-1', 'u-6', 'u-8'],
     taskCount: 20, completedTasks: 11, dueDate: '2025-03-31', createdAt: '2024-11-15',
   },
   {
     id: 'p-6', name: 'Security Audit', description: 'Annual security audit and compliance review',
-    color: '#ec4899', icon: '🔒', status: 'completed', progress: 100, members: ['u-3', 'u-8'],
+    logo: '', color: '#ec4899', icon: '🔒', status: 'completed', progress: 100, members: ['u-3', 'u-8'],
     taskCount: 12, completedTasks: 12, dueDate: '2025-01-15', createdAt: '2024-09-01',
   },
 ];

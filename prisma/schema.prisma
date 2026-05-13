@@ -64,14 +64,16 @@ model BoardColumn {
   icon        String   @default("circle")
   order       Int      @default(0)
   isDefault   Boolean  @default(false)
+  boardType   String   @default("tasks") // "tasks" | "opportunities"
   workspaceId String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, slug])
+  @@unique([workspaceId, boardType, slug])
   @@index([workspaceId, order])
+  @@index([workspaceId, boardType])
 }
 
 model WorkspaceMember {
@@ -110,6 +112,8 @@ model Project {
   id          String    @id @default(cuid())
   name        String
   description String?
+  logo        String?
+  sourceUrl   String?
   color       String    @default("#10b981")
   icon        String    @default("📋")
   status      String    @default("active")

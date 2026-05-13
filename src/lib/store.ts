@@ -10,6 +10,9 @@ import type {
   WorkspaceMember,
   Invitation,
   BoardColumn,
+  Task,
+  Project,
+  Opportunity,
 } from "./types";
 import type { Locale } from "./i18n";
 
@@ -75,15 +78,17 @@ interface AppState {
   // Task detail drawer
   taskDetailOpen: boolean;
   setTaskDetailOpen: (open: boolean) => void;
-  selectedTask: Record<string, unknown> | null;
-  setSelectedTask: (task: Record<string, unknown> | null) => void;
+  selectedTask: Task | null;
+  setSelectedTask: (task: Task | null) => void;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
+  editingTask: Task | null;
+  setEditingTask: (task: Task | null) => void;
 
   // Project detail drawer
   projectDetailOpen: boolean;
   setProjectDetailOpen: (open: boolean) => void;
-  selectedProject: Record<string, unknown> | null;
-  setSelectedProject: (project: Record<string, unknown> | null) => void;
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
   // Track locally deleted project IDs so they disappear from the list
   deletedProjectIds: string[];
   addDeletedProjectId: (id: string) => void;
@@ -156,6 +161,10 @@ interface AppState {
   // Opportunity count for sidebar badge
   opportunityCount: number;
   setOpportunityCount: (count: number) => void;
+
+  // Edit opportunity
+  editingOpportunity: Opportunity | null;
+  setEditingOpportunity: (opp: Opportunity | null) => void;
 
   // Recent items
   recentItems: string[];
@@ -314,13 +323,12 @@ export const useAppStore = create<AppState>((set) => ({
   updateTaskStatus: (taskId, status) =>
     set((s) => {
       if (!s.selectedTask) return s;
-      const task = s.selectedTask as Record<string, unknown> & {
-        id: string;
-        status: TaskStatus;
-      };
+      const task = s.selectedTask;
       if (task.id !== taskId) return s;
       return { selectedTask: { ...task, status } };
     }),
+  editingTask: null,
+  setEditingTask: (task) => set({ editingTask: task }),
 
   // Project detail drawer
   projectDetailOpen: false,
@@ -408,6 +416,10 @@ export const useAppStore = create<AppState>((set) => ({
   // Opportunity count for sidebar badge
   opportunityCount: 0,
   setOpportunityCount: (count) => set({ opportunityCount: count }),
+
+  // Edit opportunity
+  editingOpportunity: null,
+  setEditingOpportunity: (opp) => set({ editingOpportunity: opp }),
 
   // Recent items
   recentItems: [],

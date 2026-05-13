@@ -5,15 +5,38 @@ import { createTaskSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
 
 export const GET = withErrorHandler(
-  withAuth(async (_request, _context, user) => {
-    const tasks = await db.task.findMany({
-      where: {
-        project: {
-          workspace: {
-            members: { some: { userId: user.id } },
-          },
+  withAuth(async (request, _context, user) => {
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const whereClause: any = {
+      project: {
+        workspace: {
+          members: { some: { userId: user.id } },
         },
       },
+    };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      whereClause.project.workspaceId = workspaceId;
+    }
+
+    const tasks = await db.task.findMany({
+      where: whereClause,
       include: {
         assignee: true,
         creator: true,
@@ -42,6 +65,7 @@ export const POST = withErrorHandler(
       dueDate,
       projectId,
       assigneeId,
+      subtasks: subtaskInput,
     } = validation.data;
 
     // Verify the project belongs to a workspace the user is a member of
@@ -72,6 +96,11 @@ export const POST = withErrorHandler(
         projectId,
         assigneeId: assigneeId || null,
         creatorId: user.id,
+        ...(subtaskInput && subtaskInput.length > 0 && {
+          subtasks: {
+            create: subtaskInput,
+          },
+        }),
       },
       include: {
         assignee: true,

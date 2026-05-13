@@ -35,16 +35,21 @@ export default function Home() {
         if (wsRes.ok) {
           const workspaces = await wsRes.json();
           useAppStore.getState().setWorkspaces(workspaces);
-          // Extract columns from workspaces into the store
-          const allColumns = workspaces.flatMap(
-            (w: Record<string, unknown>) =>
-              (w.columns as Array<Record<string, unknown>> || []).map(
-                (c) => ({ ...c, workspaceId: w.id }),
-              ),
-          );
-          useAppStore.getState().setColumns(allColumns as any);
-          // Fetch users scoped to the first workspace (or all user workspaces)
+          // Charger les colonnes pour le workspace actif
           const activeWsId = workspaces[0]?.id;
+          if (activeWsId) {
+            const [taskColsRes, oppColsRes] = await Promise.all([
+              fetch(`/api/workspaces/${activeWsId}/columns?boardType=tasks`),
+              fetch(`/api/workspaces/${activeWsId}/columns?boardType=opportunities`),
+            ]);
+            if (taskColsRes.ok) {
+              useAppStore.getState().setColumns(await taskColsRes.json());
+            }
+            if (oppColsRes.ok) {
+              useAppStore.getState().setColumnsOpportunity(await oppColsRes.json());
+            }
+          }
+          // Fetch users scoped to the first workspace (or all user workspaces)
           const usersRes = await fetch(
             `/api/users${activeWsId ? `?workspaceId=${activeWsId}` : ""}`,
           );

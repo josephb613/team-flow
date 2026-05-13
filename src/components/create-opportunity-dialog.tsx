@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -31,6 +32,7 @@ import { toast } from "sonner";
 import { mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
+import { DEFAULT_OPPORTUNITY_COLUMNS } from "@/lib/column-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
@@ -46,8 +48,11 @@ import {
 const TITLE_MAX_LENGTH = 200;
 
 export function CreateOpportunityDialog() {
-  const { createOpportunityDialogOpen, setCreateOpportunityDialogOpen, activeWorkspaceId, workspaces } = useAppStore();
+  const { createOpportunityDialogOpen, setCreateOpportunityDialogOpen, activeWorkspaceId, workspaces, editingOpportunity, setEditingOpportunity } = useAppStore();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  const isEditMode = editingOpportunity !== null;
 
   const effectiveWorkspaceId = activeWorkspaceId || workspaces[0]?.id || "";
 
@@ -66,6 +71,19 @@ export function CreateOpportunityDialog() {
   const [titleError, setTitleError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pré-remplir le formulaire en mode édition
+  useEffect(() => {
+    if (editingOpportunity && createOpportunityDialogOpen) {
+      setTitle(editingOpportunity.title || "");
+      setOrganisation(editingOpportunity.organisation || "");
+      setDescription(editingOpportunity.description || "");
+      setStatus(editingOpportunity.status || "nouveau");
+      setResponsableId(editingOpportunity.responsableId || "");
+      setDueDate(editingOpportunity.dueDate ? new Date(editingOpportunity.dueDate) : undefined);
+      setTitleError("");
+    }
+  }, [editingOpportunity, createOpportunityDialogOpen]);
+
   const resetForm = useCallback(() => {
     setTitle("");
     setOrganisation("");
@@ -78,7 +96,10 @@ export function CreateOpportunityDialog() {
 
   const handleOpenChange = (open: boolean) => {
     setCreateOpportunityDialogOpen(open);
-    if (!open) resetForm();
+    if (!open) {
+      resetForm();
+      setEditingOpportunity(null);
+    }
   };
 
   const validate = (): boolean => {
@@ -87,7 +108,7 @@ export function CreateOpportunityDialog() {
       return false;
     }
     setTitleError("");
-    if (!effectiveWorkspaceId) {
+    if (!effectiveWorkspaceId && !isEditMode) {
       toast.error("Aucun espace de travail actif");
       return false;
     }
@@ -100,32 +121,38 @@ export function CreateOpportunityDialog() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/opportunities", {
-        method: "POST",
+      const method = isEditMode ? "PATCH" : "POST";
+      const url = isEditMode ? `/api/opportunities/${editingOpportunity!.id}` : "/api/opportunities";
+      const body: Record<string, unknown> = {
+        title: title.trim(),
+        organisation: organisation.trim() || null,
+        description: description.trim() || null,
+        status,
+        responsableId: responsableId || null,
+        dueDate: dueDate?.toISOString() || null,
+      };
+      if (!isEditMode) {
+        body.workspaceId = effectiveWorkspaceId;
+      }
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          organisation: organisation.trim() || null,
-          description: description.trim() || null,
-          status,
-          responsableId: responsableId || null,
-          dueDate: dueDate?.toISOString() || null,
-          workspaceId: effectiveWorkspaceId,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create opportunity");
+        throw new Error(errorData.error || `Failed to ${isEditMode ? "update" : "create"} opportunity`);
       }
 
-      toast.success(t.toast.opportunityCreated);
+      toast.success(isEditMode ? t.toast.opportunityUpdated : t.toast.opportunityCreated);
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
       setCreateOpportunityDialogOpen(false);
       resetForm();
-      // Force refetch
-      window.location.reload();
+      setEditingOpportunity(null);
     } catch (error) {
-      toast.error("Erreur lors de la creation de l'opportunite");
+      toast.error(`Erreur lors de la ${isEditMode ? "mise a jour" : "creation"} de l'opportunite`);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,14 +160,17 @@ export function CreateOpportunityDialog() {
 
   const selectedResponsable = users.find((u) => u.id === responsableId);
 
-  const statusOptions = [
-    { value: "nouveau", dot: "bg-indigo-500" },
-    { value: "en_preparation", dot: "bg-sky-500" },
-    { value: "soumis", dot: "bg-amber-500" },
-    { value: "entretien", dot: "bg-purple-500" },
-    { value: "accepte", dot: "bg-emerald-500" },
-    { value: "refuse", dot: "bg-red-500" },
-  ];
+  const columnsOpp = useAppStore((s) => s.columnsOpportunity);
+  const statusOptions = useMemo(() => {
+    const cols = columnsOpp.length > 0 ? columnsOpp : DEFAULT_OPPORTUNITY_COLUMNS;
+    return cols
+      .sort((a, b) => a.order - b.order)
+      .map((c) => ({
+        value: c.slug,
+        label: c.name,
+        color: c.color,
+      }));
+  }, [columnsOpp]);
 
   return (
     <Dialog open={createOpportunityDialogOpen} onOpenChange={handleOpenChange}>
@@ -165,11 +195,11 @@ export function CreateOpportunityDialog() {
                   <Target className="h-4 w-4" />
                 </div>
                 <span className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.12_160)] bg-clip-text text-transparent font-bold">
-                  {t.createOpportunity.title}
+                  {isEditMode ? t.createOpportunity.editTitle : t.createOpportunity.title}
                 </span>
               </DialogTitle>
               <DialogDescription className="sr-only">
-                {t.createOpportunity.title}
+                {isEditMode ? t.createOpportunity.editTitle : t.createOpportunity.title}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -254,11 +284,10 @@ export function CreateOpportunityDialog() {
                       <SelectItem key={opt.value} value={opt.value}>
                         <span className="flex items-center gap-2">
                           <span
-                            className={cn("w-2 h-2 rounded-full", opt.dot)}
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: opt.color }}
                           />
-                          {t.opportunities.statuses[
-                            opt.value as keyof typeof t.opportunities.statuses
-                          ]}
+                          {opt.label}
                         </span>
                       </SelectItem>
                     ))}
@@ -397,12 +426,12 @@ export function CreateOpportunityDialog() {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    {t.createOpportunity.create}...
+                    {isEditMode ? t.createOpportunity.updating : t.createOpportunity.create}...
                   </span>
                 ) : (
                   <>
                     <Target className="h-4 w-4 mr-1.5" />
-                    {t.createOpportunity.create}
+                    {isEditMode ? t.createOpportunity.update : t.createOpportunity.create}
                   </>
                 )}
               </Button>

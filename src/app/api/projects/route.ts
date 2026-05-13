@@ -6,13 +6,36 @@ import { transformProject } from "@/lib/project-transform";
 import { logActivity } from "@/lib/activity-logger";
 
 export const GET = withErrorHandler(
-  withAuth(async (_request, _context, user) => {
-    const projects = await db.project.findMany({
-      where: {
-        workspace: {
-          members: { some: { userId: user.id } },
-        },
+  withAuth(async (request, _context, user) => {
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const whereClause: any = {
+      workspace: {
+        members: { some: { userId: user.id } },
       },
+    };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      whereClause.workspaceId = workspaceId;
+    }
+
+    const projects = await db.project.findMany({
+      where: whereClause,
       include: {
         workspace: {
           include: {
@@ -40,7 +63,7 @@ export const POST = withErrorHandler(
     const validation = validateBody(createProjectSchema, body);
     if (validation.error) return validation.error;
 
-    const { name, description, color, icon, dueDate, workspaceId } = validation.data;
+    const { name, description, logo, sourceUrl, color, icon, dueDate, workspaceId } = validation.data;
 
     // Verify workspace membership
     const membership = await db.workspaceMember.findUnique({
@@ -62,6 +85,8 @@ export const POST = withErrorHandler(
       data: {
         name,
         description: description || null,
+        logo: logo || null,
+        sourceUrl: sourceUrl || null,
         color: color || "#10b981",
         icon: icon || "📋",
         dueDate: dueDate ? new Date(dueDate) : null,

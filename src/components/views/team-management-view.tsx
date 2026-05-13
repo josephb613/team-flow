@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -110,7 +110,7 @@ export function TeamManagementView() {
 
   // Fetch workspace users
   const { data: usersData } = useApiData("/api/users", { fallback: mockUsers });
-  const allUsers = (usersData as typeof mockUsers) ?? [];
+  const allUsers = useMemo(() => (usersData as typeof mockUsers) ?? [], [usersData]);
 
   useEffect(() => {
     if (allUsers.length > 0 && users.length === 0) {
