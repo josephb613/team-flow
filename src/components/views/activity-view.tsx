@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { mockActivities, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
+import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";

@@ -604,6 +604,8 @@ export const translations = {
       projectRequired: "Le projet est requis",
       cancel: "Annuler",
       create: "Créer la tâche",
+      editTitle: "Modifier la tâche",
+      update: "Mettre à jour",
     },
 
     // Create Project Dialog
@@ -615,6 +617,12 @@ export const translations = {
       descriptionPlaceholder: "De quoi s'agit-il ?",
       icon: "Icône",
       color: "Couleur",
+      logo: "Logo du projet",
+      logoHint: "Ajoutez un logo personnalisé. PNG, JPG, SVG ou WebP (max 5 Mo).",
+      uploadLogo: "Téléverser un logo",
+      changeLogo: "Changer le logo",
+      sourceUrl: "Lien d'origine",
+      sourceUrlPlaceholder: "https://exemple.com/offre",
       preview: "Aperçu",
       cancel: "Annuler",
       create: "Créer le projet",
@@ -762,6 +770,8 @@ export const translations = {
       channelCreated: "Canal créé avec succès",
       welcomeBack: "Bienvenue !",
       opportunityCreated: "Opportunité créée avec succès",
+      taskUpdated: "Tâche mise à jour avec succès",
+      opportunityUpdated: "Opportunité mise à jour avec succès",
     },
     // Opportunities
     opportunities: {
@@ -791,6 +801,7 @@ export const translations = {
     // Create Opportunity Dialog
     createOpportunity: {
       title: "Créer une nouvelle opportunité",
+      editTitle: "Modifier l'opportunité",
       opportunityTitle: "Opportunité",
       opportunityTitlePlaceholder: "Nom du client ou de l'affaire",
       organisation: "Organisation",
@@ -1405,6 +1416,8 @@ export const translations = {
       projectRequired: "Project is required",
       cancel: "Cancel",
       create: "Create Task",
+      editTitle: "Edit Task",
+      update: "Update",
     },
     createProject: {
       title: "Create New Project",
@@ -1414,6 +1427,12 @@ export const translations = {
       descriptionPlaceholder: "What is this project about?",
       icon: "Icon",
       color: "Color",
+      logo: "Project Logo",
+      logoHint: "Add a custom logo. PNG, JPG, SVG or WebP (max 5 MB).",
+      uploadLogo: "Upload a logo",
+      changeLogo: "Change logo",
+      sourceUrl: "Source URL",
+      sourceUrlPlaceholder: "https://example.com/offer",
       preview: "Preview",
       cancel: "Cancel",
       create: "Create Project",
@@ -1553,6 +1572,8 @@ export const translations = {
       channelCreated: "Channel created successfully",
       welcomeBack: "Welcome back!",
       opportunityCreated: "Opportunity created successfully",
+      taskUpdated: "Task updated successfully",
+      opportunityUpdated: "Opportunity updated successfully",
     },
     // Opportunities
     opportunities: {
@@ -1582,6 +1603,7 @@ export const translations = {
     // Create Opportunity Dialog
     createOpportunity: {
       title: "Create New Opportunity",
+      editTitle: "Edit Opportunity",
       opportunityTitle: "Opportunity",
       opportunityTitlePlaceholder: "Client or deal name",
       organisation: "Organization",

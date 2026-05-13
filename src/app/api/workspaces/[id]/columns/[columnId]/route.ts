@@ -51,12 +51,12 @@ export const PATCH = withErrorHandler(
     if (icon !== undefined) updateData.icon = icon;
     if (order !== undefined) updateData.order = order;
 
-    // Rename: update slug and all tasks referencing this column
+    // Rename: update slug and all items referencing this column
     if (name !== undefined && name !== column.name) {
       const newSlug = slugify(name);
-      // Check slug not taken by another column
-      const conflict = await db.boardColumn.findUnique({
-        where: { workspaceId_slug: { workspaceId, slug: newSlug } },
+      // Check slug not taken by another column (same workspace + boardType)
+      const conflict = await db.boardColumn.findFirst({
+        where: { workspaceId, boardType: column.boardType, slug: newSlug },
       });
       const finalSlug = conflict && conflict.id !== columnId
         ? `${newSlug}-${Date.now().toString(36)}`
@@ -65,11 +65,18 @@ export const PATCH = withErrorHandler(
       updateData.name = name;
       updateData.slug = finalSlug;
 
-      // Update all tasks referencing the old slug
-      await db.task.updateMany({
-        where: { status: column.slug, project: { workspaceId } },
-        data: { status: finalSlug },
-      });
+      // Update all items referencing the old slug based on boardType
+      if (column.boardType === "tasks") {
+        await db.task.updateMany({
+          where: { status: column.slug, project: { workspaceId } },
+          data: { status: finalSlug },
+        });
+      } else {
+        await db.opportunity.updateMany({
+          where: { status: column.slug, workspaceId },
+          data: { status: finalSlug },
+        });
+      }
     }
 
     const updated = await db.boardColumn.update({
@@ -82,7 +89,7 @@ export const PATCH = withErrorHandler(
 );
 
 export const DELETE = withErrorHandler(
-  withAuth(async (request, context, user) => {
+  withAuth(async (_request, context, user) => {
     const { id: workspaceId, columnId } = await (context as { params: Promise<{ id: string; columnId: string }> }).params;
 
     // Admin only
@@ -110,15 +117,27 @@ export const DELETE = withErrorHandler(
       );
     }
 
-    // Check if tasks exist in this column
-    const taskCount = await db.task.count({
-      where: { status: column.slug, project: { workspaceId } },
-    });
-    if (taskCount > 0) {
-      return NextResponse.json(
-        { error: `Cannot delete: ${taskCount} task(s) use this column` },
-        { status: 400 },
-      );
+    // Check if items exist in this column based on boardType
+    if (column.boardType === "tasks") {
+      const taskCount = await db.task.count({
+        where: { status: column.slug, project: { workspaceId } },
+      });
+      if (taskCount > 0) {
+        return NextResponse.json(
+          { error: `Cannot delete: ${taskCount} task(s) use this column` },
+          { status: 400 },
+        );
+      }
+    } else {
+      const oppCount = await db.opportunity.count({
+        where: { status: column.slug, workspaceId },
+      });
+      if (oppCount > 0) {
+        return NextResponse.json(
+          { error: `Cannot delete: ${oppCount} opportunity(ies) use this column` },
+          { status: 400 },
+        );
+      }
     }
 
     await db.boardColumn.delete({ where: { id: columnId } });

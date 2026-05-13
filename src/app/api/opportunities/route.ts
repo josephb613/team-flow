@@ -5,13 +5,36 @@ import { createOpportunitySchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
 
 export const GET = withErrorHandler(
-  withAuth(async (_request, _context, user) => {
-    const opportunities = await db.opportunity.findMany({
-      where: {
-        workspace: {
-          members: { some: { userId: user.id } },
-        },
+  withAuth(async (request, _context, user) => {
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const whereClause: any = {
+      workspace: {
+        members: { some: { userId: user.id } },
       },
+    };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      whereClause.workspaceId = workspaceId;
+    }
+
+    const opportunities = await db.opportunity.findMany({
+      where: whereClause,
       include: {
         creator: true,
         responsable: true,

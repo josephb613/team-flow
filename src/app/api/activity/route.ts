@@ -8,10 +8,29 @@ export const GET = withErrorHandler(
     const projectId = searchParams.get("projectId");
     const targetType = searchParams.get("targetType");
     const targetId = searchParams.get("targetId");
+    const workspaceId = searchParams.get("workspaceId");
 
     const where: Record<string, unknown> = {
       workspace: { members: { some: { userId: user.id } } },
     };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      where.workspaceId = workspaceId;
+    }
 
     // Si un targetId est fourni, on filtre directement par cet ID
     if (targetId) {

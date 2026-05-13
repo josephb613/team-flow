@@ -4,11 +4,34 @@ import { withAuth, withErrorHandler, validateBody } from "@/lib/api-utils";
 import { createAutomationSchema } from "@/lib/validations";
 
 export const GET = withErrorHandler(
-  withAuth(async (_request, _context, user) => {
+  withAuth(async (request, _context, user) => {
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const whereClause: any = {
+      workspace: { members: { some: { userId: user.id } } },
+    };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      whereClause.workspaceId = workspaceId;
+    }
+
     const automations = await db.automation.findMany({
-      where: {
-        workspace: { members: { some: { userId: user.id } } },
-      },
+      where: whereClause,
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(automations);

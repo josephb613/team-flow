@@ -9,6 +9,8 @@ interface UseApiDataOptions<T> {
   fallback?: T;
   /** Whether to fetch immediately on mount */
   immediate?: boolean;
+  /** Query params to append to the endpoint URL */
+  params?: Record<string, string>;
 }
 
 interface UseApiDataResult<T> {
@@ -27,12 +29,17 @@ export function useApiData<T = unknown>(
   endpoint: string,
   options: UseApiDataOptions<T> = {},
 ): UseApiDataResult<T> {
-  const { fallback, immediate = true } = options;
+  const { fallback, immediate = true, params } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(immediate);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+
+  // Build endpoint URL with query params
+  const resolvedEndpoint = params
+    ? `${endpoint}?${new URLSearchParams(params).toString()}`
+    : endpoint;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -56,7 +63,7 @@ export function useApiData<T = unknown>(
       setError(null);
 
       try {
-        const response = await fetch(endpoint);
+        const response = await fetch(resolvedEndpoint);
 
         if (cancelled || !mountedRef.current) return;
 
@@ -93,14 +100,14 @@ export function useApiData<T = unknown>(
     return () => {
       cancelled = true;
     };
-  }, [endpoint, immediate, fallback, processResult]);
+  }, [resolvedEndpoint, endpoint, immediate, fallback, processResult]);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(endpoint);
+      const response = await fetch(resolvedEndpoint);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -124,7 +131,7 @@ export function useApiData<T = unknown>(
         setIsLoading(false);
       }
     }
-  }, [endpoint, fallback, processResult]);
+  }, [resolvedEndpoint, fallback, processResult]);
 
   return { data, isLoading, error, refetch };
 }

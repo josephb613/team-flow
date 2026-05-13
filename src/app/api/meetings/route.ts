@@ -8,6 +8,7 @@ export const GET = withErrorHandler(
   withAuth(async (request, _context, user) => {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
+    const workspaceId = searchParams.get("workspaceId");
 
     const whereClause: Record<string, unknown> = {
       project: {
@@ -16,6 +17,25 @@ export const GET = withErrorHandler(
         },
       },
     };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      (whereClause.project as Record<string, unknown>).workspaceId = workspaceId;
+    }
+
     if (projectId) (whereClause as Record<string, unknown>).projectId = projectId;
 
     const meetings = await db.meeting.findMany({

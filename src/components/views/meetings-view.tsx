@@ -28,6 +28,7 @@ import {
 import { mockMeetings, mockUsers, mockProjects } from "@/lib/mock-data";
 import type { Meeting, MeetingStatus, User, Project } from "@/lib/types";
 import { useApiData } from "@/hooks/use-api-data";
+import { useAppStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";

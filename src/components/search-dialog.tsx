@@ -39,7 +39,7 @@ import {
   Keyboard,
   Search,
 } from "lucide-react";
-import type { PageId, TaskStatus, TaskPriority } from "@/lib/types";
+import type { PageId, TaskStatus, TaskPriority, Task } from "@/lib/types";
 import { mockTasks, mockProjects } from "@/lib/mock-data";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -331,9 +331,7 @@ export function SearchDialog() {
                         runCommand(() => {
                           addRecentItem("tasks");
                           setActivePage("tasks");
-                          setSelectedTask(
-                            task as unknown as Record<string, unknown>,
-                          );
+                          setSelectedTask(task);
                         })
                       }
                       className="flex items-center gap-2"

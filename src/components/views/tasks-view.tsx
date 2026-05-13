@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,13 +49,15 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { mockTasks, mockProjects, mockUsers } from "@/lib/mock-data";
-import { useApiData } from "@/hooks/use-api-data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
 import type { Task, TaskStatus, TaskPriority, User, Project, BoardColumn } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildStatusConfig, DEFAULT_COLUMNS, getColumnLabel } from "@/lib/column-utils";
+import { AddColumnButton, ColumnHeaderMenu } from "@/components/column-manager";
 
 // DnD Kit imports
 import {
@@ -419,6 +421,11 @@ function DroppableKanbanColumn({
   tasks,
   isOver,
   config,
+  column,
+  allColumns,
+  boardType,
+  workspaceId,
+  onColumnsChanged,
   children,
 }: {
   status: string;
@@ -426,6 +433,11 @@ function DroppableKanbanColumn({
   tasks: Task[];
   isOver: boolean;
   config: ReturnType<typeof buildStatusConfig>[string];
+  column?: BoardColumn;
+  allColumns?: BoardColumn[];
+  boardType?: "tasks" | "opportunities";
+  workspaceId?: string;
+  onColumnsChanged?: (columns: BoardColumn[]) => void;
   children: React.ReactNode;
 }) {
   const { setNodeRef } = useDroppable({
@@ -463,13 +475,24 @@ function DroppableKanbanColumn({
             {tasks.length}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        {column && allColumns && boardType && workspaceId && onColumnsChanged ? (
+          <ColumnHeaderMenu
+            column={column}
+            columns={allColumns}
+            boardType={boardType}
+            workspaceId={workspaceId}
+            itemCount={tasks.length}
+            onColumnsChanged={onColumnsChanged}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       {/* Cards area with subtle gradient background */}
@@ -492,32 +515,50 @@ function KanbanView({
   tasks: initialTasks,
   users,
   projects,
-  onTaskChanged,
 }: {
   tasks: Task[];
   users: User[];
   projects: Project[];
-  onTaskChanged?: () => void;
 }) {
   const { setSelectedTask, setCreateTaskDialogOpen } = useAppStore();
-  const columns = useAppStore((s) => s.columns);
+  const queryClient = useQueryClient();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const allColumns = useAppStore((s) => s.columns);
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumns, activeWorkspaceId],
+  );
+  const setColumns = useAppStore((s) => s.setColumns);
   const { t } = useTranslation();
 
-  const statusConfig = useMemo(() => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_COLUMNS), [columns]);
+  const colsForDisplay = useMemo(
+    () => (columns.length > 0 ? columns : DEFAULT_COLUMNS),
+    [columns],
+  );
+  const statusConfig = useMemo(
+    () => buildStatusConfig(colsForDisplay),
+    [colsForDisplay],
+  );
   const statuses = useMemo(() => {
-    const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
-    return [...cols].sort((a, b) => a.order - b.order).map((c) => c.slug);
-  }, [columns]);
+    return [...colsForDisplay].sort((a, b) => a.order - b.order).map((c) => c.slug);
+  }, [colsForDisplay]);
   const sl: Record<string, string> = useMemo(() => {
-    const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
-    return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
-  }, [columns]);
+    return Object.fromEntries(colsForDisplay.map((c) => [c.slug, c.name]));
+  }, [colsForDisplay]);
+
+  // Map slug -> full column object for ColumnHeaderMenu
+  const columnBySlug: Record<string, BoardColumn> = useMemo(() => {
+    return Object.fromEntries(colsForDisplay.map((c) => [c.slug, c]));
+  }, [colsForDisplay]);
 
   // Local task state initialized from real data
   const [tasks, setTasks] = useState<Task[]>([...initialTasks]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
   const [activeTaskOriginalStatus, setActiveTaskOriginalStatus] = useState<string | null>(null);
+
+  // Synchronise l'état local quand les données react-query changent
+  useEffect(() => { setTasks(initialTasks); }, [initialTasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -598,7 +639,7 @@ function KanbanView({
     })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        onTaskChanged?.();
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
       })
       .catch(() => {
         setTasks((prev) =>
@@ -613,7 +654,7 @@ function KanbanView({
   }
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task as unknown as Record<string, unknown>);
+    setSelectedTask(task);
   };
 
   return (
@@ -637,6 +678,11 @@ function KanbanView({
               tasks={columnTasks}
               isOver={overColumn === status}
               config={config}
+              column={columnBySlug[status]}
+              allColumns={colsForDisplay}
+              boardType="tasks"
+              workspaceId={activeWorkspaceId}
+              onColumnsChanged={(fresh) => setColumns(fresh)}
             >
               <SortableContext
                 items={columnTasks.map((t) => t.id)}
@@ -668,6 +714,11 @@ function KanbanView({
             </DroppableKanbanColumn>
           );
         })}
+        <AddColumnButton
+          boardType="tasks"
+          workspaceId={activeWorkspaceId}
+          onColumnsChanged={(fresh) => setColumns(fresh)}
+        />
       </div>
 
       {/* Drag Overlay */}
@@ -729,7 +780,12 @@ function ListView({
   projects: Project[];
 }) {
   const { setSelectedTask } = useAppStore();
-  const columns = useAppStore((s) => s.columns);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const allColumns = useAppStore((s) => s.columns);
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumns, activeWorkspaceId],
+  );
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("priority");
@@ -913,7 +969,7 @@ function ListView({
                 animate={{ opacity: 1 }}
                 transition={{ delay: idx * 0.02 }}
                 onClick={() =>
-                  setSelectedTask(task as unknown as Record<string, unknown>)
+                  setSelectedTask(task)
                 }
                 className={cn(
                   "grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer",
@@ -1015,7 +1071,12 @@ function MyTasksView({
   projects: Project[];
 }) {
   const { setSelectedTask, currentUser } = useAppStore();
-  const columns = useAppStore((s) => s.columns);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const allColumns = useAppStore((s) => s.columns);
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.workspaceId === activeWorkspaceId),
+    [allColumns, activeWorkspaceId],
+  );
   const { t } = useTranslation();
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
     new Set(),
@@ -1185,9 +1246,7 @@ function MyTasksView({
                           <div
                             key={task.id}
                             onClick={() =>
-                              setSelectedTask(
-                                task as unknown as Record<string, unknown>,
-                              )
+                              setSelectedTask(task)
                             }
                             className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
                           >
@@ -1278,18 +1337,27 @@ export function TasksView() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+
+  const tasksParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
+  const usersParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
 
   // Fetch real data from API with mock fallback in dev
-  const { data: apiTasks, isLoading: tasksLoading, refetch: refetchTasks } = useApiData<Task[]>(
-    "/api/tasks",
-    { fallback: mockTasks },
-  );
-  const { data: apiUsers, isLoading: usersLoading } = useApiData<User[]>(
-    "/api/users",
-    { fallback: mockUsers },
-  );
-  const { data: apiProjects, isLoading: projectsLoading } =
-    useApiData<Project[]>("/api/projects", { fallback: mockProjects });
+  const { data: apiTasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ["tasks", activeWorkspaceId],
+    queryFn: () => fetchJson<Task[]>(`/api/tasks${tasksParams}`),
+    placeholderData: mockTasks,
+  });
+  const { data: apiUsers, isLoading: usersLoading } = useQuery({
+    queryKey: ["users", activeWorkspaceId],
+    queryFn: () => fetchJson<User[]>(`/api/users${usersParams}`),
+    placeholderData: mockUsers,
+  });
+  const { data: apiProjects, isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects", activeWorkspaceId],
+    queryFn: () => fetchJson<Project[]>(`/api/projects${tasksParams}`),
+    placeholderData: mockProjects,
+  });
 
   const tasks = apiTasks ?? [];
   const users = apiUsers ?? [];
@@ -1409,7 +1477,7 @@ export function TasksView() {
           </motion.div>
         )}
         {!isLoading && taskViewMode === "kanban" && (
-          <KanbanView key="kanban" tasks={tasks} users={users} projects={projects} onTaskChanged={refetchTasks} />
+          <KanbanView key="kanban" tasks={tasks} users={users} projects={projects} />
         )}
         {!isLoading && taskViewMode === "list" && (
           <ListView key="list" tasks={tasks} users={users} projects={projects} />

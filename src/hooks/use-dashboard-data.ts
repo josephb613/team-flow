@@ -45,12 +45,13 @@ export function useDashboardData(): DashboardData {
     setError(null);
     try {
       const activeWsId = useAppStore.getState().activeWorkspaceId;
+      const params = activeWsId ? `?workspaceId=${activeWsId}` : "";
       const usersUrl = activeWsId
         ? `/api/users?workspaceId=${activeWsId}`
         : "/api/users";
       const [tasksRes, projectsRes, usersRes] = await Promise.all([
-        fetch("/api/tasks"),
-        fetch("/api/projects"),
+        fetch(`/api/tasks${params}`),
+        fetch(`/api/projects${params}`),
         fetch(usersUrl),
       ]);
 

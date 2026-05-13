@@ -5,11 +5,34 @@ import { createFileSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
 
 export const GET = withErrorHandler(
-  withAuth(async (_request, _context, user) => {
+  withAuth(async (request, _context, user) => {
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const whereClause: any = {
+      workspace: { members: { some: { userId: user.id } } },
+    };
+
+    if (workspaceId) {
+      const membership = await db.workspaceMember.findUnique({
+        where: {
+          userId_workspaceId: {
+            userId: user.id,
+            workspaceId,
+          },
+        },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Workspace not found or access denied" },
+          { status: 403 },
+        );
+      }
+      whereClause.workspaceId = workspaceId;
+    }
+
     const files = await db.fileItem.findMany({
-      where: {
-        workspace: { members: { some: { userId: user.id } } },
-      },
+      where: whereClause,
       include: {
         uploader: { select: { id: true, name: true, avatar: true } },
       },

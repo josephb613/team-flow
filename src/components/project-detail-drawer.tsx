@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import {
@@ -217,6 +218,7 @@ export function ProjectDetailDrawer() {
   const { projectDetailOpen, setProjectDetailOpen, selectedProject, columns } =
     useAppStore();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const { data: usersData } = useApiData("/api/users", {
     fallback: mockUsers,
@@ -259,7 +261,7 @@ export function ProjectDetailDrawer() {
   // Comme on a les tasks dans l'API projects (via le transform),
   // on peut les récupérer depuis selectedProject qui contient maintenant
   // les données transformées
-  const projectTasks = (selectedProject as Record<string, unknown>)
+  const projectTasks = (selectedProject as unknown as { tasks?: Task[] })
     .tasks as Task[] | undefined;
 
   const handleDelete = async () => {
@@ -270,6 +272,7 @@ export function ProjectDetailDrawer() {
     }
     useAppStore.getState().addDeletedProjectId(project.id);
     toast.success("Projet supprimé");
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
     setProjectDetailOpen(false);
   };
 
@@ -331,13 +334,17 @@ export function ProjectDetailDrawer() {
               {/* Title with icon */}
               <div className="flex items-center gap-3">
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-semibold shrink-0 shadow-sm"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-xl font-semibold shrink-0 shadow-sm overflow-hidden"
                   style={{
                     backgroundColor: project.color + "18",
                     color: project.color,
                   }}
                 >
-                  {project.icon}
+                  {project.logo ? (
+                    <img src={project.logo} alt={project.name} className="w-full h-full object-cover" />
+                  ) : (
+                    project.icon
+                  )}
                 </div>
                 <SheetTitle className="text-lg leading-tight">
                   {project.name}
