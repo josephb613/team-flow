@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,20 +48,11 @@ import {
   Figma,
   HardDrive,
   Code2,
-  Columns3,
-  Plus,
-  X,
-  ArrowUp,
-  ArrowDown,
-  Pencil,
-  Circle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
-import { buildStatusConfig, DEFAULT_COLUMNS, ICON_MAP } from '@/lib/column-utils';
-import type { BoardColumn } from '@/lib/types';
 
 // ─── Settings Sections Config ────────────────────────────────────────────────
 const settingsSections = [
@@ -70,7 +61,6 @@ const settingsSections = [
   { id: 'notifications', labelKey: 'notifications', icon: Bell },
   { id: 'integrations', labelKey: 'integrations', icon: Link2 },
   { id: 'workspace', labelKey: 'workspace', icon: Shield },
-  { id: 'columns', labelKey: 'columns', icon: Columns3 },
   { id: 'billing', labelKey: 'billing', icon: CreditCard },
 ];
 
@@ -154,121 +144,6 @@ export function SettingsView() {
       setWorkspaceSaving(false);
     }
   }, [activeWorkspaceId, workspaceForm, updateWorkspace]);
-
-  // ─── Columns management ─────────────────────────────────────────────────
-  const columns = useAppStore((s) => s.columns);
-  const setColumns = useAppStore((s) => s.setColumns);
-  const workspaceColumns = useMemo(() => {
-    return columns.filter((c) => c.workspaceId === activeWorkspaceId);
-  }, [columns, activeWorkspaceId]);
-  const [columnAdding, setColumnAdding] = useState(false);
-  const [newColumnName, setNewColumnName] = useState('');
-  const [newColumnColor, setNewColumnColor] = useState('#6366f1');
-  const [newColumnIcon, setNewColumnIcon] = useState('circle');
-  const [columnSaving, setColumnSaving] = useState(false);
-  const [columnEditingId, setColumnEditingId] = useState<string | null>(null);
-  const [columnEditName, setColumnEditName] = useState('');
-
-  const handleAddColumn = useCallback(async () => {
-    if (!activeWorkspaceId || !newColumnName.trim()) return;
-    setColumnSaving(true);
-    try {
-      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/columns`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newColumnName.trim(), color: newColumnColor, icon: newColumnIcon }),
-      });
-      if (!res.ok) throw new Error('Failed to create column');
-      const newCol = await res.json();
-      setColumns([...columns, { ...newCol, workspaceId: activeWorkspaceId }]);
-      setNewColumnName('');
-      setNewColumnColor('#6366f1');
-      setNewColumnIcon('circle');
-      setColumnAdding(false);
-    } catch (err) {
-      console.error('Failed to add column:', err);
-    } finally {
-      setColumnSaving(false);
-    }
-  }, [activeWorkspaceId, newColumnName, newColumnColor, newColumnIcon, columns, setColumns]);
-
-  const handleRenameColumn = useCallback(async (columnId: string) => {
-    if (!activeWorkspaceId || !columnEditName.trim()) return;
-    setColumnSaving(true);
-    try {
-      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/columns/${columnId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: columnEditName.trim() }),
-      });
-      if (!res.ok) throw new Error('Failed to rename column');
-      const updated = await res.json();
-      setColumns(columns.map((c) => c.id === columnId ? { ...c, ...updated } : c));
-      setColumnEditingId(null);
-      setColumnEditName('');
-    } catch (err) {
-      console.error('Failed to rename column:', err);
-    } finally {
-      setColumnSaving(false);
-    }
-  }, [activeWorkspaceId, columnEditName, columns, setColumns]);
-
-  const handleDeleteColumn = useCallback(async (columnId: string) => {
-    if (!activeWorkspaceId) return;
-    setColumnSaving(true);
-    try {
-      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/columns/${columnId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete column');
-      }
-      setColumns(columns.filter((c) => c.id !== columnId));
-    } catch (err) {
-      console.error('Failed to delete column:', err);
-    } finally {
-      setColumnSaving(false);
-    }
-  }, [activeWorkspaceId, columns, setColumns]);
-
-  const handleMoveColumn = useCallback(async (columnId: string, direction: 'up' | 'down') => {
-    if (!activeWorkspaceId) return;
-    const sorted = [...workspaceColumns].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex((c) => c.id === columnId);
-    if (idx === -1) return;
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const target = sorted[swapIdx];
-    setColumnSaving(true);
-    try {
-      await fetch(`/api/workspaces/${activeWorkspaceId}/columns/${columnId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: target.order }),
-      });
-      await fetch(`/api/workspaces/${activeWorkspaceId}/columns/${target.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: sorted[idx].order }),
-      });
-      // Refresh from API
-      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/columns`);
-      if (res.ok) {
-        const freshColumns = await res.json();
-        setColumns(columns.filter((c) => c.workspaceId !== activeWorkspaceId).concat(
-          freshColumns.map((c: BoardColumn) => ({ ...c, workspaceId: activeWorkspaceId }))
-        ));
-      }
-    } catch (err) {
-      console.error('Failed to move column:', err);
-    } finally {
-      setColumnSaving(false);
-    }
-  }, [activeWorkspaceId, workspaceColumns, columns, setColumns]);
-
-  const colorPresets = ['#6366f1', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316', '#64748b'];
-  const iconOptions = ['circle', 'clock', 'alert-circle', 'check-circle-2', 'star', 'flag', 'target', 'zap', 'heart', 'bookmark', 'lightbulb', 'eye'];
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -791,204 +666,7 @@ export function SettingsView() {
                 </div>
               )}
 
-              {/* Columns */}
-              {activeSection === 'columns' && (
-                <Card className="border shadow-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/15">
-                        <Columns3 className="h-4 w-4 text-violet-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{t.settings.columns}</CardTitle>
-                        <CardDescription>{t.settings.columnsDesc}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Existing columns list */}
-                    {[...workspaceColumns].sort((a, b) => a.order - b.order).map((col, idx, arr) => {
-                      const IconComponent = ICON_MAP[col.icon] || Circle;
-                      const isEditing = columnEditingId === col.id;
-                      return (
-                        <div
-                          key={col.id}
-                          className="flex items-center gap-3 p-3 rounded-xl border bg-muted/20 hover:bg-muted/40 transition-colors"
-                        >
-                          {/* Color dot */}
-                          <div
-                            className="w-3.5 h-3.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: col.color }}
-                          />
-                          {/* Icon */}
-                          <div className="p-1.5 rounded-lg bg-muted/50">
-                            <IconComponent className="h-4 w-4" style={{ color: col.color }} />
-                          </div>
-                          {/* Name */}
-                          <div className="flex-1 min-w-0">
-                            {isEditing ? (
-                              <div className="flex items-center gap-1.5">
-                                <Input
-                                  value={columnEditName}
-                                  onChange={(e) => setColumnEditName(e.target.value)}
-                                  className="h-7 text-sm"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRenameColumn(col.id);
-                                    if (e.key === 'Escape') { setColumnEditingId(null); setColumnEditName(''); }
-                                  }}
-                                />
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleRenameColumn(col.id)} disabled={columnSaving}>
-                                  <Check className="h-3.5 w-3.5 text-emerald-500" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setColumnEditingId(null); setColumnEditName(''); }}>
-                                  <X className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">{col.name}</span>
-                                {col.isDefault && (
-                                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-slate-100 text-slate-600 border-0 font-medium">
-                                    {t.settings.defaultColumn}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {/* Actions */}
-                          {!isEditing && (
-                            <div className="flex items-center gap-0.5">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                disabled={idx === 0 || columnSaving}
-                                onClick={() => handleMoveColumn(col.id, 'up')}
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                disabled={idx === arr.length - 1 || columnSaving}
-                                onClick={() => handleMoveColumn(col.id, 'down')}
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </Button>
-                              {!col.isDefault && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  onClick={() => { setColumnEditingId(col.id); setColumnEditName(col.name); }}
-                                  disabled={columnSaving}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 hover:text-rose-500"
-                                disabled={col.isDefault || columnSaving}
-                                onClick={() => handleDeleteColumn(col.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    <Separator />
-
-                    {/* Add column form */}
-                    {columnAdding ? (
-                      <div className="space-y-3 p-4 rounded-xl border-2 border-dashed border-violet-500/20 bg-violet-500/[0.03]">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">{t.settings.columnName}</Label>
-                          <Input
-                            value={newColumnName}
-                            onChange={(e) => setNewColumnName(e.target.value)}
-                            placeholder="Backlog"
-                            className="h-9"
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn(); }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">{t.settings.columnColor}</Label>
-                          <div className="flex gap-2 flex-wrap">
-                            {colorPresets.map((color) => (
-                              <button
-                                key={color}
-                                type="button"
-                                className={cn(
-                                  'w-7 h-7 rounded-full border-2 transition-all',
-                                  newColumnColor === color ? 'border-foreground scale-110' : 'border-transparent hover:scale-105',
-                                )}
-                                style={{ backgroundColor: color }}
-                                onClick={() => setNewColumnColor(color)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">{t.settings.columnIcon}</Label>
-                          <div className="flex gap-1.5 flex-wrap">
-                            {iconOptions.map((icon) => {
-                              const Ico = ICON_MAP[icon] || Circle;
-                              return (
-                                <button
-                                  key={icon}
-                                  type="button"
-                                  className={cn(
-                                    'p-1.5 rounded-lg border transition-all',
-                                    newColumnIcon === icon ? 'border-violet-500 bg-violet-500/10' : 'border-transparent hover:bg-muted',
-                                  )}
-                                  onClick={() => setNewColumnIcon(icon)}
-                                >
-                                  <Ico className="h-4 w-4" />
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                          <Button
-                            size="sm"
-                            onClick={handleAddColumn}
-                            disabled={!newColumnName.trim() || columnSaving}
-                            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] text-white shadow-sm"
-                          >
-                            {columnSaving ? (
-                              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                            {t.settings.saveChanges}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setColumnAdding(false)} disabled={columnSaving}>
-                            {t.settings.cancel}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        onClick={() => setColumnAdding(true)}
-                        className="w-full gap-2 border-dashed border-violet-500/30 text-muted-foreground hover:text-foreground hover:border-violet-500/50"
-                      >
-                        <Plus className="h-4 w-4" /> {t.settings.addColumn}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Billing */}
+                            {/* Billing */}
               {activeSection === 'billing' && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
