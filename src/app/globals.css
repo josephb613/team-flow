@@ -279,3 +279,13 @@ html {
 .animate-scale-in {
     animation: scaleIn 0.2s ease-out forwards;
 }
+
+@keyframes shimmer {
+    0%,
+    100% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(100%);
+    }
+}

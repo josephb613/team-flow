@@ -245,113 +245,155 @@ function ProjectGridCard({ project }: { project: Project }) {
   return (
     <motion.div
       variants={item}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileHover={{ y: -6, transition: { duration: 0.25, ease: "easeOut" } }}
       className="group"
       onClick={() => setSelectedProject(project)}
     >
-      <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-0 shadow-sm">
-        {/* Accent strip / gradient top border */}
+      <Card className="relative overflow-hidden cursor-pointer border border-border/30 shadow-sm hover:shadow-2xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-500">
+        {/* Subtle radial gradient wash from project color */}
         <div
-          className="h-1.5 w-full"
+          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06] pointer-events-none transition-opacity duration-500 group-hover:opacity-[0.07] dark:group-hover:opacity-[0.1]"
           style={{
-            background: `linear-gradient(90deg, ${project.color}, ${project.color}88)`,
+            background: `radial-gradient(circle at 50% 0%, ${project.color}, transparent 65%)`,
           }}
         />
 
+        {/* Animated shine sweep on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+          <div
+            className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"
+            style={{
+              background: `linear-gradient(105deg, transparent 40%, ${project.color}06 50%, transparent 60%)`,
+            }}
+          />
+        </div>
+
         <CardContent className="p-5">
-          {/* Header: Icon + Name + Status badge + Menu */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm overflow-hidden"
-                style={{
-                  backgroundColor: project.color + "18",
-                  color: project.color,
-                }}
-              >
-                {project.logo ? (
-                  <img src={project.logo} alt={project.name} className="w-full h-full object-cover" />
-                ) : (
-                  project.icon
-                )}
+          {/* Header: Logo + Name + Status dot + Menu */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              {/* Logo with soft glow ring */}
+              <div className="relative shrink-0">
+                <div
+                  className="absolute -inset-[3px] rounded-full opacity-25 blur-[6px] transition-opacity duration-500 group-hover:opacity-40"
+                  style={{ backgroundColor: project.color }}
+                />
+                <div
+                  className="relative w-11 h-11 rounded-full flex items-center justify-center text-lg font-semibold ring-1 ring-black/5 dark:ring-white/10 shadow-inner overflow-hidden"
+                  style={{
+                    backgroundColor: project.color + "14",
+                  }}
+                >
+                  {project.logo ? (
+                    <img
+                      src={project.logo}
+                      alt={project.name}
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <span style={{ color: project.color }}>{project.icon}</span>
+                  )}
+                </div>
               </div>
+
               <div className="min-w-0">
-                <h3 className="text-sm font-bold truncate">{project.name}</h3>
-                <div className="mt-1">
+                <h3 className="text-sm font-bold tracking-tight truncate">
+                  {project.name}
+                </h3>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                      status.solidBg,
-                      status.solidText,
-                    )}
-                  >
-                    {status.icon}
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: project.color }}
+                  />
+                  <span className="text-[11px] font-medium text-muted-foreground/70">
                     {statusLabels[project.status]}
                   </span>
                 </div>
               </div>
             </div>
+
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0 -mr-1 hover:bg-muted/50"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
 
           {/* Description */}
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-xs text-muted-foreground/65 line-clamp-2 mb-5 leading-relaxed">
             {project.description}
           </p>
 
           {/* Progress */}
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-widest">
                 {t.dashboard.projectProgress}
               </span>
               <span
-                className="text-xs font-bold"
+                className="text-xs font-bold tabular-nums tracking-tight"
                 style={{ color: project.color }}
               >
                 {project.progress}%
               </span>
             </div>
-            <ProgressBar
-              value={project.progress}
-              color={project.color}
-              size="md"
-            />
+            <div className="w-full bg-muted/30 rounded-full overflow-hidden h-1.5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.max(project.progress, 4)}%` }}
+                transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+                className="h-full rounded-full relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(90deg, ${project.color}cc, ${project.color})`,
+                }}
+              >
+                {/* Subtle animated shine inside progress bar */}
+                <div
+                  className="absolute inset-0 w-full h-full"
+                  style={{
+                    background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)`,
+                    animation: "shimmer 2.5s ease-in-out infinite",
+                  }}
+                />
+              </motion.div>
+            </div>
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              <span className="font-medium">
-                {project.completedTasks}/{project.taskCount}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <CheckCircle2
+                className="h-3.5 w-3.5 shrink-0"
+                style={{ color: project.color, opacity: 0.8 }}
+              />
+              <span className="font-semibold text-foreground/75 tabular-nums">
+                {project.completedTasks}
+              </span>
+              <span className="text-muted-foreground/40">
+                / {project.taskCount}
               </span>
             </div>
             {remainingTasks > 0 && (
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <Clock className="h-3 w-3 text-amber-500" />
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/55">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-amber-500/60" />
                 <span className="font-medium">{remainingTasks} left</span>
               </div>
             )}
             {project.progress >= 80 && project.status === "active" && (
-              <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                <TrendingUp className="h-3 w-3" />
+              <div className="flex items-center gap-1 text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-semibold ml-auto">
+                <TrendingUp className="h-3 w-3 shrink-0" />
                 On track
               </div>
             )}
           </div>
 
           {/* Footer: Members + Due Date */}
-          <div className="flex items-center justify-between pt-3 border-t">
+          <div className="flex items-center justify-between pt-3.5 border-t border-border/25">
             <AvatarStack memberIds={project.members} max={4} size="sm" />
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-              <Calendar className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 font-medium">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
               {new Date(project.dueDate).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -622,6 +664,7 @@ export function ProjectsView() {
           <Button
             size="sm"
             className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm shadow-[oklch(0.55_0.15_160)]/20"
+            onClick={() => useAppStore.getState().setCreateProjectDialogOpen(true)}
           >
             <Sparkles className="h-3.5 w-3.5" /> {t.projects.newProject}
           </Button>
