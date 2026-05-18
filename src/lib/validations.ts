@@ -33,6 +33,17 @@ export const updateTaskSchema = z.object({
   assigneeId: z.string().optional().nullable(),
 });
 
+// ---- Subtask schemas ----
+
+export const createSubtaskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(300),
+});
+
+export const updateSubtaskSchema = z.object({
+  title: z.string().min(1).max(300).optional(),
+  completed: z.boolean().optional(),
+});
+
 // ---- Project schemas ----
 
 export const createProjectSchema = z.object({
@@ -252,7 +263,7 @@ export const updateTeamMemberSchema = z.object({
       z.object({
         scopeId: z.string(),
         permission: z.enum(["read", "write", "admin"]),
-      })
+      }),
     )
     .optional(),
 });

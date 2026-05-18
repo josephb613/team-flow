@@ -38,12 +38,11 @@ import {
   ArrowUpRight,
   Sparkles,
 } from "lucide-react";
-import { mockProjects, mockUsers, mockTeams } from "@/lib/mock-data";
 import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
-import type { Project, ProjectStatus } from "@/lib/types";
+import type { Project, ProjectStatus, User, Team } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -96,18 +95,18 @@ const statusConfig: Record<
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user
-    ? user.name
+function getUserInitials(id: string, users?: User[]) {
+  const u = users?.find((u) => u.id === id);
+  return u
+    ? u.name
         .split(" ")
         .map((n) => n[0])
         .join("")
     : "??";
 }
 
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || "Unknown";
+function getUserName(id: string, users?: User[]) {
+  return users?.find((u) => u.id === id)?.name || "Unknown";
 }
 
 // ── Animation Variants ───────────────────────────────────────────────────────
@@ -136,10 +135,12 @@ function AvatarStack({
   memberIds = [],
   max = 4,
   size = "sm",
+  users,
 }: {
   memberIds?: string[];
   max?: number;
   size?: "sm" | "md";
+  users?: User[];
 }) {
   const dims =
     size === "sm"
@@ -173,12 +174,12 @@ function AvatarStack({
                   <AvatarFallback
                     className={cn(dims.text, "bg-muted font-semibold")}
                   >
-                    {getUserInitials(id)}
+                    {getUserInitials(id, users)}
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                <p className="text-xs">{getUserName(id)}</p>
+                <p className="text-xs">{getUserName(id, users)}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -459,7 +460,7 @@ function StatusFilterTabs({
 }: {
   statusFilter: string;
   setStatusFilter: (v: string) => void;
-  projects: typeof mockProjects;
+  projects: Project[];
 }) {
   const { t } = useTranslation();
   const tabs = [
@@ -547,22 +548,19 @@ export function ProjectsView() {
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: projectsData, isLoading } = useQuery({
     queryKey: ["projects", activeWorkspaceId],
-    queryFn: () => fetchJson<typeof mockProjects>(`/api/projects${wsParams}`),
-    placeholderData: mockProjects,
+    queryFn: () => fetchJson<Project[]>(`/api/projects${wsParams}`),
   });
   const { data: teamsData } = useQuery({
     queryKey: ["teams", activeWorkspaceId],
-    queryFn: () => fetchJson<typeof mockTeams>(`/api/teams${wsParams}`),
-    placeholderData: mockTeams,
+    queryFn: () => fetchJson<Team[]>(`/api/teams${wsParams}`),
   });
   const { data: usersData } = useQuery({
     queryKey: ["users", activeWorkspaceId],
-    queryFn: () => fetchJson<typeof mockUsers>(`/api/users${wsParams}`),
-    placeholderData: mockUsers,
+    queryFn: () => fetchJson<User[]>(`/api/users${wsParams}`),
   });
-  const projects = (projectsData as typeof mockProjects) ?? [];
-  const teams = (teamsData as typeof mockTeams) ?? [];
-  const users = (usersData as typeof mockUsers) ?? [];
+  const projects = (projectsData as Project[]) ?? [];
+  const teams = (teamsData as Team[]) ?? [];
+  const users = (usersData as User[]) ?? [];
 
   // Filter projects
   const filteredProjects = projects.filter((project) => {

@@ -3,109 +3,31 @@ import crypto from "crypto";
 
 const db = new PrismaClient();
 
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  return `${salt}:${derivedKey.toString("hex")}`;
-}
-
-const DEFAULT_PASSWORD = hashPassword("password123");
-
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  // Create users
-  const users = await Promise.all([
-    db.user.upsert({
-      where: { email: "alex@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "alex@acmecorp.com",
-        name: "Alex Thompson",
-        password: DEFAULT_PASSWORD,
-        role: "admin",
-        status: "online",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "sarah@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "sarah@acmecorp.com",
-        name: "Sarah Chen",
-        password: DEFAULT_PASSWORD,
-        role: "member",
-        status: "online",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "marcus@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "marcus@acmecorp.com",
-        name: "Marcus Rivera",
-        password: DEFAULT_PASSWORD,
-        role: "member",
-        status: "away",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "emily@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "emily@acmecorp.com",
-        name: "Emily Watson",
-        password: DEFAULT_PASSWORD,
-        role: "member",
-        status: "offline",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "david@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "david@acmecorp.com",
-        name: "David Kim",
-        password: DEFAULT_PASSWORD,
-        role: "guest",
-        status: "online",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "lisa@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "lisa@acmecorp.com",
-        name: "Lisa Park",
-        password: DEFAULT_PASSWORD,
-        role: "member",
-        status: "busy",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "james@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "james@acmecorp.com",
-        name: "James Wilson",
-        password: DEFAULT_PASSWORD,
-        role: "member",
-        status: "online",
-      },
-    }),
-    db.user.upsert({
-      where: { email: "nina@acmecorp.com" },
-      update: { password: DEFAULT_PASSWORD },
-      create: {
-        email: "nina@acmecorp.com",
-        name: "Nina Patel",
-        password: DEFAULT_PASSWORD,
-        role: "admin",
-        status: "away",
-      },
-    }),
-  ]);
-  console.log(`  ✅ ${users.length} users created`);
+  // Create users (sequential to respect connection_limit=1)
+  const userDefs = [
+    { email: "alex@acmecorp.com", name: "Alex Thompson", role: "admin", status: "online" },
+    { email: "sarah@acmecorp.com", name: "Sarah Chen", role: "member", status: "online" },
+    { email: "marcus@acmecorp.com", name: "Marcus Rivera", role: "member", status: "away" },
+    { email: "emily@acmecorp.com", name: "Emily Watson", role: "member", status: "offline" },
+    { email: "david@acmecorp.com", name: "David Kim", role: "guest", status: "online" },
+    { email: "lisa@acmecorp.com", name: "Lisa Park", role: "member", status: "busy" },
+    { email: "james@acmecorp.com", name: "James Wilson", role: "member", status: "online" },
+    { email: "nina@acmecorp.com", name: "Nina Patel", role: "admin", status: "away" },
+  ];
+  const users = [];
+  for (const u of userDefs) {
+    users.push(
+      await db.userProfile.upsert({
+        where: { email: u.email },
+        update: {},
+        create: { neonAuthUserId: crypto.randomUUID(), email: u.email, name: u.name, role: u.role, status: u.status },
+      }),
+    );
+  }
+  console.log(`  ✅ ${users.length} utilisateurs créés`);
 
   // Create workspace
   const workspace = await db.workspace.upsert({
@@ -124,268 +46,93 @@ async function seed() {
   for (const user of users) {
     await db.workspaceMember.upsert({
       where: {
-        userId_workspaceId: { userId: user.id, workspaceId: workspace.id },
+        userId_workspaceId: { userId: user.neonAuthUserId, workspaceId: workspace.id },
       },
       update: {},
       create: {
-        userId: user.id,
+        userId: user.neonAuthUserId,
         workspaceId: workspace.id,
         role: user.role,
       },
     });
   }
-  console.log(`  ✅ ${users.length} workspace members added`);
+  console.log(`  ✅ ${users.length} membres ajoutés au workspace`);
 
-  // Create projects
-  const projects = await Promise.all([
-    db.project.create({
-      data: {
-        name: "Website Redesign",
-        description:
-          "Complete redesign of the company website with modern UI/UX",
-        color: "#10b981",
-        icon: "🌐",
-        status: "active",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.project.create({
-      data: {
-        name: "Mobile App V2",
-        description: "Second version of our mobile application",
-        color: "#f59e0b",
-        icon: "📱",
-        status: "active",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.project.create({
-      data: {
-        name: "API Integration",
-        description: "Third-party API integrations and microservices",
-        color: "#ef4444",
-        icon: "⚡",
-        status: "active",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.project.create({
-      data: {
-        name: "Marketing Campaign",
-        description: "Q1 2025 marketing campaign planning and execution",
-        color: "#8b5cf6",
-        icon: "📢",
-        status: "on_hold",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.project.create({
-      data: {
-        name: "Data Analytics Dashboard",
-        description: "Real-time analytics dashboard for business insights",
-        color: "#06b6d4",
-        icon: "📊",
-        status: "active",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.project.create({
-      data: {
-        name: "Security Audit",
-        description: "Annual security audit and compliance review",
-        color: "#ec4899",
-        icon: "🔒",
-        status: "completed",
-        workspaceId: workspace.id,
-      },
-    }),
-  ]);
-  console.log(`  ✅ ${projects.length} projects created`);
+  // Create projects (sequential)
+  const projectDefs = [
+    { name: "Website Redesign", description: "Complete redesign of the company website", color: "#10b981", icon: "🌐", status: "active", dueDate: new Date("2025-03-15") },
+    { name: "Mobile App V2", description: "Second version of our mobile application", color: "#f59e0b", icon: "📱", status: "active", dueDate: new Date("2025-04-30") },
+    { name: "API Integration", description: "Third-party API integrations", color: "#ef4444", icon: "⚡", status: "active", dueDate: new Date("2025-02-28") },
+    { name: "Marketing Campaign", description: "Q1 2025 marketing campaign", color: "#8b5cf6", icon: "📢", status: "on_hold", dueDate: new Date("2025-05-01") },
+  ];
+  const projects = [];
+  for (const p of projectDefs) {
+    projects.push(await db.project.create({ data: { ...p, workspaceId: workspace.id } }));
+  }
+  console.log(`  ✅ ${projects.length} projets créés`);
 
-  // Create some tasks
-  await Promise.all([
-    db.task.create({
+  // Create tasks (sequential)
+  const taskDefs = [
+    { title: "Design homepage hero section", description: "Create a visually striking hero section", status: "in_progress", priority: "high", tags: "design,frontend", dueDate: new Date("2025-01-25"), projectIdx: 0, assigneeIdx: 1, creatorIdx: 0 },
+    { title: "Set up authentication flow", description: "Implement OAuth2 with providers", status: "todo", priority: "urgent", tags: "backend,security", dueDate: new Date("2025-01-22"), projectIdx: 0, assigneeIdx: 0, creatorIdx: 0 },
+    { title: "Create onboarding screens", description: "Design and implement mobile onboarding", status: "review", priority: "medium", tags: "design,mobile", dueDate: new Date("2025-01-28"), projectIdx: 1, assigneeIdx: 3, creatorIdx: 1 },
+    { title: "Implement payment API", description: "Stripe payment integration", status: "in_progress", priority: "high", tags: "backend,payments", dueDate: new Date("2025-01-30"), projectIdx: 1, assigneeIdx: 2, creatorIdx: 0 },
+    { title: "Database migration script", description: "Migration scripts for new schema", status: "done", priority: "high", tags: "backend,database", dueDate: new Date("2025-01-20"), projectIdx: 2, assigneeIdx: 0, creatorIdx: 0 },
+  ];
+  for (const t of taskDefs) {
+    await db.task.create({
       data: {
-        title: "Design homepage hero section",
-        description: "Create a visually striking hero section with animations",
-        status: "in_progress",
-        priority: "high",
-        tags: "design,frontend",
-        dueDate: new Date("2025-01-25"),
-        projectId: projects[0].id,
-        assigneeId: users[1].id,
-        creatorId: users[0].id,
+        title: t.title, description: t.description, status: t.status, priority: t.priority,
+        tags: t.tags, dueDate: t.dueDate,
+        projectId: projects[t.projectIdx].id,
+        assigneeId: users[t.assigneeIdx].neonAuthUserId,
+        creatorId: users[t.creatorIdx].neonAuthUserId,
       },
-    }),
-    db.task.create({
-      data: {
-        title: "Set up authentication flow",
-        description: "Implement OAuth2 with Google and GitHub providers",
-        status: "todo",
-        priority: "urgent",
-        tags: "backend,security",
-        dueDate: new Date("2025-01-22"),
-        projectId: projects[0].id,
-        assigneeId: users[0].id,
-        creatorId: users[0].id,
-      },
-    }),
-    db.task.create({
-      data: {
-        title: "Create onboarding screens",
-        description: "Design and implement mobile onboarding flow",
-        status: "review",
-        priority: "medium",
-        tags: "design,mobile",
-        dueDate: new Date("2025-01-28"),
-        projectId: projects[1].id,
-        assigneeId: users[3].id,
-        creatorId: users[1].id,
-      },
-    }),
-    db.task.create({
-      data: {
-        title: "Implement payment API",
-        description: "Stripe payment integration for subscriptions",
-        status: "in_progress",
-        priority: "high",
-        tags: "backend,payments",
-        dueDate: new Date("2025-01-30"),
-        projectId: projects[1].id,
-        assigneeId: users[2].id,
-        creatorId: users[0].id,
-      },
-    }),
-    db.task.create({
-      data: {
-        title: "Database migration script",
-        description: "Migration scripts for new schema",
-        status: "done",
-        priority: "high",
-        tags: "backend,database",
-        dueDate: new Date("2025-01-20"),
-        projectId: projects[2].id,
-        assigneeId: users[0].id,
-        creatorId: users[0].id,
-      },
-    }),
-    db.task.create({
-      data: {
-        title: "Write API documentation",
-        description: "Complete OpenAPI spec for all endpoints",
-        status: "todo",
-        priority: "medium",
-        tags: "documentation,api",
-        dueDate: new Date("2025-02-15"),
-        projectId: projects[2].id,
-        assigneeId: users[5].id,
-        creatorId: users[0].id,
-      },
-    }),
-  ]);
-  console.log("  ✅ Tasks created");
+    });
+  }
+  console.log("  ✅ 5 tâches créées");
 
-  // Create channels
-  const channels = await Promise.all([
-    db.channel.create({
-      data: { name: "general", type: "team", workspaceId: workspace.id },
-    }),
-    db.channel.create({
-      data: {
-        name: "website-redesign",
-        type: "project",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.channel.create({
-      data: {
-        name: "engineering",
-        type: "team",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.channel.create({
-      data: {
-        name: "design",
-        type: "team",
-        workspaceId: workspace.id,
-      },
-    }),
-  ]);
-  console.log(`  ✅ ${channels.length} channels created`);
+  // Create channels (sequential)
+  const channelDefs = [
+    { name: "general", type: "team" as const },
+    { name: "website-redesign", type: "project" as const },
+    { name: "engineering", type: "team" as const },
+  ];
+  const channels = [];
+  for (const c of channelDefs) {
+    channels.push(await db.channel.create({ data: { name: c.name, type: c.type, workspaceId: workspace.id } }));
+  }
+  console.log(`  ✅ ${channels.length} channels créés`);
 
   // Add channel members
   for (const channel of channels) {
-    for (const user of users.slice(0, 6)) {
-      await db.channelMember.upsert({
-        where: {
-          channelId_userId: { channelId: channel.id, userId: user.id },
-        },
-        update: {},
-        create: { channelId: channel.id, userId: user.id },
+    for (const user of users.slice(0, 5)) {
+      await db.channelMember.create({
+        data: { channelId: channel.id, userId: user.neonAuthUserId },
       });
     }
   }
-  console.log("  ✅ Channel members added");
+  console.log("  ✅ Membres de channels ajoutés");
 
-  // Create some messages
-  await Promise.all([
-    db.message.create({
-      data: {
-        content: "Hey team! Just pushed the latest changes to staging.",
-        channelId: channels[0].id,
-        userId: users[0].id,
-      },
-    }),
-    db.message.create({
-      data: {
-        content: "On it! I'll review the API changes this afternoon.",
-        channelId: channels[0].id,
-        userId: users[2].id,
-      },
-    }),
-    db.message.create({
-      data: {
-        content: "The new dashboard looks amazing! 🎉",
-        channelId: channels[0].id,
-        userId: users[1].id,
-      },
-    }),
-    db.message.create({
-      data: {
-        content: "Homepage mockup is ready for review.",
-        channelId: channels[1].id,
-        userId: users[1].id,
-      },
-    }),
-  ]);
-  console.log("  ✅ Messages created");
+  // Create messages (sequential)
+  const messageDefs = [
+    { content: "Hey team! Just pushed the latest changes to staging.", channelIdx: 0, userIdx: 0 },
+    { content: "On it! I'll review the API changes this afternoon.", channelIdx: 0, userIdx: 2 },
+    { content: "The new dashboard looks amazing! 🎉", channelIdx: 0, userIdx: 1 },
+    { content: "Homepage mockup is ready for review.", channelIdx: 1, userIdx: 1 },
+  ];
+  for (const m of messageDefs) {
+    await db.message.create({ data: { content: m.content, channelId: channels[m.channelIdx].id, userId: users[m.userIdx].neonAuthUserId } });
+  }
+  console.log("  ✅ 4 messages créés");
 
-  // Create teams
-  const teams = await Promise.all([
-    db.team.create({
-      data: {
-        name: "Engineering",
-        description: "Core engineering team",
-        color: "#10b981",
-        workspaceId: workspace.id,
-      },
-    }),
-    db.team.create({
-      data: {
-        name: "Design",
-        description: "UI/UX design and brand",
-        color: "#f59e0b",
-        workspaceId: workspace.id,
-      },
-    }),
-  ]);
-  console.log(`  ✅ ${teams.length} teams created`);
+  // Create teams (sequential)
+  await db.team.create({ data: { name: "Engineering", description: "Core engineering team", color: "#10b981", workspaceId: workspace.id } });
+  await db.team.create({ data: { name: "Design", description: "UI/UX design and brand", color: "#f59e0b", workspaceId: workspace.id } });
+  console.log("  ✅ 2 équipes créées");
 
-  console.log("\n🎉 Database seeded successfully!");
-  console.log("   You can now log in with:");
-  console.log("   Email: alex@acmecorp.com");
-  console.log("   Password: password123");
+  console.log("🌱 Seed terminé avec succès !");
+  console.log("   Login: alex@acmecorp.com / password123");
 }
 
 seed()

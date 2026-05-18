@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { withAuth, withErrorHandler, validateBody } from "@/lib/api-utils";
+import {
+  withAuth,
+  withErrorHandler,
+  validateBody,
+  normalizeTaskTags,
+} from "@/lib/api-utils";
 import { createTaskSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import * as TrelloSync from "@/lib/trello-sync";
 
 export const GET = withErrorHandler(
   withAuth(async (request, _context, user) => {
@@ -45,7 +51,7 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(tasks);
+    return NextResponse.json(tasks.map(normalizeTaskTags));
   }),
 );
 
@@ -96,11 +102,12 @@ export const POST = withErrorHandler(
         projectId,
         assigneeId: assigneeId || null,
         creatorId: user.id,
-        ...(subtaskInput && subtaskInput.length > 0 && {
-          subtasks: {
-            create: subtaskInput,
-          },
-        }),
+        ...(subtaskInput &&
+          subtaskInput.length > 0 && {
+            subtasks: {
+              create: subtaskInput,
+            },
+          }),
       },
       include: {
         assignee: true,
@@ -119,6 +126,20 @@ export const POST = withErrorHandler(
       targetType: "task",
     });
 
-    return NextResponse.json(task, { status: 201 });
+    // Trello sync — fire and forget
+    (async () => {
+      try {
+        const integration = await TrelloSync.requireIntegration(
+          project.workspaceId,
+        );
+        if (integration && integration.syncDirection !== "to_app") {
+          await TrelloSync.pushTaskToTrello(task, integration);
+        }
+      } catch (err) {
+        console.error("[Trello] Auto-sync create failed:", err);
+      }
+    })();
+
+    return NextResponse.json(normalizeTaskTags(task), { status: 201 });
   }),
 );

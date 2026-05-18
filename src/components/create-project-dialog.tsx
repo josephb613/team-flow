@@ -146,9 +146,24 @@ export function CreateProjectDialog() {
     if (!open) resetForm();
   };
 
+  const normalizeUrl = (url: string): string | null => {
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+    // Ajoute https:// si aucun protocole n'est présent
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
+
+    if (!activeWorkspaceId) {
+      toast.error(t.errors.noWorkspaceSelected || "Veuillez selectionner un espace de travail");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -167,7 +182,7 @@ export function CreateProjectDialog() {
           name: name.trim(),
           description: description.trim() || null,
           logo: logoUrl || null,
-          sourceUrl: sourceUrl.trim() || null,
+          sourceUrl: normalizeUrl(sourceUrl),
           color,
           icon,
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
@@ -177,7 +192,17 @@ export function CreateProjectDialog() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create project");
+        // Construit un message d'erreur incluant les détails des champs
+        let errorMessage = errorData.error || "Failed to create project";
+        if (errorData.details && typeof errorData.details === "object") {
+          const fieldMessages = Object.entries(errorData.details as Record<string, string[]>)
+            .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(", ")}`)
+            .join("; ");
+          if (fieldMessages) {
+            errorMessage = `${errorMessage} (${fieldMessages})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       toast.success(t.toast.projectCreated);
@@ -199,12 +224,12 @@ export function CreateProjectDialog() {
   return (
     <Dialog open={createProjectDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[480px] p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle className="text-lg">{t.createProject.title}</DialogTitle>
+        <DialogHeader className="px-5 pt-4 pb-3 border-b">
+          <DialogTitle className="text-base">{t.createProject.title}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-hidden">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit} className="p-4 space-y-3.5 overflow-hidden">
+          <div className="space-y-1.5">
             <Label htmlFor="project-name" className="text-sm font-medium">
               {t.createProject.projectName}{" "}
               <span className="text-destructive">*</span>
@@ -214,12 +239,12 @@ export function CreateProjectDialog() {
               placeholder={t.createProject.projectNamePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-10"
+              className="h-9"
               required
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="project-desc" className="text-sm font-medium">
               {t.createProject.description}
             </Label>
@@ -228,11 +253,11 @@ export function CreateProjectDialog() {
               placeholder={t.createProject.descriptionPlaceholder}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[60px] resize-none"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="project-sourceUrl" className="text-sm font-medium">
               {t.createProject.sourceUrl}
             </Label>
@@ -242,11 +267,11 @@ export function CreateProjectDialog() {
               placeholder={t.createProject.sourceUrlPlaceholder}
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              className="h-10"
+              className="h-9"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="project-dueDate" className="text-sm font-medium">
               {t.tasks.dueDate}
             </Label>
@@ -255,20 +280,20 @@ export function CreateProjectDialog() {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="h-10"
+              className="h-9"
             />
           </div>
 
           {/* Logo Upload */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-sm font-medium">
               {t.createProject.logo}
             </Label>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5">
               {/* Preview or upload button */}
               <div className="relative">
                 {logoPreview ? (
-                  <div className="relative w-16 h-16 rounded-xl overflow-hidden border bg-muted/30">
+                  <div className="relative w-14 h-14 rounded-xl overflow-hidden border bg-muted/30">
                     <img
                       src={logoPreview}
                       alt="Logo preview"
@@ -286,16 +311,16 @@ export function CreateProjectDialog() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-16 h-16 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-[oklch(0.55_0.15_160)]/50 hover:text-[oklch(0.55_0.15_160)] transition-colors bg-muted/20"
+                    className="w-14 h-14 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-0.5 text-muted-foreground hover:border-[oklch(0.55_0.15_160)]/50 hover:text-[oklch(0.55_0.15_160)] transition-colors bg-muted/20"
                   >
-                    <ImageIcon className="h-5 w-5" />
+                    <ImageIcon className="h-4 w-4" />
                     <span className="text-[9px] font-medium">Logo</span>
                   </button>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground mb-2">
+                <p className="text-xs text-muted-foreground mb-1.5">
                   {t.createProject.logoHint}
                 </p>
                 <input
@@ -320,13 +345,13 @@ export function CreateProjectDialog() {
           </div>
 
           {/* Icon & Color */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium">
                 {t.createProject.icon}
               </Label>
               <Select value={icon} onValueChange={setIcon}>
-                <SelectTrigger className="w-fit h-10">
+                <SelectTrigger className="w-fit h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -339,12 +364,12 @@ export function CreateProjectDialog() {
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium">
                 {t.createProject.color}
               </Label>
               <Select value={color} onValueChange={setColor}>
-                <SelectTrigger className="w-fit h-10">
+                <SelectTrigger className="w-fit h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -363,10 +388,10 @@ export function CreateProjectDialog() {
           </div>
 
           {/* Preview */}
-          <div className="p-3 rounded-xl border bg-muted/30 overflow-hidden">
-            <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl border bg-muted/30 overflow-hidden">
+            <div className="flex items-center gap-2.5">
               <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 overflow-hidden"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0 overflow-hidden"
                 style={{ backgroundColor: color + "20", color }}
               >
                 {logoPreview ? (
@@ -387,16 +412,18 @@ export function CreateProjectDialog() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex items-center justify-end gap-3 pt-1">
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => handleOpenChange(false)}
             >
               {t.createProject.cancel}
             </Button>
             <Button
               type="submit"
+              size="sm"
               className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
               disabled={!name.trim() || isSubmitting}
             >

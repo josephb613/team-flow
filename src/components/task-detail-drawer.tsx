@@ -54,10 +54,13 @@ import type {
   Comment,
   ActivityItem,
 } from "@/lib/types";
-import { mockProjects, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
-import { buildStatusConfig, DEFAULT_COLUMNS, ICON_MAP } from "@/lib/column-utils";
+import {
+  buildStatusConfig,
+  DEFAULT_COLUMNS,
+  ICON_MAP,
+} from "@/lib/column-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -172,8 +175,15 @@ interface TaskDetailResponse extends Task {
 // ─── Component ───────────────────────────────────────────────────────────
 
 export function TaskDetailDrawer() {
-  const { taskDetailOpen, setTaskDetailOpen, selectedTask, updateTaskStatus, columns, currentUser } =
-    useAppStore();
+  const {
+    taskDetailOpen,
+    setTaskDetailOpen,
+    selectedTask,
+    updateTaskStatus,
+    columns,
+    currentUser,
+  } = useAppStore();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
@@ -182,16 +192,23 @@ export function TaskDetailDrawer() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityItem[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [newSubtaskText, setNewSubtaskText] = useState("");
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskTitle, setEditingSubtaskTitle] = useState("");
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
   // ─── API Data ──────────────────────────────────────────────────────────
+  const wsParams = activeWorkspaceId
+    ? { workspaceId: activeWorkspaceId }
+    : undefined;
   const { data: projectsData } = useApiData("/api/projects", {
-    fallback: mockProjects,
+    params: wsParams,
   });
   const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+    params: wsParams,
   });
-  const projects = (projectsData as Project[]) || mockProjects;
-  const users = (usersData as User[]) || mockUsers;
+  const projects = (projectsData as Project[]) || [];
+  const users = (usersData as User[]) || [];
 
   // ─── Fetch full task detail when drawer opens ──────────────────────────
   const taskId = selectedTask?.id ?? null;
@@ -201,6 +218,9 @@ export function TaskDetailDrawer() {
       setTaskDetail(null);
       setComments([]);
       setActivityLogs([]);
+      setNewSubtaskText("");
+      setEditingSubtaskId(null);
+      setEditingSubtaskTitle("");
       return;
     }
 
@@ -260,7 +280,8 @@ export function TaskDetailDrawer() {
 
   const task = (taskDetail ?? selectedTask) as Task;
   const status = statusConfig[task.status];
-  const statusLabel = columns.find((c) => c.slug === task.status)?.name || task.status;
+  const statusLabel =
+    columns.find((c) => c.slug === task.status)?.name || task.status;
   const priority = priorityConfig[task.priority];
   const subtaskDone = task.subtasks.filter((s) => s.completed).length;
   const subtaskTotal = task.subtasks.length;
@@ -268,8 +289,10 @@ export function TaskDetailDrawer() {
     subtaskTotal > 0 ? Math.round((subtaskDone / subtaskTotal) * 100) : 0;
 
   const handleStatusChange = async (newStatus: string) => {
-    const oldLabel = columns.find((c) => c.slug === task.status)?.name || task.status;
-    const newLabel = columns.find((c) => c.slug === newStatus)?.name || newStatus;
+    const oldLabel =
+      columns.find((c) => c.slug === task.status)?.name || task.status;
+    const newLabel =
+      columns.find((c) => c.slug === newStatus)?.name || newStatus;
     const oldStatus = task.status;
 
     // Optimistic local update
@@ -359,6 +382,167 @@ export function TaskDetailDrawer() {
     }
   };
 
+  // ─── Subtask handlers ─────────────────────────────────────────────────
+
+  const handleToggleSubtask = async (subtaskId: string, completed: boolean) => {
+    // Optimistic update
+    if (taskDetail) {
+      setTaskDetail({
+        ...taskDetail,
+        subtasks: taskDetail.subtasks.map((s) =>
+          s.id === subtaskId ? { ...s, completed: !completed } : s,
+        ),
+      });
+    }
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/subtasks/${subtaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !completed }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // Refresh activity logs
+      const actRes = await fetch(
+        `/api/activity?targetId=${encodeURIComponent(task.id)}&targetType=task`,
+      );
+      if (actRes.ok) {
+        const actData = await actRes.json();
+        setActivityLogs(actData as ActivityItem[]);
+      }
+    } catch {
+      // Rollback on failure
+      if (taskDetail) {
+        setTaskDetail({
+          ...taskDetail,
+          subtasks: taskDetail.subtasks.map((s) =>
+            s.id === subtaskId ? { ...s, completed } : s,
+          ),
+        });
+      }
+      toast.error("Failed to update subtasks");
+    }
+  };
+
+  const handleAddSubtask = async () => {
+    const trimmed = newSubtaskText.trim();
+    if (!trimmed || isAddingSubtask) return;
+
+    setIsAddingSubtask(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/subtasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+      const newSubtask = await res.json();
+
+      // Optimistic update
+      if (taskDetail) {
+        setTaskDetail({
+          ...taskDetail,
+          subtasks: [
+            ...taskDetail.subtasks,
+            { id: newSubtask.id, title: newSubtask.title, completed: false },
+          ],
+        });
+      }
+      setNewSubtaskText("");
+
+      // Refresh activity logs
+      const actRes = await fetch(
+        `/api/activity?targetId=${encodeURIComponent(task.id)}&targetType=task`,
+      );
+      if (actRes.ok) {
+        const actData = await actRes.json();
+        setActivityLogs(actData as ActivityItem[]);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add subtasks");
+    } finally {
+      setIsAddingSubtask(false);
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    // Optimistic update
+    if (taskDetail) {
+      setTaskDetail({
+        ...taskDetail,
+        subtasks: taskDetail.subtasks.filter((s) => s.id !== subtaskId),
+      });
+    }
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/subtasks/${subtaskId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // Refresh activity logs
+      const actRes = await fetch(
+        `/api/activity?targetId=${encodeURIComponent(task.id)}&targetType=task`,
+      );
+      if (actRes.ok) {
+        const actData = await actRes.json();
+        setActivityLogs(actData as ActivityItem[]);
+      }
+    } catch {
+      // Rollback - refetch or restore
+      toast.error("Failed to delete subtasks");
+      // Re-fetch task detail to restore correct state
+      const res = await fetch(`/api/tasks/${task.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTaskDetail(data as TaskDetailResponse);
+      }
+    }
+  };
+
+  const handleStartEditSubtask = (subtaskId: string, title: string) => {
+    setEditingSubtaskId(subtaskId);
+    setEditingSubtaskTitle(title);
+  };
+
+  const handleSaveEditSubtask = async (subtaskId: string) => {
+    const trimmed = editingSubtaskTitle.trim();
+    if (!trimmed) return;
+
+    // Optimistic update
+    if (taskDetail) {
+      setTaskDetail({
+        ...taskDetail,
+        subtasks: taskDetail.subtasks.map((s) =>
+          s.id === subtaskId ? { ...s, title: trimmed } : s,
+        ),
+      });
+    }
+
+    setEditingSubtaskId(null);
+    setEditingSubtaskTitle("");
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/subtasks/${subtaskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch {
+      toast.error("Failed to update subtasks");
+    }
+  };
+
+  const handleCancelEditSubtask = () => {
+    setEditingSubtaskId(null);
+    setEditingSubtaskTitle("");
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────
 
   return (
@@ -407,25 +591,25 @@ export function TaskDetailDrawer() {
                         {[...columns]
                           .sort((a, b) => a.order - b.order)
                           .map((col) => {
-                          const cfg = statusConfig[col.slug];
-                          if (!cfg) return null;
-                          return (
-                            <DropdownMenuItem
-                              key={col.slug}
-                              onClick={() => handleStatusChange(col.slug)}
-                              className={cn(
-                                "gap-2",
-                                task.status === col.slug && "bg-muted",
-                              )}
-                            >
-                              <span className={cfg.color}>{cfg.icon}</span>
-                              <span className="text-sm">{col.name}</span>
-                              {task.status === col.slug && (
-                                <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
-                              )}
-                            </DropdownMenuItem>
-                          );
-                        })}
+                            const cfg = statusConfig[col.slug];
+                            if (!cfg) return null;
+                            return (
+                              <DropdownMenuItem
+                                key={col.slug}
+                                onClick={() => handleStatusChange(col.slug)}
+                                className={cn(
+                                  "gap-2",
+                                  task.status === col.slug && "bg-muted",
+                                )}
+                              >
+                                <span className={cfg.color}>{cfg.icon}</span>
+                                <span className="text-sm">{col.name}</span>
+                                {task.status === col.slug && (
+                                  <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+                                )}
+                              </DropdownMenuItem>
+                            );
+                          })}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -445,7 +629,9 @@ export function TaskDetailDrawer() {
                         className="gap-2"
                         onClick={() => {
                           if (!taskDetail) return;
-                          useAppStore.getState().setEditingTask(taskDetail as Task);
+                          useAppStore
+                            .getState()
+                            .setEditingTask(taskDetail as Task);
                           useAppStore.getState().setTaskDetailOpen(false);
                           useAppStore.getState().setCreateTaskDialogOpen(true);
                         }}
@@ -498,11 +684,15 @@ export function TaskDetailDrawer() {
                   <div className="flex items-center gap-2">
                     <Avatar className="h-7 w-7">
                       <AvatarFallback className="text-[9px] bg-muted">
-                        {getUserInitials(users, taskDetail?.assignee?.id || task.assigneeId)}
+                        {getUserInitials(
+                          users,
+                          taskDetail?.assignee?.id || task.assigneeId,
+                        )}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm">
-                      {taskDetail?.assignee?.name || getUserName(users, task.assigneeId)}
+                      {taskDetail?.assignee?.name ||
+                        getUserName(users, task.assigneeId)}
                     </span>
                   </div>
                 </div>
@@ -560,7 +750,7 @@ export function TaskDetailDrawer() {
               <Separator />
 
               {/* Tags */}
-              {task.tags.length > 0 && (
+              {Array.isArray(task.tags) && task.tags.length > 0 && (
                 <>
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -583,57 +773,155 @@ export function TaskDetailDrawer() {
               )}
 
               {/* Subtasks with animated progress bar */}
-              {subtaskTotal > 0 && (
-                <>
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {t.taskDetail.subtasks} ({subtaskDone}/{subtaskTotal})
-                      </h4>
-                      <span className="text-xs font-medium">{subtaskPercent}%</span>
-                    </div>
-                    {/* Animated Progress Bar */}
-                    <div className="h-2 bg-muted rounded-full mb-3 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${subtaskPercent}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className={cn(
-                          "h-full rounded-full",
-                          subtaskPercent === 100
-                            ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                            : subtaskPercent >= 50
-                              ? "bg-gradient-to-r from-cyan-400 to-teal-500"
-                              : "bg-gradient-to-r from-amber-400 to-amber-500",
-                        )}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t.taskDetail.subtasks}
+                    {subtaskTotal > 0 && (
+                      <span>
+                        {" "}
+                        ({subtaskDone}/{subtaskTotal})
+                      </span>
+                    )}
+                  </h4>
+                  {subtaskTotal > 0 && (
+                    <span className="text-xs font-medium">
+                      {subtaskPercent}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Animated Progress Bar - only when there are subtasks */}
+                {subtaskTotal > 0 && (
+                  <div className="h-2 bg-muted rounded-full mb-3 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${subtaskPercent}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className={cn(
+                        "h-full rounded-full",
+                        subtaskPercent === 100
+                          ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                          : subtaskPercent >= 50
+                            ? "bg-gradient-to-r from-cyan-400 to-teal-500"
+                            : "bg-gradient-to-r from-amber-400 to-amber-500",
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Subtask list */}
+                <div className="space-y-1.5 mb-3">
+                  {task.subtasks.map((subtask) => (
+                    <div
+                      key={subtask.id}
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                    >
+                      <Checkbox
+                        checked={subtask.completed}
+                        onCheckedChange={() =>
+                          handleToggleSubtask(subtask.id, subtask.completed)
+                        }
+                        className="h-4 w-4 shrink-0"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      {task.subtasks.map((subtask) => (
-                        <div
-                          key={subtask.id}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <Checkbox
-                            checked={subtask.completed}
-                            className="h-4 w-4"
+
+                      {/* Inline editing or display */}
+                      {editingSubtaskId === subtask.id ? (
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <Input
+                            value={editingSubtaskTitle}
+                            onChange={(e) =>
+                              setEditingSubtaskTitle(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleSaveEditSubtask(subtask.id);
+                              } else if (e.key === "Escape") {
+                                handleCancelEditSubtask();
+                              }
+                            }}
+                            className="h-7 text-sm flex-1"
+                            autoFocus
                           />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={() => handleSaveEditSubtask(subtask.id)}
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={handleCancelEditSubtask}
+                          >
+                            <X className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
                           <span
                             className={cn(
-                              "text-sm",
+                              "text-sm flex-1 cursor-pointer truncate",
                               subtask.completed &&
                                 "line-through text-muted-foreground",
                             )}
+                            onClick={() =>
+                              handleStartEditSubtask(subtask.id, subtask.title)
+                            }
+                            title="Click to edit"
                           >
                             {subtask.title}
                           </span>
-                        </div>
-                      ))}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSubtask(subtask.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                            title="Delete subtasks"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
-                  </div>
-                  <Separator />
-                </>
-              )}
+                  ))}
+                </div>
+
+                {/* Add new subtask input */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newSubtaskText}
+                    onChange={(e) => setNewSubtaskText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddSubtask();
+                      }
+                    }}
+                    placeholder="Add a subtask..."
+                    className="h-9 text-sm"
+                    disabled={isAddingSubtask}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddSubtask}
+                    disabled={!newSubtaskText.trim() || isAddingSubtask}
+                    className="h-9 px-3 shrink-0"
+                  >
+                    {isAddingSubtask ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Add"
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <Separator />
 
               {/* Activity Log */}
               <div>
@@ -643,7 +931,9 @@ export function TaskDetailDrawer() {
                 {isLoadingActivity ? (
                   <div className="flex items-center gap-2 py-2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Loading activity...</span>
+                    <span className="text-xs text-muted-foreground">
+                      Loading activity...
+                    </span>
                   </div>
                 ) : activityLogs.length > 0 ? (
                   <div className="relative pl-5">
@@ -686,7 +976,8 @@ export function TaskDetailDrawer() {
               {/* Comments */}
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5" /> {t.taskDetail.comments}{" "}
+                  <MessageSquare className="h-3.5 w-3.5" />{" "}
+                  {t.taskDetail.comments}{" "}
                   {comments.length > 0 && (
                     <span className="text-[10px] text-muted-foreground/50 font-normal">
                       ({comments.length})

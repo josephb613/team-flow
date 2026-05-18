@@ -24,9 +24,9 @@ import {
   Crosshair,
   Loader2,
 } from "lucide-react";
-import { mockCalendarEvents, mockProjects, mockTasks } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
-import type { CalendarEvent } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
+import type { CalendarEvent, Project } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -100,14 +100,14 @@ function getEventTypeLabel(
   return labels[type];
 }
 
-function getProjectName(id: string | undefined, projects: typeof mockProjects) {
+function getProjectName(id: string | undefined, projects: Project[]) {
   if (!id) return null;
   return projects.find((p) => p.id === id)?.name || null;
 }
 
 function getProjectColor(
   id: string | undefined,
-  projects: typeof mockProjects,
+  projects: Project[],
 ) {
   if (!id) return null;
   return projects.find((p) => p.id === id)?.color || null;
@@ -232,7 +232,7 @@ function EventCard({
   projects,
 }: {
   event: CalendarEvent;
-  projects: typeof mockProjects;
+  projects: Project[];
 }) {
   const { t } = useTranslation();
   const config = eventTypeConfig[event.type];
@@ -315,19 +315,21 @@ export function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [direction, setDirection] = useState<number>(0);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
 
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: eventsData, isLoading: eventsLoading } = useApiData(
     "/api/meetings",
-    { fallback: mockCalendarEvents },
+    { params: wsParams },
   );
   const { data: tasksData, isLoading: tasksLoading } = useApiData(
     "/api/tasks",
-    { fallback: mockTasks },
+    { params: wsParams },
   );
   const { data: projectsData, isLoading: projectsLoading } = useApiData(
     "/api/projects",
-    { fallback: mockProjects },
+    { params: wsParams },
   );
 
   // Transform tasks with due dates into calendar events
@@ -346,9 +348,9 @@ export function CalendarView() {
       }));
   }, [tasksData]);
 
-  const meetingEvents = (eventsData as typeof mockCalendarEvents) ?? [];
+  const meetingEvents = (eventsData as CalendarEvent[]) ?? [];
   const events = [...taskEvents, ...meetingEvents];
-  const projects = (projectsData as typeof mockProjects) ?? [];
+  const projects = (projectsData as Project[]) ?? [];
   const isLoading = eventsLoading || projectsLoading || tasksLoading;
 
   // Drag-to-select date range state

@@ -42,36 +42,56 @@ export const POST = withErrorHandler(
       finalSlug = `${slug}-${Date.now().toString(36)}`;
     }
 
-    const workspace = await db.workspace.create({
-      data: {
-        name,
-        slug: finalSlug,
-        description: description || null,
-        color: color || "#10b981",
-        icon: icon || "🏢",
-        members: {
-          create: {
-            userId: user.id,
-            role: "admin",
-          },
-        },
-        columns: {
-          create: [
-            { name: "À faire", slug: "todo", color: "#64748b", icon: "circle", order: 0, isDefault: true },
-            { name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true },
-            { name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true },
-            { name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true },
-          ],
-        },
-      },
-      include: {
-        members: {
-          include: { user: true },
-        },
-        columns: { orderBy: { order: "asc" } },
-      },
+    console.log("[Workspace Create] Starting workspace creation:", {
+      name,
+      slug: finalSlug,
+      userId: user.id,
     });
 
-    return NextResponse.json(workspace, { status: 201 });
+    try {
+      const workspace = await db.workspace.create({
+        data: {
+          name,
+          slug: finalSlug,
+          description: description || null,
+          color: color || "#10b981",
+          icon: icon || "🏢",
+          members: {
+            create: {
+              userId: user.id,
+              role: "admin",
+            },
+          },
+          columns: {
+            create: [
+              { name: "À faire", slug: "todo", color: "#64748b", icon: "circle", order: 0, isDefault: true },
+              { name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true },
+              { name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true },
+              { name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true },
+            ],
+          },
+        },
+        include: {
+          members: {
+            include: { user: true },
+          },
+          columns: { orderBy: { order: "asc" } },
+        },
+      });
+
+      console.log("[Workspace Create] Success:", workspace.id);
+      return NextResponse.json(workspace, { status: 201 });
+    } catch (prismaError) {
+      console.error("[Workspace Create] Prisma error:", prismaError);
+      return NextResponse.json(
+        {
+          error: "Database error during workspace creation",
+          details: process.env.NODE_ENV === "development"
+            ? String(prismaError)
+            : undefined,
+        },
+        { status: 500 },
+      );
+    }
   }),
 );

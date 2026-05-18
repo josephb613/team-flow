@@ -1,26 +1,31 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { authClient } from "@/lib/auth/client";
 import { useAppStore } from "@/lib/store";
 import { LoginPage } from "@/components/login-page";
 import { MainApp } from "@/components/main-app";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { data: session, isPending } = authClient.useSession();
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const [mounted, setMounted] = useState(false);
 
-  // Synchroniser la session next-auth avec le store Zustand
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Synchroniser la session Neon Auth avec le store Zustand
   useEffect(() => {
     if (session?.user) {
       setCurrentUser({
-        id: (session.user as { id: string }).id,
+        id: session.user.id,
         name: session.user.name || "Utilisateur",
         email: session.user.email || "",
         avatar: session.user.image || "",
-        role: (session.user as { role: string }).role || "member",
+        role: (session.user as { role?: string }).role || "member",
       });
     }
   }, [session, setCurrentUser]);
@@ -58,7 +63,7 @@ export default function Home() {
             useAppStore.getState().setUsers(users);
           }
           // Fetch channels for the active workspace
-          const channelsRes = await fetch("/api/channels");
+          const channelsRes = await fetch(`/api/channels${activeWsId ? `?workspaceId=${activeWsId}` : ""}`);
           if (channelsRes.ok) {
             const channels = await channelsRes.json();
             useAppStore.getState().setChannels(channels);
@@ -72,7 +77,8 @@ export default function Home() {
     loadData();
   }, [isAuthenticated]);
 
-  if (status === "loading") {
+  // Avant l'hydratation (SSR) ou pendant le chargement de session, afficher le loader
+  if (!mounted || isPending) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
@@ -80,7 +86,7 @@ export default function Home() {
     );
   }
 
-  if (status === "unauthenticated") {
+  if (!session) {
     return <LoginPage />;
   }
 

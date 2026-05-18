@@ -25,7 +25,6 @@ import {
   Timer,
   Radio,
 } from "lucide-react";
-import { mockMeetings, mockUsers, mockProjects } from "@/lib/mock-data";
 import type { Meeting, MeetingStatus, User, Project } from "@/lib/types";
 import { useApiData } from "@/hooks/use-api-data";
 import { useAppStore } from "@/lib/store";
@@ -611,15 +610,11 @@ export function MeetingsView() {
   // ── API Data ──────────────────────────────────────────────────────────
   const { data: meetings, isLoading: meetingsLoading } = useApiData<Meeting[]>(
     "/api/meetings",
-    { fallback: mockMeetings },
   );
   const { data: users, isLoading: usersLoading } = useApiData<User[]>(
     "/api/users",
-    { fallback: mockUsers },
   );
-  const { data: projects } = useApiData<Project[]>("/api/projects", {
-    fallback: mockProjects,
-  });
+  const { data: projects } = useApiData<Project[]>("/api/projects");
 
   const meetingsData = meetings || [];
   const usersData = users || [];

@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { db } from "@/lib/db";
 import { withAdminAuth, withErrorHandler } from "@/lib/api-utils";
 
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  return `${salt}:${derivedKey.toString("hex")}`;
-}
-
-// Default password for seed data
-const DEFAULT_PASSWORD = hashPassword("password123");
+// Seed user UUIDs (must match Neon Auth users if you want real auth to work)
+const SEED_USERS = [
+  { neonAuthUserId: "seed-alex-thompson-00000000001", email: "alex@acmecorp.com", name: "Alex Thompson", role: "admin", status: "online" },
+  { neonAuthUserId: "seed-sarah-chen-0000000000002", email: "sarah@acmecorp.com", name: "Sarah Chen", role: "member", status: "online" },
+  { neonAuthUserId: "seed-marcus-rivera-0000000003", email: "marcus@acmecorp.com", name: "Marcus Rivera", role: "member", status: "away" },
+  { neonAuthUserId: "seed-emily-watson-00000000004", email: "emily@acmecorp.com", name: "Emily Watson", role: "member", status: "offline" },
+  { neonAuthUserId: "seed-david-kim-0000000000005", email: "david@acmecorp.com", name: "David Kim", role: "guest", status: "online" },
+  { neonAuthUserId: "seed-lisa-park-0000000000006", email: "lisa@acmecorp.com", name: "Lisa Park", role: "member", status: "busy" },
+  { neonAuthUserId: "seed-james-wilson-00000000007", email: "james@acmecorp.com", name: "James Wilson", role: "member", status: "online" },
+  { neonAuthUserId: "seed-nina-patel-0000000000008", email: "nina@acmecorp.com", name: "Nina Patel", role: "admin", status: "away" },
+];
 
 export const POST = withErrorHandler(
   withAdminAuth(async () => {
@@ -22,97 +24,22 @@ export const POST = withErrorHandler(
       );
     }
 
-    // Create users
-    const users = await Promise.all([
-      db.user.upsert({
-        where: { email: "alex@acmecorp.com" },
-        update: {},
-        create: {
-          email: "alex@acmecorp.com",
-          name: "Alex Thompson",
-          password: DEFAULT_PASSWORD,
-          role: "admin",
-          status: "online",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "sarah@acmecorp.com" },
-        update: {},
-        create: {
-          email: "sarah@acmecorp.com",
-          name: "Sarah Chen",
-          password: DEFAULT_PASSWORD,
-          role: "member",
-          status: "online",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "marcus@acmecorp.com" },
-        update: {},
-        create: {
-          email: "marcus@acmecorp.com",
-          name: "Marcus Rivera",
-          password: DEFAULT_PASSWORD,
-          role: "member",
-          status: "away",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "emily@acmecorp.com" },
-        update: {},
-        create: {
-          email: "emily@acmecorp.com",
-          name: "Emily Watson",
-          password: DEFAULT_PASSWORD,
-          role: "member",
-          status: "offline",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "david@acmecorp.com" },
-        update: {},
-        create: {
-          email: "david@acmecorp.com",
-          name: "David Kim",
-          password: DEFAULT_PASSWORD,
-          role: "guest",
-          status: "online",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "lisa@acmecorp.com" },
-        update: {},
-        create: {
-          email: "lisa@acmecorp.com",
-          name: "Lisa Park",
-          password: DEFAULT_PASSWORD,
-          role: "member",
-          status: "busy",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "james@acmecorp.com" },
-        update: {},
-        create: {
-          email: "james@acmecorp.com",
-          name: "James Wilson",
-          password: DEFAULT_PASSWORD,
-          role: "member",
-          status: "online",
-        },
-      }),
-      db.user.upsert({
-        where: { email: "nina@acmecorp.com" },
-        update: {},
-        create: {
-          email: "nina@acmecorp.com",
-          name: "Nina Patel",
-          password: DEFAULT_PASSWORD,
-          role: "admin",
-          status: "away",
-        },
-      }),
-    ]);
+    // Create user profiles (note: corresponding Neon Auth users must exist for real auth)
+    const users = await Promise.all(
+      SEED_USERS.map((u) =>
+        db.userProfile.upsert({
+          where: { neonAuthUserId: u.neonAuthUserId },
+          update: {},
+          create: {
+            neonAuthUserId: u.neonAuthUserId,
+            email: u.email,
+            name: u.name,
+            role: u.role,
+            status: u.status,
+          },
+        })
+      )
+    );
 
     // Create workspace
     const workspace = await db.workspace.upsert({
@@ -130,11 +57,11 @@ export const POST = withErrorHandler(
     for (const user of users) {
       await db.workspaceMember.upsert({
         where: {
-          userId_workspaceId: { userId: user.id, workspaceId: workspace.id },
+          userId_workspaceId: { userId: user.neonAuthUserId, workspaceId: workspace.id },
         },
         update: {},
         create: {
-          userId: user.id,
+          userId: user.neonAuthUserId,
           workspaceId: workspace.id,
           role: user.role,
         },
@@ -200,8 +127,8 @@ export const POST = withErrorHandler(
           tags: "design,frontend",
           dueDate: new Date("2025-01-25"),
           projectId: projects[0].id,
-          assigneeId: users[1].id,
-          creatorId: users[0].id,
+          assigneeId: users[1].neonAuthUserId,
+          creatorId: users[0].neonAuthUserId,
         },
       }),
       db.task.create({
@@ -213,8 +140,8 @@ export const POST = withErrorHandler(
           tags: "backend,security",
           dueDate: new Date("2025-01-22"),
           projectId: projects[0].id,
-          assigneeId: users[0].id,
-          creatorId: users[0].id,
+          assigneeId: users[0].neonAuthUserId,
+          creatorId: users[0].neonAuthUserId,
         },
       }),
       db.task.create({
@@ -226,8 +153,8 @@ export const POST = withErrorHandler(
           tags: "design,mobile",
           dueDate: new Date("2025-01-28"),
           projectId: projects[1].id,
-          assigneeId: users[3].id,
-          creatorId: users[1].id,
+          assigneeId: users[3].neonAuthUserId,
+          creatorId: users[1].neonAuthUserId,
         },
       }),
       db.task.create({
@@ -239,8 +166,8 @@ export const POST = withErrorHandler(
           tags: "backend,payments",
           dueDate: new Date("2025-01-30"),
           projectId: projects[1].id,
-          assigneeId: users[2].id,
-          creatorId: users[0].id,
+          assigneeId: users[2].neonAuthUserId,
+          creatorId: users[0].neonAuthUserId,
         },
       }),
       db.task.create({
@@ -252,8 +179,8 @@ export const POST = withErrorHandler(
           tags: "backend,database",
           dueDate: new Date("2025-01-20"),
           projectId: projects[2].id,
-          assigneeId: users[0].id,
-          creatorId: users[0].id,
+          assigneeId: users[0].neonAuthUserId,
+          creatorId: users[0].neonAuthUserId,
         },
       }),
     ]);
@@ -283,7 +210,7 @@ export const POST = withErrorHandler(
     for (const channel of channels) {
       for (const user of users.slice(0, 5)) {
         await db.channelMember.create({
-          data: { channelId: channel.id, userId: user.id },
+          data: { channelId: channel.id, userId: user.neonAuthUserId },
         });
       }
     }
@@ -294,28 +221,28 @@ export const POST = withErrorHandler(
         data: {
           content: "Hey team! Just pushed the latest changes to staging.",
           channelId: channels[0].id,
-          userId: users[0].id,
+          userId: users[0].neonAuthUserId,
         },
       }),
       db.message.create({
         data: {
           content: "On it! I'll review the API changes this afternoon.",
           channelId: channels[0].id,
-          userId: users[2].id,
+          userId: users[2].neonAuthUserId,
         },
       }),
       db.message.create({
         data: {
           content: "The new dashboard looks amazing! 🎉",
           channelId: channels[0].id,
-          userId: users[1].id,
+          userId: users[1].neonAuthUserId,
         },
       }),
       db.message.create({
         data: {
           content: "Homepage mockup is ready for review.",
           channelId: channels[1].id,
-          userId: users[1].id,
+          userId: users[1].neonAuthUserId,
         },
       }),
     ]);

@@ -35,7 +35,6 @@ import { ManageTeamRolesDialog } from "@/components/manage-team-roles-dialog";
 import { ManageTeamScopesDialog } from "@/components/manage-team-scopes-dialog";
 import { AddTeamMemberDialog } from "@/components/add-team-member-dialog";
 import { useApiData } from "@/hooks/use-api-data";
-import { mockUsers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -87,6 +86,7 @@ export function TeamManagementView() {
     users,
     setUsers,
   } = useAppStore();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 
   const [members, setMembers] = useState<TeamMemberDetailed[]>([]);
   const [roles, setRoles] = useState<TeamRole[]>([]);
@@ -109,8 +109,9 @@ export function TeamManagementView() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch workspace users
-  const { data: usersData } = useApiData("/api/users", { fallback: mockUsers });
-  const allUsers = useMemo(() => (usersData as typeof mockUsers) ?? [], [usersData]);
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
+  const { data: usersData } = useApiData("/api/users", { params: wsParams });
+  const allUsers = useMemo(() => (usersData as any[]) ?? [], [usersData]);
 
   useEffect(() => {
     if (allUsers.length > 0 && users.length === 0) {

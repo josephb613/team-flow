@@ -18,7 +18,7 @@ export const GET = withErrorHandler(
       },
       include: {
         user: {
-          select: { id: true, name: true, avatar: true },
+          select: { neonAuthUserId: true, name: true, avatar: true },
         },
         channel: true,
       },
@@ -64,7 +64,7 @@ export const PATCH = withErrorHandler(
       },
       include: {
         user: {
-          select: { id: true, name: true, avatar: true },
+          select: { neonAuthUserId: true, name: true, avatar: true },
         },
         channel: true,
       },

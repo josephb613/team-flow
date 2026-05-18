@@ -34,7 +34,6 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { mockUsers } from "@/lib/mock-data";
 import type { Channel, Message, User } from "@/lib/types";
 import { useApiData } from "@/hooks/use-api-data";
 import { motion, AnimatePresence } from "framer-motion";
@@ -344,7 +343,6 @@ export function MessagesView() {
   // ── API Data ──────────────────────────────────────────────────────────
   const { data: users, isLoading: usersLoading } = useApiData<User[]>(
     "/api/users",
-    { fallback: mockUsers },
   );
   const usersData = users || [];
 

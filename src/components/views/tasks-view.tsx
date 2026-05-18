@@ -48,15 +48,25 @@ import {
   AlertTriangle,
   SlidersHorizontal,
 } from "lucide-react";
-import { mockTasks, mockProjects, mockUsers } from "@/lib/mock-data";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
-import type { Task, TaskStatus, TaskPriority, User, Project, BoardColumn } from "@/lib/types";
+import type {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  User,
+  Project,
+  BoardColumn,
+} from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { buildStatusConfig, DEFAULT_COLUMNS, getColumnLabel } from "@/lib/column-utils";
+import {
+  buildStatusConfig,
+  DEFAULT_COLUMNS,
+  getColumnLabel,
+} from "@/lib/column-utils";
 import { AddColumnButton, ColumnHeaderMenu } from "@/components/column-manager";
 
 // DnD Kit imports
@@ -130,30 +140,30 @@ const priorityConfig: Record<
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserInitials(id: string, users: User[] = mockUsers) {
-  const user = users.find((u) => u.id === id);
-  return user
-    ? user.name
+function getUserInitials(id: string, users?: User[]) {
+  const u = users?.find((u) => u.id === id);
+  return u
+    ? u.name
         .split(" ")
         .map((n) => n[0])
         .join("")
     : "??";
 }
 
-function getUserName(id: string, users: User[] = mockUsers) {
-  return users.find((u) => u.id === id)?.name || "Unknown";
+function getUserName(id: string, users?: User[]) {
+  return users?.find((u) => u.id === id)?.name || "Unknown";
 }
 
-function getUserStatus(id: string, users: User[] = mockUsers) {
-  return users.find((u) => u.id === id)?.status || "offline";
+function getUserStatus(id: string, users?: User[]) {
+  return users?.find((u) => u.id === id)?.status || "offline";
 }
 
-function getProjectName(id: string, projects: Project[] = mockProjects) {
-  return projects.find((p) => p.id === id)?.name || "Unknown";
+function getProjectName(id: string, projects?: Project[]) {
+  return projects?.find((p) => p.id === id)?.name || "Unknown";
 }
 
-function getProjectColor(id: string, projects: Project[] = mockProjects) {
-  return projects.find((p) => p.id === id)?.color || "#10b981";
+function getProjectColor(id: string, projects?: Project[]) {
+  return projects?.find((p) => p.id === id)?.color || "#10b981";
 }
 
 function isOverdue(dueDate: string, status: TaskStatus) {
@@ -266,7 +276,7 @@ function TaskCardContent({
         </p>
 
         {/* Tags */}
-        {task.tags.length > 0 && (
+        {Array.isArray(task.tags) && task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {task.tags.map((tag) => (
               <Badge
@@ -408,7 +418,12 @@ function SortableTaskCard({
       {...attributes}
       {...listeners}
     >
-      <TaskCardContent task={task} onClick={onClick} users={users} projects={projects} />
+      <TaskCardContent
+        task={task}
+        onClick={onClick}
+        users={users}
+        projects={projects}
+      />
     </motion.div>
   );
 }
@@ -475,7 +490,11 @@ function DroppableKanbanColumn({
             {tasks.length}
           </span>
         </div>
-        {column && allColumns && boardType && workspaceId && onColumnsChanged ? (
+        {column &&
+        allColumns &&
+        boardType &&
+        workspaceId &&
+        onColumnsChanged ? (
           <ColumnHeaderMenu
             column={column}
             columns={allColumns}
@@ -540,7 +559,9 @@ function KanbanView({
     [colsForDisplay],
   );
   const statuses = useMemo(() => {
-    return [...colsForDisplay].sort((a, b) => a.order - b.order).map((c) => c.slug);
+    return [...colsForDisplay]
+      .sort((a, b) => a.order - b.order)
+      .map((c) => c.slug);
   }, [colsForDisplay]);
   const sl: Record<string, string> = useMemo(() => {
     return Object.fromEntries(colsForDisplay.map((c) => [c.slug, c.name]));
@@ -555,10 +576,14 @@ function KanbanView({
   const [tasks, setTasks] = useState<Task[]>([...initialTasks]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
-  const [activeTaskOriginalStatus, setActiveTaskOriginalStatus] = useState<string | null>(null);
+  const [activeTaskOriginalStatus, setActiveTaskOriginalStatus] = useState<
+    string | null
+  >(null);
 
   // Synchronise l'état local quand les données react-query changent
-  useEffect(() => { setTasks(initialTasks); }, [initialTasks]);
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -616,9 +641,7 @@ function KanbanView({
     const { active, over } = event;
 
     // Capture destination column before clearing state
-    const overContainer = over
-      ? findContainer(over.id as string)
-      : undefined;
+    const overContainer = over ? findContainer(over.id as string) : undefined;
     const taskId = active.id as string;
     const originalStatus = activeTaskOriginalStatus;
 
@@ -644,9 +667,7 @@ function KanbanView({
       .catch(() => {
         setTasks((prev) =>
           prev.map((task) =>
-            task.id === taskId
-              ? { ...task, status: originalStatus }
-              : task,
+            task.id === taskId ? { ...task, status: originalStatus } : task,
           ),
         );
         toast.error(t.tasks.statusUpdateFailed);
@@ -725,7 +746,11 @@ function KanbanView({
       <DragOverlay>
         {activeTask ? (
           <div className="w-[280px] sm:w-[300px] rotate-2 opacity-90 shadow-2xl">
-            <TaskCardContent task={activeTask} users={users} projects={projects} />
+            <TaskCardContent
+              task={activeTask}
+              users={users}
+              projects={projects}
+            />
           </div>
         ) : null}
       </DragOverlay>
@@ -792,7 +817,10 @@ function ListView({
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
-  const statusConfig = useMemo(() => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_COLUMNS), [columns]);
+  const statusConfig = useMemo(
+    () => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_COLUMNS),
+    [columns],
+  );
   const sl: Record<string, string> = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
     return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
@@ -817,9 +845,10 @@ function ListView({
     let result = propTasks.filter(
       (task) =>
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.tags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase()),
-        ),
+        (Array.isArray(task.tags) &&
+          task.tags.some((tag) =>
+            tag.toLowerCase().includes(searchQuery.toLowerCase()),
+          )),
     );
 
     if (filterPriority !== "all") {
@@ -856,7 +885,15 @@ function ListView({
     });
 
     return result;
-  }, [searchQuery, sortField, sortDir, filterPriority, propTasks, users, projects]);
+  }, [
+    searchQuery,
+    sortField,
+    sortDir,
+    filterPriority,
+    propTasks,
+    users,
+    projects,
+  ]);
 
   return (
     <div className="space-y-3">
@@ -968,9 +1005,7 @@ function ListView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: idx * 0.02 }}
-                onClick={() =>
-                  setSelectedTask(task)
-                }
+                onClick={() => setSelectedTask(task)}
                 className={cn(
                   "grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer",
                   idx % 2 === 1 && "bg-muted/10",
@@ -1003,7 +1038,12 @@ function ListView({
                 <div className="hidden sm:flex items-center gap-1.5 w-24">
                   <div
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getProjectColor(task.projectId, projects) }}
+                    style={{
+                      backgroundColor: getProjectColor(
+                        task.projectId,
+                        projects,
+                      ),
+                    }}
                   />
                   <span className="text-xs truncate text-muted-foreground">
                     {getProjectName(task.projectId, projects)}
@@ -1111,7 +1151,10 @@ function MyTasksView({
   const progressPct =
     totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
-  const statusConfig = useMemo(() => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_COLUMNS), [columns]);
+  const statusConfig = useMemo(
+    () => buildStatusConfig(columns.length > 0 ? columns : DEFAULT_COLUMNS),
+    [columns],
+  );
   const sl: Record<string, string> = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
     return Object.fromEntries(cols.map((c) => [c.slug, c.name]));
@@ -1245,9 +1288,7 @@ function MyTasksView({
                         return (
                           <div
                             key={task.id}
-                            onClick={() =>
-                              setSelectedTask(task)
-                            }
+                            onClick={() => setSelectedTask(task)}
                             className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors cursor-pointer"
                           >
                             <Checkbox
@@ -1333,30 +1374,32 @@ function MyTasksView({
 // ── Main Tasks View ──────────────────────────────────────────────────────────
 
 export function TasksView() {
-  const { taskViewMode, setTaskViewMode, setCreateTaskDialogOpen } = useAppStore();
+  const { taskViewMode, setTaskViewMode, setCreateTaskDialogOpen } =
+    useAppStore();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 
-  const tasksParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
-  const usersParams = activeWorkspaceId ? `?workspaceId=${activeWorkspaceId}` : "";
+  const tasksParams = activeWorkspaceId
+    ? `?workspaceId=${activeWorkspaceId}`
+    : "";
+  const usersParams = activeWorkspaceId
+    ? `?workspaceId=${activeWorkspaceId}`
+    : "";
 
   // Fetch real data from API with mock fallback in dev
   const { data: apiTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks", activeWorkspaceId],
     queryFn: () => fetchJson<Task[]>(`/api/tasks${tasksParams}`),
-    placeholderData: mockTasks,
   });
   const { data: apiUsers, isLoading: usersLoading } = useQuery({
     queryKey: ["users", activeWorkspaceId],
     queryFn: () => fetchJson<User[]>(`/api/users${usersParams}`),
-    placeholderData: mockUsers,
   });
   const { data: apiProjects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects", activeWorkspaceId],
     queryFn: () => fetchJson<Project[]>(`/api/projects${tasksParams}`),
-    placeholderData: mockProjects,
   });
 
   const tasks = apiTasks ?? [];
@@ -1472,18 +1515,35 @@ export function TasksView() {
           >
             <div className="flex flex-col items-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-[oklch(0.55_0.15_160)]" />
-              <span className="text-sm text-muted-foreground">{t.common.loading}</span>
+              <span className="text-sm text-muted-foreground">
+                {t.common.loading}
+              </span>
             </div>
           </motion.div>
         )}
         {!isLoading && taskViewMode === "kanban" && (
-          <KanbanView key="kanban" tasks={tasks} users={users} projects={projects} />
+          <KanbanView
+            key="kanban"
+            tasks={tasks}
+            users={users}
+            projects={projects}
+          />
         )}
         {!isLoading && taskViewMode === "list" && (
-          <ListView key="list" tasks={tasks} users={users} projects={projects} />
+          <ListView
+            key="list"
+            tasks={tasks}
+            users={users}
+            projects={projects}
+          />
         )}
         {!isLoading && taskViewMode === "my_tasks" && (
-          <MyTasksView key="my_tasks" tasks={tasks} users={users} projects={projects} />
+          <MyTasksView
+            key="my_tasks"
+            tasks={tasks}
+            users={users}
+            projects={projects}
+          />
         )}
       </AnimatePresence>
     </div>
