@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { authClient } from "@/lib/auth/client";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -85,38 +85,41 @@ export function LoginPage() {
         return;
       }
 
-      // Appeler l'API d'inscription
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, password }),
+      const { data, error: signUpError } = await authClient.signUp.email({
+        email,
+        name,
+        password,
+        callbackURL: "/",
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Erreur lors de l'inscription");
+      if (signUpError) {
+        setError(signUpError.message || "Erreur lors de l'inscription");
         setIsLoading(false);
         return;
       }
 
-      // Inscription réussie, connecter automatiquement
       toast.success("Compte créé avec succès !");
+      // Si le signUp a déjà connecté l'utilisateur (token présent), on redirige
+      if (data?.token) {
+        toast.success(t.toast.welcomeBack);
+      }
+      setIsLoading(false);
+      return;
     }
 
-    // Connexion via next-auth
-    const result = await signIn("credentials", {
+    // Connexion via Neon Auth
+    const { error: signInError } = await authClient.signIn.email({
       email,
       password,
-      redirect: false,
+      callbackURL: "/",
+      rememberMe,
     });
 
-    if (result?.error) {
-      setError(result.error);
+    if (signInError) {
+      setError(signInError.message || "Identifiants invalides");
       setIsLoading(false);
     } else {
       toast.success(t.toast.welcomeBack);
-      router.refresh();
     }
   };
 

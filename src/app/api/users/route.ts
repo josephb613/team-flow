@@ -23,10 +23,10 @@ export const GET = withErrorHandler(
           },
         };
 
-    const users = await db.user.findMany({
+    const users = await db.userProfile.findMany({
       where: whereClause,
       select: {
-        id: true,
+        neonAuthUserId: true,
         email: true,
         name: true,
         avatar: true,
@@ -36,7 +36,19 @@ export const GET = withErrorHandler(
       },
       orderBy: { name: "asc" },
     });
-    return NextResponse.json(users);
+
+    // Map neonAuthUserId back to id for frontend compatibility
+    const mapped = users.map((u) => ({
+      id: u.neonAuthUserId,
+      email: u.email,
+      name: u.name,
+      avatar: u.avatar,
+      role: u.role,
+      status: u.status,
+      createdAt: u.createdAt,
+    }));
+
+    return NextResponse.json(mapped);
   }),
 );
 
@@ -50,7 +62,7 @@ export const POST = withErrorHandler(
     const { email, name, role } = validation.data;
 
     // Check for existing user
-    const existing = await db.user.findUnique({ where: { email } });
+    const existing = await db.userProfile.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
         { error: "A user with this email already exists" },
@@ -58,10 +70,25 @@ export const POST = withErrorHandler(
       );
     }
 
-    const user = await db.user.create({
-      data: { email, name, role: role || "member" },
+    // Note: user creation via this endpoint is deprecated — use Neon Auth signUp instead.
+    // This endpoint remains for admin-created users (requires a neonAuthUserId to be provided).
+    const { neonAuthUserId } = body;
+    if (!neonAuthUserId) {
+      return NextResponse.json(
+        { error: "neonAuthUserId is required for user creation" },
+        { status: 400 },
+      );
+    }
+
+    const userProfile = await db.userProfile.create({
+      data: {
+        neonAuthUserId,
+        email,
+        name,
+        role: role || "member",
+      },
       select: {
-        id: true,
+        neonAuthUserId: true,
         email: true,
         name: true,
         avatar: true,
@@ -71,6 +98,9 @@ export const POST = withErrorHandler(
       },
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json(
+      { id: userProfile.neonAuthUserId, ...userProfile },
+      { status: 201 },
+    );
   }),
 );

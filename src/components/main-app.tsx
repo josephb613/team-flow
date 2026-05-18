@@ -1,47 +1,55 @@
-'use client';
+"use client";
 
-import { useAppStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
-import { AppSidebar } from '@/components/app-sidebar';
-import { DashboardView } from '@/components/views/dashboard-view';
-import { TasksView } from '@/components/views/tasks-view';
-import { ProjectsView } from '@/components/views/projects-view';
-import { CalendarView } from '@/components/views/calendar-view';
-import { MessagesView } from '@/components/views/messages-view';
-import { MeetingsView } from '@/components/views/meetings-view';
-import { FilesView } from '@/components/views/files-view';
-import { WikiView } from '@/components/views/wiki-view';
-import { ActivityView } from '@/components/views/activity-view';
-import { MembersView } from '@/components/views/members-view';
-import { TeamsView } from '@/components/views/teams-view';
-import { TeamManagementView } from '@/components/views/team-management-view';
-import { ReportsView } from '@/components/views/reports-view';
-import { AutomationsView } from '@/components/views/automations-view';
-import { OpportunitiesView } from '@/components/views/opportunities-view';
-import { SettingsView } from '@/components/views/settings-view';
-import { TopBar } from '@/components/top-bar';
-import { NotificationPanel } from '@/components/notification-panel';
-import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
-import { InviteMemberDialog } from '@/components/invite-member-dialog';
-import { CreateTaskDialog } from '@/components/create-task-dialog';
-import { CreateProjectDialog } from '@/components/create-project-dialog';
-import { CreateChannelDialog } from '@/components/create-channel-dialog';
-import { CreateTeamDialog } from '@/components/create-team-dialog';
-import { CreateOpportunityDialog } from '@/components/create-opportunity-dialog';
-import { TaskDetailDrawer } from '@/components/task-detail-drawer';
-import { ProjectDetailDrawer } from '@/components/project-detail-drawer';
-import { MemberDetailDrawer } from '@/components/member-detail-drawer';
-import { ShortcutsDialog } from '@/components/shortcuts-dialog';
-import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
-import { WhatsNewDialog } from '@/components/whats-new-dialog';
-import { ConnectionStatus } from '@/components/connection-status';
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { Toaster } from '@/components/ui/sonner';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ArrowUp, Plus, CheckSquare, FolderKanban, Video } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { PageTransition } from '@/components/page-transition';
+import { useAppStore } from "@/lib/store";
+import { useTranslation } from "@/lib/i18n";
+import { AppSidebar } from "@/components/app-sidebar";
+import { DashboardView } from "@/components/views/dashboard-view";
+import { TasksView } from "@/components/views/tasks-view";
+import { ProjectsView } from "@/components/views/projects-view";
+import { CalendarView } from "@/components/views/calendar-view";
+import { MessagesView } from "@/components/views/messages-view";
+import { MeetingsView } from "@/components/views/meetings-view";
+import { FilesView } from "@/components/views/files-view";
+import { WikiView } from "@/components/views/wiki-view";
+import { ActivityView } from "@/components/views/activity-view";
+import { MembersView } from "@/components/views/members-view";
+import { TeamsView } from "@/components/views/teams-view";
+import { TeamManagementView } from "@/components/views/team-management-view";
+import { ReportsView } from "@/components/views/reports-view";
+import { AutomationsView } from "@/components/views/automations-view";
+import { OpportunitiesView } from "@/components/views/opportunities-view";
+import { SettingsView } from "@/components/views/settings-view";
+import { TopBar } from "@/components/top-bar";
+import { NotificationPanel } from "@/components/notification-panel";
+import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog";
+import { InviteMemberDialog } from "@/components/invite-member-dialog";
+import { CreateTaskDialog } from "@/components/create-task-dialog";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { CreateChannelDialog } from "@/components/create-channel-dialog";
+import { CreateTeamDialog } from "@/components/create-team-dialog";
+import { CreateOpportunityDialog } from "@/components/create-opportunity-dialog";
+import { TaskDetailDrawer } from "@/components/task-detail-drawer";
+import { ProjectDetailDrawer } from "@/components/project-detail-drawer";
+import { MemberDetailDrawer } from "@/components/member-detail-drawer";
+import { ShortcutsDialog } from "@/components/shortcuts-dialog";
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
+import { WhatsNewDialog } from "@/components/whats-new-dialog";
+import { TrelloIntegrationDialog } from "@/components/trello-integration-dialog";
+import { ConnectionStatus } from "@/components/connection-status";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Heart,
+  ArrowUp,
+  Plus,
+  CheckSquare,
+  FolderKanban,
+  Video,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { PageTransition } from "@/components/page-transition";
 
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -62,8 +70,6 @@ const viewMap: Record<string, React.ComponentType> = {
   settings: SettingsView,
 };
 
-
-
 function AppFooter() {
   const { t } = useTranslation();
   return (
@@ -78,13 +84,17 @@ function AppFooter() {
       </div>
       <div className="flex items-center gap-4">
         <span className="hidden md:flex items-center gap-1">
-          {t.footer.madeWith} <Heart className="h-3 w-3 text-rose-500 fill-rose-500" /> {t.footer.byTeam}
+          {t.footer.madeWith}{" "}
+          <Heart className="h-3 w-3 text-rose-500 fill-rose-500" />{" "}
+          {t.footer.byTeam}
         </span>
         <button
           onClick={() => useAppStore.getState().setShortcutsHelpOpen(true)}
           className="flex items-center gap-1 hover:text-foreground/80 transition-colors"
         >
-          <kbd className="bg-muted border border-border rounded px-1 py-0.5 text-[10px] font-mono">?</kbd>
+          <kbd className="bg-muted border border-border rounded px-1 py-0.5 text-[10px] font-mono">
+            ?
+          </kbd>
           <span className="hidden sm:inline">{t.footer.shortcuts}</span>
         </button>
       </div>
@@ -97,23 +107,23 @@ function BackToTopButton() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const mainEl = document.getElementById('main-content-area');
+      const mainEl = document.getElementById("main-content-area");
       if (mainEl) {
         setVisible(mainEl.scrollTop > 400);
       }
     };
 
-    const mainEl = document.getElementById('main-content-area');
+    const mainEl = document.getElementById("main-content-area");
     if (mainEl) {
-      mainEl.addEventListener('scroll', handleScroll, { passive: true });
-      return () => mainEl.removeEventListener('scroll', handleScroll);
+      mainEl.addEventListener("scroll", handleScroll, { passive: true });
+      return () => mainEl.removeEventListener("scroll", handleScroll);
     }
   }, []);
 
   const scrollToTop = () => {
-    const mainEl = document.getElementById('main-content-area');
+    const mainEl = document.getElementById("main-content-area");
     if (mainEl) {
-      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      mainEl.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -173,7 +183,7 @@ function MobileFAB() {
             </button>
             <button
               onClick={() => {
-                useAppStore.getState().setActivePage('meetings');
+                useAppStore.getState().setActivePage("meetings");
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
@@ -189,10 +199,10 @@ function MobileFAB() {
         onClick={() => setOpen(!open)}
         whileTap={{ scale: 0.9 }}
         className={cn(
-          'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
+          "h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors",
           open
-            ? 'bg-rose-500 text-white rotate-45'
-            : 'bg-[oklch(0.55_0.15_160)] text-white'
+            ? "bg-rose-500 text-white rotate-45"
+            : "bg-[oklch(0.55_0.15_160)] text-white",
         )}
       >
         <Plus className="h-6 w-6" />
@@ -204,6 +214,8 @@ function MobileFAB() {
 export function MainApp() {
   const activePage = useAppStore((s) => s.activePage);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const trelloDialogOpen = useAppStore((s) => s.trelloDialogOpen);
+  const setTrelloDialogOpen = useAppStore((s) => s.setTrelloDialogOpen);
 
   useKeyboardShortcuts();
 
@@ -211,84 +223,91 @@ export function MainApp() {
 
   return (
     <>
-    <ConnectionStatus />
-    <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
-      <AppSidebar />
+      <ConnectionStatus />
+      <div className="min-h-screen flex bg-background">
+        {/* Sidebar */}
+        <AppSidebar />
 
-      {/* Main content */}
-      <div
-        className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300',
-          sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'
-        )}
-      >
-        <TopBar />
-        <main
-          id="main-content-area"
-          className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
+        {/* Main content */}
+        <div
+          className={cn(
+            "flex-1 flex flex-col min-h-screen transition-all duration-300",
+            sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[260px]",
+          )}
         >
-          {/* Subtle dot-pattern background overlay */}
-          <div className="relative z-10">
-            <PageTransition pageId={activePage}>
-              <ActiveView />
-            </PageTransition>
-          </div>
-        </main>
-        <AppFooter />
+          <TopBar />
+          <main
+            id="main-content-area"
+            className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
+          >
+            {/* Subtle dot-pattern background overlay */}
+            <div className="relative z-10">
+              <PageTransition pageId={activePage}>
+                <ActiveView />
+              </PageTransition>
+            </div>
+          </main>
+          <AppFooter />
+        </div>
+
+        {/* Back to top button */}
+        <BackToTopButton />
+
+        {/* Mobile FAB */}
+        <MobileFAB />
+
+        {/* Notification Panel (slide-out overlay) */}
+        <NotificationPanel />
+
+        {/* Task Detail Drawer */}
+        <TaskDetailDrawer />
+
+        {/* Project Detail Drawer */}
+        <ProjectDetailDrawer />
+
+        {/* Member Detail Drawer */}
+        <MemberDetailDrawer />
+
+        {/* Create Workspace Dialog */}
+        <CreateWorkspaceDialog />
+
+        {/* Invite Member Dialog */}
+        <InviteMemberDialog />
+
+        {/* Create Task Dialog */}
+        <CreateTaskDialog />
+
+        {/* Create Project Dialog */}
+        <CreateProjectDialog />
+
+        {/* Create Channel Dialog */}
+        <CreateChannelDialog />
+
+        {/* Create Team Dialog */}
+        <CreateTeamDialog />
+
+        {/* Create Opportunity Dialog */}
+        <CreateOpportunityDialog />
+
+        {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}
+        <ShortcutsDialog />
+
+        {/* Keyboard Shortcuts Dialog (new, triggered by ⌘/) */}
+        <KeyboardShortcutsDialog />
+
+        {/* What's New Dialog */}
+        <WhatsNewDialog />
+
+        {/* Trello Integration Dialog (rendered here outside PageTransition
+          to avoid insertBefore DOM errors with Radix portals + AnimatePresence) */}
+        <TrelloIntegrationDialog
+          open={trelloDialogOpen}
+          onOpenChange={setTrelloDialogOpen}
+        />
+
+        {/* Toast Notifications */}
+        <Toaster />
       </div>
-
-      {/* Back to top button */}
-      <BackToTopButton />
-
-      {/* Mobile FAB */}
-      <MobileFAB />
-
-      {/* Notification Panel (slide-out overlay) */}
-      <NotificationPanel />
-
-      {/* Task Detail Drawer */}
-      <TaskDetailDrawer />
-
-      {/* Project Detail Drawer */}
-      <ProjectDetailDrawer />
-
-      {/* Member Detail Drawer */}
-      <MemberDetailDrawer />
-
-      {/* Create Workspace Dialog */}
-      <CreateWorkspaceDialog />
-
-      {/* Invite Member Dialog */}
-      <InviteMemberDialog />
-
-      {/* Create Task Dialog */}
-      <CreateTaskDialog />
-
-      {/* Create Project Dialog */}
-      <CreateProjectDialog />
-
-      {/* Create Channel Dialog */}
-      <CreateChannelDialog />
-
-      {/* Create Team Dialog */}
-      <CreateTeamDialog />
-
-      {/* Create Opportunity Dialog */}
-      <CreateOpportunityDialog />
-
-      {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}
-      <ShortcutsDialog />
-
-      {/* Keyboard Shortcuts Dialog (new, triggered by ⌘/) */}
-      <KeyboardShortcutsDialog />
-
-      {/* What's New Dialog */}
-      <WhatsNewDialog />
-
-      {/* Toast Notifications */}
-      <Toaster />
-    </div>
     </>
   );
 }

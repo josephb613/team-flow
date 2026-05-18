@@ -17,7 +17,7 @@ export const GET = withErrorHandler(
       include: {
         user: {
           select: {
-            id: true,
+            neonAuthUserId: true,
             name: true,
             avatar: true,
           },
@@ -65,7 +65,7 @@ export const POST = withErrorHandler(
       include: {
         user: {
           select: {
-            id: true,
+            neonAuthUserId: true,
             name: true,
             avatar: true,
           },

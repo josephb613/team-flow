@@ -49,7 +49,7 @@ export const PATCH = withErrorHandler(
       data: { status },
       include: {
         invitedBy: {
-          select: { id: true, name: true, email: true },
+          select: { neonAuthUserId: true, name: true, email: true },
         },
       },
     });

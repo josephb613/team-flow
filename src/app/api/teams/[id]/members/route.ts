@@ -23,7 +23,7 @@ export const GET = withErrorHandler(
       where: { teamId },
       include: {
         user: {
-          select: { id: true, name: true, email: true, avatar: true, role: true, status: true },
+          select: { neonAuthUserId: true, name: true, email: true, avatar: true, role: true, status: true },
         },
         role: true,
         scopes: {
@@ -98,7 +98,7 @@ export const POST = withErrorHandler(
       data: { teamId, userId, roleId: roleId || null },
       include: {
         user: {
-          select: { id: true, name: true, email: true, avatar: true, role: true, status: true },
+          select: { neonAuthUserId: true, name: true, email: true, avatar: true, role: true, status: true },
         },
         role: true,
         scopes: { include: { scope: true } },

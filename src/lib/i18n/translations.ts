@@ -773,6 +773,12 @@ export const translations = {
       taskUpdated: "Tâche mise à jour avec succès",
       opportunityUpdated: "Opportunité mise à jour avec succès",
     },
+
+    // Errors
+    errors: {
+      noWorkspaceSelected: "Veuillez selectionner un espace de travail",
+    },
+
     // Opportunities
     opportunities: {
       title: "Opportunités",
@@ -1575,6 +1581,12 @@ export const translations = {
       taskUpdated: "Task updated successfully",
       opportunityUpdated: "Opportunity updated successfully",
     },
+
+    // Errors
+    errors: {
+      noWorkspaceSelected: "Please select a workspace",
+    },
+
     // Opportunities
     opportunities: {
       title: "Opportunities",

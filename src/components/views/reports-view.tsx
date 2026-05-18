@@ -18,10 +18,11 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import { mockTasks, mockProjects, mockUsers, mockTeams } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
+import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import type { Task, Project, User, Team } from "@/lib/types";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -98,24 +99,26 @@ const healthColors: Record<string, { bg: string; text: string; dot: string }> =
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function ReportsView() {
   const { t } = useTranslation();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
 
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: tasksData } = useApiData("/api/tasks", {
-    fallback: mockTasks,
+    params: wsParams,
   });
   const { data: projectsData } = useApiData("/api/projects", {
-    fallback: mockProjects,
+    params: wsParams,
   });
   const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+    params: wsParams,
   });
   const { data: teamsData } = useApiData("/api/teams", {
-    fallback: mockTeams,
+    params: wsParams,
   });
-  const tasks = (tasksData as typeof mockTasks) ?? [];
-  const projects = (projectsData as typeof mockProjects) ?? [];
-  const users = (usersData as typeof mockUsers) ?? [];
-  const teams = (teamsData as typeof mockTeams) ?? [];
+  const tasks = (tasksData as Task[]) ?? [];
+  const projects = (projectsData as Project[]) ?? [];
+  const users = (usersData as User[]) ?? [];
+  const teams = (teamsData as Team[]) ?? [];
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((task) => task.status === "done").length;

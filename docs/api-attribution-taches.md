@@ -12,7 +12,7 @@
 2. [Authentification](#authentification)
 3. [Aperçu des Endpoints Tâches](#aperçu-des-endpoints-tâches)
 4. [Créer une Tâche et l'Attribuer](#créer-une-tâche-et-lattribuer)
-5. [Modifier l'Attribution d'une Tâche Existante](#modifier-lattribution-dune-tâche-existante)
+5. [Modifier l'Attribution d'une Tâche Existante](#modifier-lattribution-dune-tâcche-existante)
 6. [Récupérer les Tâches par Assigné](#récupérer-les-tâches-par-assigné)
 7. [Supprimer une Tâche](#supprimer-une-tâche)
 8. [Gestion des Opportunités (Pipeline CRM)](#gestion-des-opportunités-pipeline-crm)

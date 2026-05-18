@@ -1,11 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/server";
 import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 
 // ---- Auth helpers ----
-
-export type AuthSession = NonNullable<Awaited<ReturnType<typeof getServerSession>>>;
 
 export interface AuthenticatedUser {
   id: string;
@@ -19,29 +16,6 @@ export interface RouteContext {
 }
 
 /**
- * Returns the current server session or null.
- */
-export async function getAuthSession(): Promise<AuthSession | null> {
-  return getServerSession(authOptions);
-}
-
-/**
- * Extracts typed user info from the session.
- */
-export function getSessionUser(
-  session: Record<string, unknown> | null,
-): AuthenticatedUser | null {
-  const user = session?.user as Record<string, unknown> | null | undefined;
-  if (!user) return null;
-  return {
-    id: (user.id as string) || "",
-    email: (user.email as string) || "",
-    name: (user.name as string) || "Unknown",
-    role: (user.role as string) || "member",
-  };
-}
-
-/**
  * Wraps a route handler, requiring a valid session.
  * If unauthenticated, returns 401.
  */
@@ -52,12 +26,8 @@ export function withAuth<TContext extends RouteContext = RouteContext>(
     user: AuthenticatedUser,
   ) => Promise<NextResponse> | NextResponse,
 ) {
-  return async (
-    request: Request,
-    context: TContext,
-  ): Promise<NextResponse> => {
-    const session = await getAuthSession();
-    const user = getSessionUser(session);
+  return async (request: Request, context: TContext): Promise<NextResponse> => {
+    const user = await getAuthSession();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -115,6 +85,29 @@ export function validateBody<T>(
   return { data: result.data, error: null };
 }
 
+// ---- Task helpers ----
+
+/**
+ * Normalizes a task's `tags` field from a comma-separated string (as stored
+ * in the database) to a string array, matching the frontend `Task` type.
+ * Returns a new object; does not mutate the original.
+ */
+export function normalizeTaskTags<T extends { tags: unknown }>(
+  task: T,
+): T & { tags: string[] } {
+  const raw = task.tags;
+  let tags: string[] = [];
+  if (Array.isArray(raw)) {
+    tags = raw.filter((t): t is string => typeof t === "string");
+  } else if (typeof raw === "string" && raw.length > 0) {
+    tags = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return { ...task, tags };
+}
+
 // ---- Error helpers ----
 
 /**
@@ -127,10 +120,7 @@ export function withErrorHandler<TContext = unknown>(
     context: TContext,
   ) => Promise<NextResponse> | NextResponse,
 ) {
-  return async (
-    request: Request,
-    context: TContext,
-  ): Promise<NextResponse> => {
+  return async (request: Request, context: TContext): Promise<NextResponse> => {
     try {
       return await handler(request, context);
     } catch (error) {

@@ -83,20 +83,20 @@ import {
   GitCommit,
   AlertTriangle,
 } from "lucide-react";
-import { mockWikiPages, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
+import { useAppStore } from "@/lib/store";
 import type { WikiPage, User } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 
 function getUserName(id: string, users?: User[]) {
-  const u = (users ?? mockUsers).find((u) => u.id === id);
+  const u = users?.find((u) => u.id === id);
   return u?.name || "Unknown";
 }
 
 function getUserInitials(id: string, users?: User[]) {
-  const user = (users ?? mockUsers).find((u) => u.id === id);
+  const user = users?.find((u) => u.id === id);
   return user
     ? user.name
         .split(" ")
@@ -106,7 +106,7 @@ function getUserInitials(id: string, users?: User[]) {
 }
 
 function getUserAvatarColor(id: string, users?: User[]) {
-  const user = (users ?? mockUsers).find((u) => u.id === id);
+  const user = users?.find((u) => u.id === id);
   return user
     ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
     : undefined;
@@ -193,9 +193,9 @@ interface VersionEntry {
   isCurrent: boolean;
 }
 
-function getMockVersions(pageId: string): VersionEntry[] {
+function getMockVersions(pageId: string, pages: WikiPage[]): VersionEntry[] {
   const authors = ["u-1", "u-2", "u-3", "u-6", "u-7", "u-8"];
-  const page = mockWikiPages.find((p) => p.id === pageId);
+  const page = pages.find((p) => p.id === pageId);
   if (!page) return [];
 
   const updatedAt = new Date(page.updatedAt);
@@ -526,16 +526,18 @@ function renderContent(content: string) {
 
 export function WikiView() {
   const { t } = useTranslation();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
 
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: wikiData, isLoading } = useApiData("/api/wiki", {
-    fallback: mockWikiPages,
+    params: wsParams,
   });
   const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+    params: wsParams,
   });
-  const apiPages = (wikiData as typeof mockWikiPages) ?? [];
-  const users = (usersData as typeof mockUsers) ?? [];
+  const apiPages = (wikiData as WikiPage[]) ?? [];
+  const users = (usersData as User[]) ?? [];
 
   const [selectedPageId, setSelectedPageId] = useState<string>(
     apiPages[0]?.id || "",
@@ -573,8 +575,8 @@ export function WikiView() {
     : pages;
 
   const versions = useMemo(() => {
-    return selectedPageId ? getMockVersions(selectedPageId) : [];
-  }, [selectedPageId]);
+    return selectedPageId ? getMockVersions(selectedPageId, pages) : [];
+  }, [selectedPageId, pages]);
 
   // Word and character count
   const wordCount = useMemo(() => {

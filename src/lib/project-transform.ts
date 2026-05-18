@@ -32,7 +32,7 @@ export interface PrismaProjectWithRelations {
     assigneeId: string | null;
     creatorId: string | null;
     projectId: string;
-    assignee?: { id: string; name?: string; email?: string } | null;
+    assignee?: { neonAuthUserId: string; name?: string; email?: string } | null;
     subtasks?: Array<{
       id: string;
       title: string;
@@ -41,7 +41,7 @@ export interface PrismaProjectWithRelations {
   }>;
   meetings?: Array<unknown>;
   workspace?: {
-    members?: Array<{ userId: string; user?: { id: string; name?: string } }>;
+    members?: Array<{ userId: string; user?: { neonAuthUserId: string; name?: string } }>;
   };
 }
 

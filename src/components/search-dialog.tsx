@@ -39,11 +39,14 @@ import {
   Keyboard,
   Search,
 } from "lucide-react";
-import type { PageId, TaskStatus, TaskPriority, Task } from "@/lib/types";
-import { mockTasks, mockProjects } from "@/lib/mock-data";
+import type { PageId, TaskStatus, TaskPriority, Task, Project } from "@/lib/types";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { buildStatusConfig, DEFAULT_COLUMNS, ICON_MAP } from "@/lib/column-utils";
+import {
+  buildStatusConfig,
+  DEFAULT_COLUMNS,
+  ICON_MAP,
+} from "@/lib/column-utils";
 
 const pages: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
   {
@@ -139,20 +142,16 @@ export function SearchDialog() {
   const isQueryEmpty = !query.trim();
 
   // Filter tasks, projects, and users based on query
-  const filteredTasks = useMemo(() => {
+  const filteredTasks = useMemo<Task[]>(() => {
     if (isQueryEmpty) return [];
     const q = query.toLowerCase();
-    return mockTasks
-      .filter((task) => task.title.toLowerCase().includes(q))
-      .slice(0, 5);
+    return [];
   }, [query, isQueryEmpty]);
 
-  const filteredProjects = useMemo(() => {
+  const filteredProjects = useMemo<Project[]>(() => {
     if (isQueryEmpty) return [];
     const q = query.toLowerCase();
-    return mockProjects
-      .filter((project) => project.name.toLowerCase().includes(q))
-      .slice(0, 5);
+    return [];
   }, [query, isQueryEmpty]);
 
   const storeUsers = useAppStore((s) => s.users);
@@ -231,7 +230,12 @@ export function SearchDialog() {
   };
 
   return (
-    <CommandDialog open={searchOpen} onOpenChange={handleOpenChange}>
+    <CommandDialog
+      open={searchOpen}
+      onOpenChange={handleOpenChange}
+      title={t.search.title}
+      description={t.search.typeCommand}
+    >
       <CommandInput
         placeholder={`✦  ${t.search.typeCommand}`}
         value={query}

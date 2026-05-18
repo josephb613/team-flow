@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { withAuth, withErrorHandler, validateBody } from "@/lib/api-utils";
+import {
+  withAuth,
+  withErrorHandler,
+  validateBody,
+  normalizeTaskTags,
+} from "@/lib/api-utils";
 import { updateTaskSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import * as TrelloSync from "@/lib/trello-sync";
 
 export const GET = withErrorHandler(
   withAuth(async (_request, context, user) => {
-    const { id } = await (context as { params: Promise<{ id: string }> }).params;
+    const { id } = await (context as { params: Promise<{ id: string }> })
+      .params;
 
     const task = await db.task.findFirst({
       where: {
@@ -32,13 +39,14 @@ export const GET = withErrorHandler(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json(task);
+    return NextResponse.json(normalizeTaskTags(task));
   }),
 );
 
 export const PATCH = withErrorHandler(
   withAuth(async (request, context, user) => {
-    const { id } = await (context as { params: Promise<{ id: string }> }).params;
+    const { id } = await (context as { params: Promise<{ id: string }> })
+      .params;
     const body = await request.json();
 
     const validation = validateBody(updateTaskSchema, body);
@@ -109,13 +117,36 @@ export const PATCH = withErrorHandler(
       targetType: "task",
     });
 
-    return NextResponse.json(task);
+    // Trello sync — fire and forget
+    (async () => {
+      try {
+        const integration = await TrelloSync.requireIntegration(
+          existing.project.workspaceId,
+        );
+        if (integration && integration.syncDirection !== "to_app") {
+          const card = await TrelloSync.findTrelloCardByTaskId(
+            task.id,
+            integration,
+          );
+          if (card) {
+            await TrelloSync.updateTrelloCard(task, card.id, integration);
+          } else {
+            await TrelloSync.pushTaskToTrello(task, integration);
+          }
+        }
+      } catch (err) {
+        console.error("[Trello] Auto-sync update failed:", err);
+      }
+    })();
+
+    return NextResponse.json(normalizeTaskTags(task));
   }),
 );
 
 export const DELETE = withErrorHandler(
   withAuth(async (_request, context, user) => {
-    const { id } = await (context as { params: Promise<{ id: string }> }).params;
+    const { id } = await (context as { params: Promise<{ id: string }> })
+      .params;
 
     const existing = await db.task.findFirst({
       where: {
@@ -146,6 +177,27 @@ export const DELETE = withErrorHandler(
       targetId: id,
       targetType: "task",
     });
+
+    // Trello sync — fire and forget
+    (async () => {
+      try {
+        const integration = await TrelloSync.requireIntegration(
+          existing.project.workspaceId,
+        );
+        if (integration && integration.syncDirection !== "to_app") {
+          const card = await TrelloSync.findTrelloCardByTaskId(id, integration);
+          if (card) {
+            await TrelloSync.archiveTrelloCard(
+              { id, title: existing.title } as any,
+              card.id,
+              integration,
+            );
+          }
+        }
+      } catch (err) {
+        console.error("[Trello] Auto-sync delete failed:", err);
+      }
+    })();
 
     return NextResponse.json({ message: "Task deleted successfully" });
   }),

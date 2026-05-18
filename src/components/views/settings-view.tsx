@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   User,
   Bell,
@@ -48,42 +54,80 @@ import {
   Figma,
   HardDrive,
   Code2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAppStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
-import { motion, AnimatePresence } from 'framer-motion';
-
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
+import { useTranslation } from "@/lib/i18n";
+import { motion, AnimatePresence } from "framer-motion";
 // ─── Settings Sections Config ────────────────────────────────────────────────
 const settingsSections = [
-  { id: 'general', labelKey: 'general', icon: Globe },
-  { id: 'profile', labelKey: 'profile', icon: User },
-  { id: 'notifications', labelKey: 'notifications', icon: Bell },
-  { id: 'integrations', labelKey: 'integrations', icon: Link2 },
-  { id: 'workspace', labelKey: 'workspace', icon: Shield },
-  { id: 'billing', labelKey: 'billing', icon: CreditCard },
+  { id: "general", labelKey: "general", icon: Globe },
+  { id: "profile", labelKey: "profile", icon: User },
+  { id: "notifications", labelKey: "notifications", icon: Bell },
+  { id: "integrations", labelKey: "integrations", icon: Link2 },
+  { id: "workspace", labelKey: "workspace", icon: Shield },
+  { id: "billing", labelKey: "billing", icon: CreditCard },
 ];
 
 // ─── Integration Config ──────────────────────────────────────────────────────
-const integrations = [
-  { name: 'GitHub', desc: 'Sync issues and pull requests', connected: true, color: '#24292e', icon: Github },
-  { name: 'Slack', desc: 'Post updates to Slack channels', connected: true, color: '#4A154B', icon: Hash },
-  { name: 'Figma', desc: 'Embed Figma designs in tasks', connected: false, color: '#F24E1E', icon: Figma },
-  { name: 'Google Drive', desc: 'Attach files from Google Drive', connected: false, color: '#34A853', icon: HardDrive },
-  { name: 'Jira', desc: 'Sync with Jira projects', connected: false, color: '#0052CC', icon: Code2 },
+const STATIC_INTEGRATIONS = [
+  {
+    name: "GitHub",
+    key: "github",
+    desc: "Sync issues and pull requests",
+    connected: true,
+    color: "#24292e",
+    icon: Github,
+  },
+  {
+    name: "Slack",
+    key: "slack",
+    desc: "Post updates to Slack channels",
+    connected: true,
+    color: "#4A154B",
+    icon: Hash,
+  },
+  {
+    name: "Figma",
+    key: "figma",
+    desc: "Embed Figma designs in tasks",
+    connected: false,
+    color: "#F24E1E",
+    icon: Figma,
+  },
+  {
+    name: "Google Drive",
+    key: "gdrive",
+    desc: "Attach files from Google Drive",
+    connected: false,
+    color: "#34A853",
+    icon: HardDrive,
+  },
+  {
+    name: "Jira",
+    key: "jira",
+    desc: "Sync with Jira projects",
+    connected: false,
+    color: "#0052CC",
+    icon: Code2,
+  },
 ];
 
 // ─── Animation ───────────────────────────────────────────────────────────────
 const sectionVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function SettingsView() {
   const { t } = useTranslation();
 
-  const [activeSection, setActiveSection] = useState('general');
+  const [activeSection, setActiveSection] = useState("general");
   const currentUser = useAppStore((s) => s.currentUser);
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const workspaces = useAppStore((s) => s.workspaces);
@@ -96,20 +140,22 @@ export function SettingsView() {
   const [deleting, setDeleting] = useState(false);
 
   const [workspaceForm, setWorkspaceForm] = useState({
-    name: '',
-    slug: '',
-    description: '',
+    name: "",
+    slug: "",
+    description: "",
   });
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
-  const [workspaceSaveFeedback, setWorkspaceSaveFeedback] = useState<'idle' | 'success' | 'error'>('idle');
+  const [workspaceSaveFeedback, setWorkspaceSaveFeedback] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
   // Sync form state when the active workspace changes
   useEffect(() => {
     if (activeWorkspace) {
       setWorkspaceForm({
-        name: activeWorkspace.name || '',
-        slug: activeWorkspace.slug || '',
-        description: activeWorkspace.description || '',
+        name: activeWorkspace.name || "",
+        slug: activeWorkspace.slug || "",
+        description: activeWorkspace.description || "",
       });
     }
   }, [activeWorkspace?.id]);
@@ -117,16 +163,16 @@ export function SettingsView() {
   const handleSaveWorkspace = useCallback(async () => {
     if (!activeWorkspaceId) return;
     setWorkspaceSaving(true);
-    setWorkspaceSaveFeedback('idle');
+    setWorkspaceSaveFeedback("idle");
     try {
       const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(workspaceForm),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to update workspace');
+        throw new Error(data.error || "Failed to update workspace");
       }
       const updated = await res.json();
       updateWorkspace(activeWorkspaceId, {
@@ -134,12 +180,12 @@ export function SettingsView() {
         slug: updated.slug,
         description: updated.description,
       });
-      setWorkspaceSaveFeedback('success');
-      setTimeout(() => setWorkspaceSaveFeedback('idle'), 2500);
+      setWorkspaceSaveFeedback("success");
+      setTimeout(() => setWorkspaceSaveFeedback("idle"), 2500);
     } catch (err) {
-      console.error('Failed to update workspace:', err);
-      setWorkspaceSaveFeedback('error');
-      setTimeout(() => setWorkspaceSaveFeedback('idle'), 3500);
+      console.error("Failed to update workspace:", err);
+      setWorkspaceSaveFeedback("error");
+      setTimeout(() => setWorkspaceSaveFeedback("idle"), 3500);
     } finally {
       setWorkspaceSaving(false);
     }
@@ -159,9 +205,41 @@ export function SettingsView() {
   };
 
   const [generalSettings, setGeneralSettings] = useState({
-    darkMode: false,
+    darkMode: true,
     compactSidebar: false,
   });
+
+  // Trello integration state
+  const trelloDialogOpen = useAppStore((s) => s.trelloDialogOpen);
+  const setTrelloDialogOpen = useAppStore((s) => s.setTrelloDialogOpen);
+  const [trelloConnected, setTrelloConnected] = useState(false);
+
+  // Check Trello connection status when integrations section is active
+  useEffect(() => {
+    if (activeSection === "integrations" && activeWorkspaceId) {
+      fetch(`/api/workspaces/${activeWorkspaceId}/trello`)
+        .then((r) => r.json())
+        .then((data) => {
+          setTrelloConnected(data.configured !== false && !!data.id);
+        })
+        .catch(() => setTrelloConnected(false));
+    }
+  }, [activeSection, activeWorkspaceId]);
+
+  // Refresh Trello connection status when the dialog closes
+  const prevTrelloDialogOpen = useRef(trelloDialogOpen);
+  useEffect(() => {
+    const wasOpen = prevTrelloDialogOpen.current;
+    prevTrelloDialogOpen.current = trelloDialogOpen;
+    if (wasOpen && !trelloDialogOpen && activeWorkspaceId) {
+      fetch(`/api/workspaces/${activeWorkspaceId}/trello`)
+        .then((r) => r.json())
+        .then((data) => {
+          setTrelloConnected(data.configured !== false && !!data.id);
+        })
+        .catch(() => {});
+    }
+  }, [trelloDialogOpen, activeWorkspaceId]);
 
   const getSectionLabel = (id: string) => {
     const key = id as keyof typeof t.settings;
@@ -173,16 +251,16 @@ export function SettingsView() {
     setDeleting(true);
     try {
       const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to delete workspace');
+        throw new Error(data.error || "Failed to delete workspace");
       }
       removeWorkspace(activeWorkspaceId);
       setDeleteDialogOpen(false);
     } catch (err) {
-      console.error('Failed to delete workspace:', err);
+      console.error("Failed to delete workspace:", err);
     } finally {
       setDeleting(false);
     }
@@ -193,7 +271,9 @@ export function SettingsView() {
       {/* ─── Header ──────────────────────────────────────────────────────── */}
       <div>
         <h2 className="text-xl font-bold tracking-tight">{t.settings.title}</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">{t.settings.subtitle}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {t.settings.subtitle}
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -209,17 +289,21 @@ export function SettingsView() {
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
                     className={cn(
-                      'relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap transition-all duration-200 w-full text-left font-medium',
+                      "relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap transition-all duration-200 w-full text-left font-medium",
                       isActive
-                        ? 'bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)] shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        ? "bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)] shadow-sm"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                     )}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="settings-active-indicator"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-[oklch(0.55_0.15_160)]"
-                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 30,
+                        }}
                       />
                     )}
                     <Icon className="h-4 w-4 flex-shrink-0" />
@@ -243,7 +327,7 @@ export function SettingsView() {
               className="space-y-5"
             >
               {/* General */}
-              {activeSection === 'general' && (
+              {activeSection === "general" && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
@@ -251,28 +335,36 @@ export function SettingsView() {
                         <Globe className="h-4 w-4 text-teal-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{t.settings.general}</CardTitle>
+                        <CardTitle className="text-base">
+                          {t.settings.general}
+                        </CardTitle>
                         <CardDescription>{t.settings.subtitle}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.language}</Label>
+                      <Label className="text-sm font-medium">
+                        {t.settings.language}
+                      </Label>
                       <Input
                         defaultValue="English (US)"
                         className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.timezone}</Label>
+                      <Label className="text-sm font-medium">
+                        {t.settings.timezone}
+                      </Label>
                       <Input
                         defaultValue="UTC+1 (West Africa Time)"
                         className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.dateFormat}</Label>
+                      <Label className="text-sm font-medium">
+                        {t.settings.dateFormat}
+                      </Label>
                       <Input
                         defaultValue="MM/DD/YYYY"
                         className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
@@ -285,13 +377,19 @@ export function SettingsView() {
                           <Moon className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <Label className="text-sm font-medium">{t.settings.darkMode}</Label>
-                          <p className="text-xs text-muted-foreground">{t.settings.darkModeDesc}</p>
+                          <Label className="text-sm font-medium">
+                            {t.settings.darkMode}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.darkModeDesc}
+                          </p>
                         </div>
                       </div>
                       <Switch
                         checked={generalSettings.darkMode}
-                        onCheckedChange={(v) => setGeneralSettings((p) => ({ ...p, darkMode: v }))}
+                        onCheckedChange={(v) =>
+                          setGeneralSettings((p) => ({ ...p, darkMode: v }))
+                        }
                       />
                     </div>
                     <div className="flex items-center justify-between py-1">
@@ -300,18 +398,25 @@ export function SettingsView() {
                           <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <Label className="text-sm font-medium">{t.settings.compactSidebar}</Label>
-                          <p className="text-xs text-muted-foreground">{t.settings.compactSidebarDesc}</p>
+                          <Label className="text-sm font-medium">
+                            {t.settings.compactSidebar}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.compactSidebarDesc}
+                          </p>
                         </div>
                       </div>
                       <Switch
                         checked={generalSettings.compactSidebar}
-                        onCheckedChange={(v) => setGeneralSettings((p) => ({ ...p, compactSidebar: v }))}
+                        onCheckedChange={(v) =>
+                          setGeneralSettings((p) => ({
+                            ...p,
+                            compactSidebar: v,
+                          }))
+                        }
                       />
                     </div>
-                    <Button
-                      className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
-                    >
+                    <Button className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white">
                       <Save className="h-4 w-4" /> {t.settings.saveChanges}
                     </Button>
                   </CardContent>
@@ -319,7 +424,7 @@ export function SettingsView() {
               )}
 
               {/* Profile */}
-              {activeSection === 'profile' && (
+              {activeSection === "profile" && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
@@ -327,8 +432,12 @@ export function SettingsView() {
                         <User className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{t.settings.profileSettings}</CardTitle>
-                        <CardDescription>{t.settings.profileDesc}</CardDescription>
+                        <CardTitle className="text-base">
+                          {t.settings.profileSettings}
+                        </CardTitle>
+                        <CardDescription>
+                          {t.settings.profileDesc}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -336,15 +445,22 @@ export function SettingsView() {
                     <div className="flex items-center gap-4">
                       <div className="relative">
                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-[oklch(0.55_0.15_160/0.2)]">
-                          {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                          {currentUser?.name
+                            ?.split(" ")
+                            .map((n: string) => n[0])
+                            .join("") || "AT"}
                         </div>
                         <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[oklch(0.55_0.15_160)] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                           <Camera className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div>
-                        <p className="font-semibold">{currentUser?.name || 'Alex Thompson'}</p>
-                        <p className="text-sm text-muted-foreground">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                        <p className="font-semibold">
+                          {currentUser?.name || "Alex Thompson"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {currentUser?.email || "alex@acmecorp.com"}
+                        </p>
                         <Badge className="mt-1 text-[10px] bg-teal-500/10 text-teal-700 border-0">
                           Admin
                         </Badge>
@@ -353,29 +469,54 @@ export function SettingsView() {
                     <Separator />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t.settings.firstName}</Label>
-                        <Input defaultValue="Alex" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Label className="text-sm font-medium">
+                          {t.settings.firstName}
+                        </Label>
+                        <Input
+                          defaultValue="Alex"
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t.settings.lastName}</Label>
-                        <Input defaultValue="Thompson" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Label className="text-sm font-medium">
+                          {t.settings.lastName}
+                        </Label>
+                        <Input
+                          defaultValue="Thompson"
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.email}</Label>
-                      <Input defaultValue={currentUser?.email || 'alex@acmecorp.com'} type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Label className="text-sm font-medium">
+                        {t.settings.email}
+                      </Label>
+                      <Input
+                        defaultValue={currentUser?.email || "alex@acmecorp.com"}
+                        type="email"
+                        className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.role}</Label>
-                      <Input defaultValue="Admin" disabled className="bg-muted/30 border-transparent max-w-xs" />
+                      <Label className="text-sm font-medium">
+                        {t.settings.role}
+                      </Label>
+                      <Input
+                        defaultValue="Admin"
+                        disabled
+                        className="bg-muted/30 border-transparent max-w-xs"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.bio}</Label>
-                      <Input defaultValue="Product Manager at Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Label className="text-sm font-medium">
+                        {t.settings.bio}
+                      </Label>
+                      <Input
+                        defaultValue="Product Manager at Acme Corp"
+                        className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                      />
                     </div>
-                    <Button
-                      className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
-                    >
+                    <Button className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white">
                       <Save className="h-4 w-4" /> {t.settings.saveChanges}
                     </Button>
                   </CardContent>
@@ -383,7 +524,7 @@ export function SettingsView() {
               )}
 
               {/* Notifications */}
-              {activeSection === 'notifications' && (
+              {activeSection === "notifications" && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
@@ -391,8 +532,12 @@ export function SettingsView() {
                         <Bell className="h-4 w-4 text-amber-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{t.settings.notificationPreferences}</CardTitle>
-                        <CardDescription>{t.settings.notificationDesc}</CardDescription>
+                        <CardTitle className="text-base">
+                          {t.settings.notificationPreferences}
+                        </CardTitle>
+                        <CardDescription>
+                          {t.settings.notificationDesc}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -402,21 +547,39 @@ export function SettingsView() {
                         <div className="p-1.5 rounded-md bg-muted/50">
                           <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
-                        <h4 className="text-sm font-semibold">{t.settings.channels}</h4>
+                        <h4 className="text-sm font-semibold">
+                          {t.settings.channels}
+                        </h4>
                       </div>
                       <div className="flex items-center justify-between py-1">
                         <div>
-                          <Label className="text-sm font-medium">{t.settings.emailNotif}</Label>
-                          <p className="text-xs text-muted-foreground">{t.settings.emailNotifDesc}</p>
+                          <Label className="text-sm font-medium">
+                            {t.settings.emailNotif}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.emailNotifDesc}
+                          </p>
                         </div>
-                        <Switch checked={notifications.email} onCheckedChange={() => toggleNotification('email')} className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]" />
+                        <Switch
+                          checked={notifications.email}
+                          onCheckedChange={() => toggleNotification("email")}
+                          className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]"
+                        />
                       </div>
                       <div className="flex items-center justify-between py-1">
                         <div>
-                          <Label className="text-sm font-medium">{t.settings.pushNotif}</Label>
-                          <p className="text-xs text-muted-foreground">{t.settings.pushNotifDesc}</p>
+                          <Label className="text-sm font-medium">
+                            {t.settings.pushNotif}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.pushNotifDesc}
+                          </p>
                         </div>
-                        <Switch checked={notifications.push} onCheckedChange={() => toggleNotification('push')} className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]" />
+                        <Switch
+                          checked={notifications.push}
+                          onCheckedChange={() => toggleNotification("push")}
+                          className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]"
+                        />
                       </div>
                     </div>
                     <Separator />
@@ -425,22 +588,51 @@ export function SettingsView() {
                         <div className="p-1.5 rounded-md bg-muted/50">
                           <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
-                        <h4 className="text-sm font-semibold">{t.settings.events}</h4>
+                        <h4 className="text-sm font-semibold">
+                          {t.settings.events}
+                        </h4>
                       </div>
                       {[
-                        { key: 'mentions' as const, label: t.settings.mentions, desc: t.settings.mentionsDesc, icon: AtSign },
-                        { key: 'assignments' as const, label: t.settings.taskAssignments, desc: t.settings.taskAssignmentsDesc, icon: ListChecks },
-                        { key: 'deadlines' as const, label: t.settings.deadlineReminders, desc: t.settings.deadlineRemindersDesc, icon: CalendarClock },
-                        { key: 'updates' as const, label: t.settings.projectUpdates, desc: t.settings.projectUpdatesDesc, icon: FolderKanban },
+                        {
+                          key: "mentions" as const,
+                          label: t.settings.mentions,
+                          desc: t.settings.mentionsDesc,
+                          icon: AtSign,
+                        },
+                        {
+                          key: "assignments" as const,
+                          label: t.settings.taskAssignments,
+                          desc: t.settings.taskAssignmentsDesc,
+                          icon: ListChecks,
+                        },
+                        {
+                          key: "deadlines" as const,
+                          label: t.settings.deadlineReminders,
+                          desc: t.settings.deadlineRemindersDesc,
+                          icon: CalendarClock,
+                        },
+                        {
+                          key: "updates" as const,
+                          label: t.settings.projectUpdates,
+                          desc: t.settings.projectUpdatesDesc,
+                          icon: FolderKanban,
+                        },
                       ].map((ntf) => (
-                        <div key={ntf.key} className="flex items-center justify-between py-1">
+                        <div
+                          key={ntf.key}
+                          className="flex items-center justify-between py-1"
+                        >
                           <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-muted/50">
                               <ntf.icon className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <div>
-                              <Label className="text-sm font-medium">{ntf.label}</Label>
-                              <p className="text-xs text-muted-foreground">{ntf.desc}</p>
+                              <Label className="text-sm font-medium">
+                                {ntf.label}
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {ntf.desc}
+                              </p>
                             </div>
                           </div>
                           <Switch
@@ -456,7 +648,7 @@ export function SettingsView() {
               )}
 
               {/* Integrations */}
-              {activeSection === 'integrations' && (
+              {activeSection === "integrations" && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
@@ -464,25 +656,86 @@ export function SettingsView() {
                         <Link2 className="h-4 w-4 text-cyan-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{t.settings.integrationsTitle}</CardTitle>
-                        <CardDescription>{t.settings.integrationsDesc}</CardDescription>
+                        <CardTitle className="text-base">
+                          {t.settings.integrationsTitle}
+                        </CardTitle>
+                        <CardDescription>
+                          {t.settings.integrationsDesc}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {integrations.map((integration, idx) => {
+                    {/* Trello Integration (dynamic) */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 }}
+                      className={cn(
+                        "flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:shadow-sm",
+                        trelloConnected
+                          ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                          : "border-border hover:border-border/80",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src="/trello-logo.svg"
+                          alt="Trello"
+                          className="w-10 h-10 rounded-xl shadow-sm"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold">Trello</p>
+                            {trelloConnected && (
+                              <Badge className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-700 border-0 font-medium">
+                                <Check className="h-2.5 w-2.5 mr-0.5" />
+                                {t.settings.connected}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Sync tasks bidirectionally with a Trello board
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant={trelloConnected ? "outline" : "default"}
+                        size="sm"
+                        onClick={() => setTrelloDialogOpen(true)}
+                        className={cn(
+                          "gap-1.5 text-xs",
+                          !trelloConnected &&
+                            "bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] text-white shadow-sm",
+                        )}
+                      >
+                        {trelloConnected ? (
+                          <>
+                            <ExternalLink className="h-3 w-3" /> Manage
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3 w-3" />{" "}
+                            {t.settings.connect}
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+
+                    {/* Static Integrations */}
+                    {STATIC_INTEGRATIONS.map((integration, idx) => {
                       const Icon = integration.icon;
                       return (
                         <motion.div
-                          key={integration.name}
+                          key={integration.key}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.05 + idx * 0.05 }}
+                          transition={{ delay: 0.05 + (idx + 1) * 0.05 }}
                           className={cn(
-                            'flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:shadow-sm',
+                            "flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:shadow-sm",
                             integration.connected
-                              ? 'border-emerald-500/20 bg-emerald-500/[0.03]'
-                              : 'border-border hover:border-border/80'
+                              ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                              : "border-border hover:border-border/80",
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -494,7 +747,9 @@ export function SettingsView() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold">{integration.name}</p>
+                                <p className="text-sm font-semibold">
+                                  {integration.name}
+                                </p>
                                 {integration.connected && (
                                   <Badge className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-700 border-0 font-medium">
                                     <Check className="h-2.5 w-2.5 mr-0.5" />
@@ -502,15 +757,20 @@ export function SettingsView() {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground">{integration.desc}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {integration.desc}
+                              </p>
                             </div>
                           </div>
                           <Button
-                            variant={integration.connected ? 'outline' : 'default'}
+                            variant={
+                              integration.connected ? "outline" : "default"
+                            }
                             size="sm"
                             className={cn(
-                              'gap-1.5 text-xs',
-                              !integration.connected && 'bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] text-white shadow-sm'
+                              "gap-1.5 text-xs",
+                              !integration.connected &&
+                                "bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] text-white shadow-sm",
                             )}
                           >
                             {integration.connected ? (
@@ -519,7 +779,8 @@ export function SettingsView() {
                               </>
                             ) : (
                               <>
-                                <Sparkles className="h-3 w-3" /> {t.settings.connect}
+                                <Sparkles className="h-3 w-3" />{" "}
+                                {t.settings.connect}
                               </>
                             )}
                           </Button>
@@ -531,7 +792,7 @@ export function SettingsView() {
               )}
 
               {/* Workspace */}
-              {activeSection === 'workspace' && (
+              {activeSection === "workspace" && (
                 <div className="space-y-5">
                   <Card className="border shadow-sm">
                     <CardHeader className="pb-4">
@@ -540,33 +801,58 @@ export function SettingsView() {
                           <Shield className="h-4 w-4 text-rose-600" />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{t.settings.workspaceSettings}</CardTitle>
-                          <CardDescription>{t.settings.workspaceDesc}</CardDescription>
+                          <CardTitle className="text-base">
+                            {t.settings.workspaceSettings}
+                          </CardTitle>
+                          <CardDescription>
+                            {t.settings.workspaceDesc}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-5">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t.settings.workspaceName}</Label>
+                        <Label className="text-sm font-medium">
+                          {t.settings.workspaceName}
+                        </Label>
                         <Input
                           value={workspaceForm.name}
-                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, name: e.target.value }))}
+                          onChange={(e) =>
+                            setWorkspaceForm((p) => ({
+                              ...p,
+                              name: e.target.value,
+                            }))
+                          }
                           className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t.settings.workspaceUrl}</Label>
+                        <Label className="text-sm font-medium">
+                          {t.settings.workspaceUrl}
+                        </Label>
                         <Input
                           value={workspaceForm.slug}
-                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, slug: e.target.value }))}
+                          onChange={(e) =>
+                            setWorkspaceForm((p) => ({
+                              ...p,
+                              slug: e.target.value,
+                            }))
+                          }
                           className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">{t.settings.description}</Label>
+                        <Label className="text-sm font-medium">
+                          {t.settings.description}
+                        </Label>
                         <Input
                           value={workspaceForm.description}
-                          onChange={(e) => setWorkspaceForm((p) => ({ ...p, description: e.target.value }))}
+                          onChange={(e) =>
+                            setWorkspaceForm((p) => ({
+                              ...p,
+                              description: e.target.value,
+                            }))
+                          }
                           className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                         />
                       </div>
@@ -574,12 +860,12 @@ export function SettingsView() {
                         onClick={handleSaveWorkspace}
                         disabled={workspaceSaving}
                         className={cn(
-                          'gap-1.5 text-white shadow-sm transition-all duration-200',
-                          workspaceSaveFeedback === 'success'
-                            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
-                            : workspaceSaveFeedback === 'error'
-                              ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20'
-                              : 'bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-[oklch(0.55_0.15_160/0.2)]',
+                          "gap-1.5 text-white shadow-sm transition-all duration-200",
+                          workspaceSaveFeedback === "success"
+                            ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20"
+                            : workspaceSaveFeedback === "error"
+                              ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20"
+                              : "bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-[oklch(0.55_0.15_160/0.2)]",
                         )}
                       >
                         {workspaceSaving ? (
@@ -587,17 +873,19 @@ export function SettingsView() {
                             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                             {t.settings.saving}
                           </>
-                        ) : workspaceSaveFeedback === 'success' ? (
+                        ) : workspaceSaveFeedback === "success" ? (
                           <>
                             <Check className="h-4 w-4" /> {t.settings.saved}
                           </>
-                        ) : workspaceSaveFeedback === 'error' ? (
+                        ) : workspaceSaveFeedback === "error" ? (
                           <>
-                            <AlertTriangle className="h-4 w-4" /> {t.settings.saveError}
+                            <AlertTriangle className="h-4 w-4" />{" "}
+                            {t.settings.saveError}
                           </>
                         ) : (
                           <>
-                            <Save className="h-4 w-4" /> {t.settings.saveChanges}
+                            <Save className="h-4 w-4" />{" "}
+                            {t.settings.saveChanges}
                           </>
                         )}
                       </Button>
@@ -613,20 +901,35 @@ export function SettingsView() {
                           <AlertTriangle className="h-4 w-4 text-rose-600" />
                         </div>
                         <div>
-                          <CardTitle className="text-base text-rose-600">{t.settings.dangerZone}</CardTitle>
-                          <CardDescription>{t.settings.dangerDesc}</CardDescription>
+                          <CardTitle className="text-base text-rose-600">
+                            {t.settings.dangerZone}
+                          </CardTitle>
+                          <CardDescription>
+                            {t.settings.dangerDesc}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between p-4 rounded-xl border-2 border-rose-500/20 bg-rose-500/[0.03]">
                         <div>
-                          <p className="text-sm font-semibold text-rose-700">{t.settings.deleteWorkspace}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{t.settings.deleteWorkspaceDesc}</p>
+                          <p className="text-sm font-semibold text-rose-700">
+                            {t.settings.deleteWorkspace}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {t.settings.deleteWorkspaceDesc}
+                          </p>
                         </div>
-                        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                        <AlertDialog
+                          open={deleteDialogOpen}
+                          onOpenChange={setDeleteDialogOpen}
+                        >
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" className="gap-1.5 shadow-sm">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="gap-1.5 shadow-sm"
+                            >
                               <Trash2 className="h-4 w-4" /> {t.settings.delete}
                             </Button>
                           </AlertDialogTrigger>
@@ -667,7 +970,7 @@ export function SettingsView() {
               )}
 
               {/* Billing */}
-              {activeSection === 'billing' && (
+              {activeSection === "billing" && (
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
@@ -675,8 +978,12 @@ export function SettingsView() {
                         <CreditCard className="h-4 w-4 text-amber-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{t.settings.billingPlans}</CardTitle>
-                        <CardDescription>{t.settings.billingDesc}</CardDescription>
+                        <CardTitle className="text-base">
+                          {t.settings.billingPlans}
+                        </CardTitle>
+                        <CardDescription>
+                          {t.settings.billingDesc}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -687,36 +994,61 @@ export function SettingsView() {
                       <div className="relative flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold">{t.settings.proPlan}</h4>
+                            <h4 className="text-sm font-bold">
+                              {t.settings.proPlan}
+                            </h4>
                             <Badge className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] text-white text-[10px] border-0 shadow-sm">
                               <Sparkles className="h-3 w-3 mr-0.5" />
                               {t.settings.currentPlan}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">{t.settings.proPlanDesc}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t.settings.proPlanDesc}
+                          </p>
                         </div>
                         <p className="text-xl font-extrabold tracking-tight">
-                          $12<span className="text-xs text-muted-foreground font-normal">/mo</span>
+                          $12
+                          <span className="text-xs text-muted-foreground font-normal">
+                            /mo
+                          </span>
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.billingEmail}</Label>
-                      <Input defaultValue="billing@acmecorp.com" type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Label className="text-sm font-medium">
+                        {t.settings.billingEmail}
+                      </Label>
+                      <Input
+                        defaultValue="billing@acmecorp.com"
+                        type="email"
+                        className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.paymentMethod}</Label>
+                      <Label className="text-sm font-medium">
+                        {t.settings.paymentMethod}
+                      </Label>
                       <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-muted/20">
                         <div className="w-12 h-8 rounded-md bg-gradient-to-r from-slate-700 to-slate-500 flex items-center justify-center text-white text-[9px] font-bold shadow-sm">
                           VISA
                         </div>
                         <div>
-                          <p className="text-sm font-medium">•••• •••• •••• 4242</p>
-                          <p className="text-xs text-muted-foreground">{t.settings.expires} 12/2026</p>
+                          <p className="text-sm font-medium">
+                            •••• •••• •••• 4242
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.expires} 12/2026
+                          </p>
                         </div>
-                        <Button variant="outline" size="sm" className="ml-auto gap-1 text-xs">{t.settings.update}</Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto gap-1 text-xs"
+                        >
+                          {t.settings.update}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

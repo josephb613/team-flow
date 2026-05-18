@@ -7,8 +7,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await db.user.findUnique({
-      where: { id },
+    const user = await db.userProfile.findUnique({
+      where: { neonAuthUserId: id },
       include: {
         assignedTasks: true,
         createdTasks: true,
@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json({ id: user.neonAuthUserId, ...user });
   } catch (error) {
     console.error('GET /api/users/[id] error:', error);
     return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
@@ -48,8 +48,8 @@ export async function PATCH(
     const body = await request.json();
     const { name, email, avatar, role, status } = body;
 
-    const user = await db.user.update({
-      where: { id },
+    const user = await db.userProfile.update({
+      where: { neonAuthUserId: id },
       data: {
         ...(name !== undefined && { name }),
         ...(email !== undefined && { email }),
@@ -59,7 +59,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({ id: user.neonAuthUserId, ...user });
   } catch (error) {
     console.error('PATCH /api/users/[id] error:', error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
@@ -73,12 +73,12 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const existing = await db.user.findUnique({ where: { id } });
+    const existing = await db.userProfile.findUnique({ where: { neonAuthUserId: id } });
     if (!existing) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    await db.user.delete({ where: { id } });
+    await db.userProfile.delete({ where: { neonAuthUserId: id } });
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {

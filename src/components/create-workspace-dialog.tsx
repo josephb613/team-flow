@@ -42,7 +42,6 @@ const EMOJI_OPTIONS = [
   "⚙️",
   "🔬",
   "📐",
-  "🎪",
 ];
 
 const COLOR_OPTIONS = [
@@ -149,9 +148,9 @@ export function CreateWorkspaceDialog() {
 
   return (
     <Dialog open={createWorkspaceDialogOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[520px] p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] p-0 gap-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Gradient Header */}
-        <div className="relative px-6 pt-6 pb-4">
+        <div className="relative px-5 pt-4 pb-3 shrink-0">
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
@@ -159,19 +158,19 @@ export function CreateWorkspaceDialog() {
             }}
           />
           <DialogHeader className="relative">
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-base font-semibold">
               {t.createWorkspace.title}
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-xs text-muted-foreground">
               {t.createWorkspace.descriptionPlaceholder}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="px-6 pb-2 space-y-5">
+        <div className="px-5 space-y-3 overflow-y-auto flex-1">
           {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="ws-name" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-name" className="text-xs font-medium">
               {t.createWorkspace.name}
             </Label>
             <Input
@@ -179,13 +178,13 @@ export function CreateWorkspaceDialog() {
               placeholder={t.createWorkspace.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-10"
+              className="h-9"
             />
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="ws-desc" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="ws-desc" className="text-xs font-medium">
               {t.createWorkspace.description}
             </Label>
             <Textarea
@@ -193,22 +192,22 @@ export function CreateWorkspaceDialog() {
               placeholder={t.createWorkspace.descriptionPlaceholder}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[72px] resize-none"
+              className="min-h-[52px] resize-none"
             />
           </div>
 
           {/* Icon Picker */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">
               {t.createWorkspace.icon}
             </Label>
-            <div className="grid grid-cols-8 gap-1.5">
+            <div className="grid grid-cols-8 gap-1">
               {EMOJI_OPTIONS.map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
                   className={cn(
-                    "h-9 w-9 rounded-lg flex items-center justify-center text-base transition-all",
+                    "h-8 w-8 rounded-lg flex items-center justify-center text-sm transition-all",
                     selectedEmoji === emoji
                       ? "bg-[oklch(0.55_0.15_160/0.15)] ring-2 ring-[oklch(0.55_0.15_160)] scale-110"
                       : "hover:bg-muted/50",
@@ -222,17 +221,17 @@ export function CreateWorkspaceDialog() {
           </div>
 
           {/* Color Picker */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">
               {t.createWorkspace.color}
             </Label>
-            <div className="grid grid-cols-10 gap-1.5">
+            <div className="grid grid-cols-10 gap-1">
               {COLOR_OPTIONS.map((color) => (
                 <button
                   key={color}
                   type="button"
                   className={cn(
-                    "h-7 w-7 rounded-full transition-all flex items-center justify-center",
+                    "h-6 w-6 rounded-full transition-all flex items-center justify-center",
                     selectedColor === color
                       ? "ring-2 ring-offset-2 ring-offset-background scale-110"
                       : "hover:scale-110",
@@ -249,7 +248,7 @@ export function CreateWorkspaceDialog() {
                 >
                   {selectedColor === color && (
                     <svg
-                      className="h-3 w-3 text-white"
+                      className="h-2.5 w-2.5 text-white"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -268,14 +267,14 @@ export function CreateWorkspaceDialog() {
           </div>
 
           {/* Preview */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">
               {t.createWorkspace.preview}
             </Label>
-            <div className="rounded-xl border bg-muted/20 p-4">
-              <div className="flex items-center gap-3">
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-center gap-2.5">
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold shadow-sm"
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-base font-bold shadow-sm"
                   style={{ backgroundColor: selectedColor }}
                 >
                   {selectedEmoji}
@@ -294,7 +293,7 @@ export function CreateWorkspaceDialog() {
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t mt-2 flex-row gap-2">
+        <DialogFooter className="px-5 py-3 border-t flex-row gap-2 shrink-0">
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}

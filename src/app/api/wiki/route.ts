@@ -34,7 +34,7 @@ export const GET = withErrorHandler(
     const pages = await db.wikiPage.findMany({
       where: whereClause,
       include: {
-        editor: { select: { id: true, name: true, avatar: true } },
+        editor: { select: { neonAuthUserId: true, name: true, avatar: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -72,7 +72,7 @@ export const POST = withErrorHandler(
         lastEditedBy: user.id,
       },
       include: {
-        editor: { select: { id: true, name: true, avatar: true } },
+        editor: { select: { neonAuthUserId: true, name: true, avatar: true } },
       },
     });
 

@@ -17,12 +17,12 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { mockActivities, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import type { ActivityItem, User } from "@/lib/types";
 
 // ─── Activity Type Config ────────────────────────────────────────────────────
 const activityConfig: Record<
@@ -136,11 +136,11 @@ const activityConfig: Record<
 };
 
 // ─── Helpers (accept users array so they can use API data) ───────────────────
-function getUserName(id: string, users: typeof mockUsers) {
+function getUserName(id: string, users: User[]) {
   return users.find((u) => u.id === id)?.name || "Unknown";
 }
 
-function getUserInitials(id: string, users: typeof mockUsers) {
+function getUserInitials(id: string, users: User[]) {
   const user = users.find((u) => u.id === id);
   return user
     ? user.name
@@ -150,7 +150,7 @@ function getUserInitials(id: string, users: typeof mockUsers) {
     : "??";
 }
 
-function getUserColor(id: string, users: typeof mockUsers) {
+function getUserColor(id: string, users: User[]) {
   const colors = [
     "bg-emerald-500/20 text-emerald-700",
     "bg-amber-500/20 text-amber-700",
@@ -278,14 +278,12 @@ export function ActivityView() {
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: activitiesData, isLoading: activitiesLoading } = useApiData(
     "/api/activity",
-    { fallback: mockActivities },
   );
   const { data: usersData, isLoading: usersLoading } = useApiData(
     "/api/users",
-    { fallback: mockUsers },
   );
-  const activities = (activitiesData as typeof mockActivities) ?? [];
-  const users = (usersData as typeof mockUsers) ?? [];
+  const activities = (activitiesData as ActivityItem[]) ?? [];
+  const users = (usersData as User[]) ?? [];
   const isLoading = activitiesLoading || usersLoading;
 
   const filtered = useMemo(() => {

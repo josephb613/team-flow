@@ -58,6 +58,11 @@ export function CreateTeamDialog() {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
 
+    if (!activeWorkspaceId) {
+      toast.error(t.errors.noWorkspaceSelected || "Veuillez selectionner un espace de travail");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/teams", {

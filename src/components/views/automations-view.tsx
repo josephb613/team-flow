@@ -27,11 +27,12 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
-import { mockAutomations } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
+import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import type { Automation } from "@/lib/types";
 
 // ─── Animation ───────────────────────────────────────────────────────────────
 const container = {
@@ -51,19 +52,21 @@ const item = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function AutomationsView() {
   const { t } = useTranslation();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
 
   // ─── API Data ──────────────────────────────────────────────────────────
   const { data: apiAutomations, isLoading } = useApiData("/api/automations", {
-    fallback: mockAutomations,
+    params: wsParams,
   });
-  const automationsData = (apiAutomations as typeof mockAutomations) ?? [];
+  const automationsData = (apiAutomations as Automation[]) ?? [];
 
   const [automations, setAutomations] = useState(automationsData);
 
   // Sync local state when API data arrives
   useEffect(() => {
     if (apiAutomations)
-      setAutomations(apiAutomations as typeof mockAutomations);
+      setAutomations(apiAutomations as Automation[]);
   }, [apiAutomations]);
 
   const toggleAutomation = useCallback((id: string) => {

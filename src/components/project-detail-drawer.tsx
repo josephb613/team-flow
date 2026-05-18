@@ -46,7 +46,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Project, ProjectStatus, User, Task } from "@/lib/types";
-import { mockUsers, mockTasks } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
 import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
@@ -217,13 +216,15 @@ function ProgressBar({
 export function ProjectDetailDrawer() {
   const { projectDetailOpen, setProjectDetailOpen, selectedProject, columns } =
     useAppStore();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
   const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+    params: wsParams,
   });
-  const users = (usersData as User[]) || mockUsers;
+  const users = (usersData as User[]) || [];
 
   const { taskStatusLabels, taskStatusColors } = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;

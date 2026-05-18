@@ -34,7 +34,6 @@ import {
   Trash2,
   Pencil,
 } from "lucide-react";
-import { mockOpportunities, mockUsers } from "@/lib/mock-data";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/query-utils";
 import { useTranslation } from "@/lib/i18n";
@@ -75,20 +74,20 @@ import { CSS } from "@dnd-kit/utilities";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserInitials(id: string | undefined, users: User[] = mockUsers) {
+function getUserInitials(id: string | undefined, users?: User[]) {
   if (!id) return "??";
-  const user = users.find((u) => u.id === id);
-  return user
-    ? user.name
+  const u = users?.find((u) => u.id === id);
+  return u
+    ? u.name
         .split(" ")
         .map((n) => n[0])
         .join("")
     : "??";
 }
 
-function getUserName(id: string | undefined, users: User[] = mockUsers) {
+function getUserName(id: string | undefined, users?: User[]) {
   if (!id) return "—";
-  return users.find((u) => u.id === id)?.name || "Unknown";
+  return users?.find((u) => u.id === id)?.name || "Unknown";
 }
 
 function isOverdue(dueDate: string) {
@@ -879,7 +878,6 @@ export function OpportunitiesView() {
   const { data: apiOpps, isLoading } = useQuery({
     queryKey: ["opportunities", activeWorkspaceId],
     queryFn: () => fetchJson<Opportunity[]>(`/api/opportunities${wsParams}`),
-    placeholderData: mockOpportunities,
   });
 
   const opportunities = apiOpps ?? [];
@@ -892,7 +890,6 @@ export function OpportunitiesView() {
   const { data: apiUsers } = useQuery({
     queryKey: ["users"],
     queryFn: () => fetchJson<User[]>("/api/users"),
-    placeholderData: mockUsers,
   });
   const users = apiUsers ?? [];
 

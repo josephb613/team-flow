@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { signOut } from "next-auth/react";
+import { authClient } from "@/lib/auth/client";
 import type {
   PageId,
   Workspace,
@@ -173,6 +173,10 @@ interface AppState {
   // Global API loading indicator
   isApiLoading: boolean;
   setApiLoading: (loading: boolean) => void;
+
+  // Trello integration dialog (rendered in MainApp outside AnimatePresence)
+  trelloDialogOpen: boolean;
+  setTrelloDialogOpen: (open: boolean) => void;
 
   // Counts for sidebar badges (updated by useDashboardData)
   taskCount: number;
@@ -360,7 +364,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Pending invitations
   pendingInvitations: [],
-  setPendingInvitations: (invitations) => set({ pendingInvitations: invitations }),
+  setPendingInvitations: (invitations) =>
+    set({ pendingInvitations: invitations }),
 
   // Create task dialog
   createTaskDialogOpen: false,
@@ -389,8 +394,7 @@ export const useAppStore = create<AppState>((set) => ({
   // Create channel dialog
   createChannelDialogOpen: false,
   setCreateChannelDialogOpen: (open) => set({ createChannelDialogOpen: open }),
-  addChannel: (channel) =>
-    set((s) => ({ channels: [...s.channels, channel] })),
+  addChannel: (channel) => set((s) => ({ channels: [...s.channels, channel] })),
 
   // Shortcuts help dialog
   shortcutsHelpOpen: false,
@@ -433,6 +437,10 @@ export const useAppStore = create<AppState>((set) => ({
   isApiLoading: false,
   setApiLoading: (loading) => set({ isApiLoading: loading }),
 
+  // Trello integration dialog
+  trelloDialogOpen: false,
+  setTrelloDialogOpen: (open) => set({ trelloDialogOpen: open }),
+
   // Counts for sidebar badges
   taskCount: 0,
   projectCount: 0,
@@ -448,9 +456,9 @@ export const useAppStore = create<AppState>((set) => ({
       isAuthenticated: user !== null,
       currentUser: user,
     }),
-  // login is a no-op now; real auth is handled by NextAuth via setCurrentUser
+  // login is a no-op now; real auth is handled by Neon Auth via setCurrentUser
   login: () => {
-    // Auth is managed by NextAuth session (see page.tsx).
+    // Auth is managed by Neon Auth session (see page.tsx).
     // Call setCurrentUser with real session data instead.
   },
   logout: () => {
@@ -465,6 +473,8 @@ export const useAppStore = create<AppState>((set) => ({
       favorites: [],
       recentItems: [],
     });
-    signOut({ callbackUrl: "/" });
+    authClient.signOut().then(() => {
+      window.location.href = "/";
+    });
   },
 }));

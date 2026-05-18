@@ -32,7 +32,7 @@ export const GET = withErrorHandler(
       where: whereClause as { workspaceId: string; status?: string },
       include: {
         invitedBy: {
-          select: { id: true, name: true, email: true },
+          select: { neonAuthUserId: true, name: true, email: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -75,13 +75,13 @@ export const POST = withErrorHandler(
     }
 
     // Find user by email
-    const existingUser = await db.user.findUnique({ where: { email } });
+    const existingUser = await db.userProfile.findUnique({ where: { email } });
 
     if (existingUser) {
       // User exists — check if already a member
       const existingMember = await db.workspaceMember.findUnique({
         where: {
-          userId_workspaceId: { userId: existingUser.id, workspaceId: id },
+          userId_workspaceId: { userId: existingUser.neonAuthUserId, workspaceId: id },
         },
       });
 
@@ -95,7 +95,7 @@ export const POST = withErrorHandler(
       // Add directly as workspace member
       const member = await db.workspaceMember.create({
         data: {
-          userId: existingUser.id,
+          userId: existingUser.neonAuthUserId,
           workspaceId: id,
           role,
         },
@@ -134,7 +134,7 @@ export const POST = withErrorHandler(
       },
       include: {
         invitedBy: {
-          select: { id: true, name: true, email: true },
+          select: { neonAuthUserId: true, name: true, email: true },
         },
       },
     });

@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/components/auth-provider";
+import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
+import { authClient } from "@/lib/auth/client";
 import { SearchDialog } from "@/components/search-dialog";
 import { QueryProvider } from "@/components/query-provider";
 
@@ -46,7 +47,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
-        <AuthProvider>
+        <NeonAuthUIProvider authClient={authClient}>
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
@@ -59,7 +60,7 @@ export default function RootLayout({
             <SearchDialog />
             <Toaster />
           </ThemeProvider>
-        </AuthProvider>
+        </NeonAuthUIProvider>
       </body>
     </html>
   );

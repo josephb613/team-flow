@@ -41,7 +41,7 @@ export const POST = withErrorHandler(
       },
       include: {
         user: {
-          select: { id: true, name: true, avatar: true },
+          select: { neonAuthUserId: true, name: true, avatar: true },
         },
       },
     });

@@ -3,34 +3,34 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String?
-  avatar    String?
-  role      String   @default("member")
-  status    String   @default("offline")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model UserProfile {
+  neonAuthUserId String   @id
+  email          String   @unique
+  name           String
+  role           String   @default("member")
+  status         String   @default("offline")
+  avatar         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  assignedTasks     Task[]       @relation("AssignedTo")
-  createdTasks      Task[]       @relation("CreatedBy")
-  comments          Comment[]
-  messages          Message[]
-  uploadedFiles     FileItem[]
-  workspaceMembers  WorkspaceMember[]
-  teamMembers       TeamMember[]
-  wikiEdits         WikiPage[]
-  channelMemberships ChannelMember[]
-  meetingMemberships MeetingMember[]
-  sentInvitations         Invitation[]    @relation("SentInvitations")
-  createdOpportunities    Opportunity[]   @relation("CreatedOpportunities")
-  responsableOpportunities Opportunity[]  @relation("ResponsableOpportunities")
+  assignedTasks          Task[]             @relation("AssignedTo")
+  createdTasks           Task[]             @relation("CreatedBy")
+  comments               Comment[]
+  messages               Message[]
+  uploadedFiles          FileItem[]
+  workspaceMembers       WorkspaceMember[]
+  teamMembers            TeamMember[]
+  wikiEdits              WikiPage[]
+  channelMemberships     ChannelMember[]
+  meetingMemberships     MeetingMember[]
+  sentInvitations        Invitation[]       @relation("SentInvitations")
+  createdOpportunities   Opportunity[]      @relation("CreatedOpportunities")
+  responsableOpportunities Opportunity[]    @relation("ResponsableOpportunities")
 }
 
 model Workspace {
@@ -54,6 +54,7 @@ model Workspace {
   invitations  Invitation[]
   opportunities Opportunity[]
   columns      BoardColumn[]
+  trelloIntegration TrelloIntegration?
 }
 
 model BoardColumn {
@@ -83,8 +84,8 @@ model WorkspaceMember {
   role        String   @default("member")
   joinedAt    DateTime @default(now())
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workspaceId])
 }
@@ -100,8 +101,8 @@ model Invitation {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invitedBy User     @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy UserProfile @relation("SentInvitations", fields: [invitedById], references: [neonAuthUserId], onDelete: Cascade)
 
   @@unique([email, workspaceId])
   @@index([workspaceId])
@@ -142,9 +143,9 @@ model Opportunity {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creator     User?     @relation("CreatedOpportunities", fields: [creatorId], references: [id], onDelete: SetNull)
-  responsable User?     @relation("ResponsableOpportunities", fields: [responsableId], references: [id], onDelete: SetNull)
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     UserProfile? @relation("CreatedOpportunities", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
+  responsable UserProfile? @relation("ResponsableOpportunities", fields: [responsableId], references: [neonAuthUserId], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([creatorId])
@@ -165,9 +166,9 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee  User?    @relation("AssignedTo", fields: [assigneeId], references: [id], onDelete: SetNull)
-  creator   User?    @relation("CreatedBy", fields: [creatorId], references: [id], onDelete: SetNull)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee  UserProfile? @relation("AssignedTo", fields: [assigneeId], references: [neonAuthUserId], onDelete: SetNull)
+  creator   UserProfile? @relation("CreatedBy", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
   subtasks  Subtask[]
   comments  Comment[]
 
@@ -193,8 +194,8 @@ model Comment {
   userId    String
   createdAt DateTime @default(now())
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
 
   @@index([taskId])
 }
@@ -206,8 +207,8 @@ model Channel {
   workspaceId String
   createdAt   DateTime @default(now())
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  messages   Message[]
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages       Message[]
   channelMembers ChannelMember[]
 
   @@index([workspaceId])
@@ -218,8 +219,8 @@ model ChannelMember {
   channelId String
   userId    String
 
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    UserProfile  @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
 
   @@unique([channelId, userId])
 }
@@ -231,8 +232,8 @@ model Message {
   userId    String
   createdAt DateTime @default(now())
 
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    UserProfile  @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
 
   @@index([channelId])
   @@index([userId])
@@ -260,8 +261,8 @@ model MeetingMember {
   meetingId String
   userId    String
 
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    UserProfile  @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
 
   @@unique([meetingId, userId])
 }
@@ -305,7 +306,7 @@ model TeamMember {
 
   role   TeamRole?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
   team   Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   UserProfile   @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
   scopes MemberScope[]
 
   @@unique([teamId, userId])
@@ -355,6 +356,43 @@ model Automation {
   @@index([workspaceId])
 }
 
+model TrelloIntegration {
+  id            String   @id @default(cuid())
+  workspaceId   String   @unique
+  trelloApiKey  String
+  trelloToken   String
+  boardId       String
+  boardName     String   @default("")
+  listMapping   Json     @default("{}")
+  memberMapping Json     @default("{}")
+  enabled       Boolean  @default(true)
+  syncDirection String   @default("bidirectional")
+  lastSyncAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  syncLogs  TrelloSyncLog[]
+}
+
+model TrelloSyncLog {
+  id            String   @id @default(cuid())
+  integrationId String
+  direction     String
+  action        String
+  taskId        String?
+  trelloCardId  String?
+  status        String   @default("success")
+  details       String?
+  createdAt     DateTime @default(now())
+
+  integration TrelloIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([taskId])
+  @@index([createdAt])
+}
+
 model FileItem {
   id          String   @id @default(cuid())
   name        String
@@ -366,8 +404,8 @@ model FileItem {
   uploadedBy  String?
   createdAt   DateTime @default(now())
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  uploader  User?     @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  uploader  UserProfile? @relation(fields: [uploadedBy], references: [neonAuthUserId], onDelete: SetNull)
 
   @@index([workspaceId])
 }
@@ -383,8 +421,8 @@ model WikiPage {
   updatedAt    DateTime @updatedAt
   createdAt    DateTime @default(now())
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  editor    User?     @relation(fields: [lastEditedBy], references: [id], onDelete: SetNull)
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  editor    UserProfile? @relation(fields: [lastEditedBy], references: [neonAuthUserId], onDelete: SetNull)
 
   @@index([workspaceId])
 }

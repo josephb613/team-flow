@@ -1,5 +1,5 @@
 {
-  "name": "Team-flow",
+  "name": "team-flow",
   "version": "0.2.0",
   "private": true,
   "scripts": {
@@ -22,6 +22,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.1.1",
     "@mdxeditor/editor": "^3.39.1",
+    "@neondatabase/auth": "^0.4.1-beta",
+    "@neondatabase/auth-ui": "^0.2.0-beta",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -62,7 +64,6 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.525.0",
     "next": "^16.1.1",
-    "next-auth": "^4.24.11",
     "next-intl": "^4.3.4",
     "next-themes": "^0.4.6",
     "prisma": "^6.11.1",

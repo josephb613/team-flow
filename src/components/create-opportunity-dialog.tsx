@@ -29,8 +29,8 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
+import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DEFAULT_OPPORTUNITY_COLUMNS } from "@/lib/column-utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,9 +57,9 @@ export function CreateOpportunityDialog() {
   const effectiveWorkspaceId = activeWorkspaceId || workspaces[0]?.id || "";
 
   const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+    params: activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined,
   });
-  const users = (usersData as typeof mockUsers) || mockUsers;
+  const users = (usersData as User[]) || [];
 
   const [title, setTitle] = useState("");
   const [organisation, setOrganisation] = useState("");

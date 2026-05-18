@@ -67,9 +67,8 @@ import {
   GripVertical,
   Loader2,
 } from "lucide-react";
-import { mockFiles, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
-import type { FileItem } from "@/lib/types";
+import type { FileItem, User } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -131,7 +130,7 @@ const fileTypeConfig: Record<
   },
 };
 
-function getUserInitials(id: string, users: typeof mockUsers) {
+function getUserInitials(id: string, users: User[]) {
   const user = users.find((u) => u.id === id);
   return user
     ? user.name
@@ -141,11 +140,11 @@ function getUserInitials(id: string, users: typeof mockUsers) {
     : "??";
 }
 
-function getUserName(id: string, users: typeof mockUsers) {
+function getUserName(id: string, users: User[]) {
   return users.find((u) => u.id === id)?.name || "Unknown";
 }
 
-function getUserAvatarColor(id: string, users: typeof mockUsers) {
+function getUserAvatarColor(id: string, users: User[]) {
   const user = users.find((u) => u.id === id);
   return user
     ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
@@ -183,10 +182,27 @@ function formatRelativeTime(dateStr: string) {
 function getFileTypeFromName(name: string): FileItem["type"] {
   const ext = name.split(".").pop()?.toLowerCase() || "";
   const map: Record<string, FileItem["type"]> = {
-    doc: "document", docx: "document", txt: "document", md: "document", rtf: "document", odt: "document",
-    xls: "spreadsheet", xlsx: "spreadsheet", csv: "spreadsheet", ods: "spreadsheet",
-    ppt: "presentation", pptx: "presentation", odp: "presentation",
-    png: "image", jpg: "image", jpeg: "image", gif: "image", svg: "image", webp: "image", bmp: "image", ico: "image",
+    doc: "document",
+    docx: "document",
+    txt: "document",
+    md: "document",
+    rtf: "document",
+    odt: "document",
+    xls: "spreadsheet",
+    xlsx: "spreadsheet",
+    csv: "spreadsheet",
+    ods: "spreadsheet",
+    ppt: "presentation",
+    pptx: "presentation",
+    odp: "presentation",
+    png: "image",
+    jpg: "image",
+    jpeg: "image",
+    gif: "image",
+    svg: "image",
+    webp: "image",
+    bmp: "image",
+    ico: "image",
     pdf: "pdf",
   };
   return map[ext] || "other";
@@ -220,7 +236,7 @@ interface FileVersion {
 
 function getMockFileVersions(
   fileId: string,
-  files: typeof mockFiles,
+  files: FileItem[],
 ): FileVersion[] {
   const file = files.find((f) => f.id === fileId);
   if (!file) return [];
@@ -260,7 +276,11 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" as const },
+  },
 };
 
 // Sort type
@@ -289,7 +309,7 @@ function FileGridCard({
   onPreview: (file: FileItem) => void;
   onDownload: (file: FileItem) => void;
   multiSelectMode: boolean;
-  users: typeof mockUsers;
+  users: User[];
 }) {
   const typeConfig = fileTypeConfig[file.type] || fileTypeConfig.other;
   const ext = file.name.split(".").pop()?.toUpperCase() || "";
@@ -441,7 +461,7 @@ function FileListRow({
   onShare: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
   multiSelectMode: boolean;
-  users: typeof mockUsers;
+  users: User[];
 }) {
   const typeConfig = fileTypeConfig[file.type] || fileTypeConfig.other;
   const ext = file.name.split(".").pop()?.toUpperCase() || "";
@@ -587,19 +607,27 @@ export function FilesView() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const currentUser = useAppStore((s) => s.currentUser);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+
   // API Data
+  const wsParams = activeWorkspaceId
+    ? { workspaceId: activeWorkspaceId }
+    : undefined;
   const { data: filesData, isLoading: filesLoading } = useApiData(
     "/api/files",
-    { fallback: mockFiles },
+    { params: wsParams },
   );
   const { data: usersData, isLoading: usersLoading } = useApiData(
     "/api/users",
-    { fallback: mockUsers },
+    { params: wsParams },
   );
-  const apiFiles = useMemo(() => (filesData as typeof mockFiles) ?? [], [filesData]);
-  const users = (usersData as typeof mockUsers) ?? [];
+  const apiFiles = useMemo(
+    () => (filesData as FileItem[]) ?? [],
+    [filesData],
+  );
+  const users = (usersData as User[]) ?? [];
   const isLoading = filesLoading || usersLoading;
-  const currentUser = useAppStore((s) => s.currentUser);
 
   // Local mutable file state
   const [localFiles, setLocalFiles] = useState<FileItem[]>(apiFiles);
@@ -613,66 +641,68 @@ export function FilesView() {
   const dragCounterRef = useRef(0);
 
   // Real upload: simulates progress, then adds files to state
-  const startUpload = useCallback((fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return;
-    const fileArr = Array.from(fileList);
-    const newUploads: UploadItem[] = fileArr.map((f, i) => ({
-      id: `upload-${Date.now()}-${i}`,
-      name: f.name,
-      size: f.size,
-      progress: 0,
-      status: "uploading" as const,
-    }));
-    setUploads((prev) => [...prev, ...newUploads]);
+  const startUpload = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList || fileList.length === 0) return;
+      const fileArr = Array.from(fileList);
+      const newUploads: UploadItem[] = fileArr.map((f, i) => ({
+        id: `upload-${Date.now()}-${i}`,
+        name: f.name,
+        size: f.size,
+        progress: 0,
+        status: "uploading" as const,
+      }));
+      setUploads((prev) => [...prev, ...newUploads]);
 
-    // Simulate progress for each file
-    newUploads.forEach((upload, idx) => {
-      let progress = 0;
-      const originalFile = fileArr[idx];
-      const interval = setInterval(
-        () => {
-          progress += Math.random() * 15 + 5;
-          if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            setUploads((prev) =>
-              prev.map((u) =>
-                u.id === upload.id
-                  ? { ...u, progress: 100, status: "complete" }
-                  : u,
-              ),
-            );
-            // Add file to local state
-            const newFile: FileItem = {
-              id: `f-${Date.now()}-${idx}`,
-              name: originalFile.name,
-              type: getFileTypeFromName(originalFile.name),
-              size: originalFile.size,
-              url: "#",
-              uploadedBy: currentUser?.id || "u-1",
-              createdAt: new Date().toISOString(),
-            };
-            setLocalFiles((prev) => [newFile, ...prev]);
-          } else {
-            setUploads((prev) =>
-              prev.map((u) =>
-                u.id === upload.id
-                  ? { ...u, progress: Math.min(Math.round(progress), 99) }
-                  : u,
-              ),
-            );
-          }
-        },
-        200 + Math.random() * 300,
-      );
-    });
-  }, [currentUser]);
+      // Simulate progress for each file
+      newUploads.forEach((upload, idx) => {
+        let progress = 0;
+        const originalFile = fileArr[idx];
+        const interval = setInterval(
+          () => {
+            progress += Math.random() * 15 + 5;
+            if (progress >= 100) {
+              progress = 100;
+              clearInterval(interval);
+              setUploads((prev) =>
+                prev.map((u) =>
+                  u.id === upload.id
+                    ? { ...u, progress: 100, status: "complete" }
+                    : u,
+                ),
+              );
+              // Add file to local state
+              const newFile: FileItem = {
+                id: `f-${Date.now()}-${idx}`,
+                name: originalFile.name,
+                type: getFileTypeFromName(originalFile.name),
+                size: originalFile.size,
+                url: "#",
+                uploadedBy: currentUser?.id || "u-1",
+                createdAt: new Date().toISOString(),
+              };
+              setLocalFiles((prev) => [newFile, ...prev]);
+            } else {
+              setUploads((prev) =>
+                prev.map((u) =>
+                  u.id === upload.id
+                    ? { ...u, progress: Math.min(Math.round(progress), 99) }
+                    : u,
+                ),
+              );
+            }
+          },
+          200 + Math.random() * 300,
+        );
+      });
+    },
+    [currentUser],
+  );
 
   // Upload: trigger file picker from header button
   const handleTriggerUpload = useCallback(() => {
     const input = triggerFilePicker(true);
-    input.onchange = (e) =>
-      startUpload((e.target as HTMLInputElement).files);
+    input.onchange = (e) => startUpload((e.target as HTMLInputElement).files);
     input.click();
   }, [startUpload]);
 
@@ -744,8 +774,7 @@ export function FilesView() {
       image: `[Image: ${file.name}]\n\nResolution: 1920x1080\nFormat: ${file.name.split(".").pop()?.toUpperCase() || "PNG"}\nColor space: sRGB`,
       pdf: `================================================================================\n${file.name}\n================================================================================\n\nTABLE OF CONTENTS\n\n1. Introduction ..................................... 3\n2. Getting Started .................................. 5\n3. Core Concepts .................................... 8\n4. Advanced Usage ................................... 12\n5. Reference ........................................ 15\n\n================================================================================\n\n1. INTRODUCTION\n\nThis document provides comprehensive guidance on the subject matter.\nIt covers all essential aspects and best practices.\n\n================================================================================`,
     };
-    const content = contents[file.type] ||
-      contents.document;
+    const content = contents[file.type] || contents.document;
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -753,18 +782,23 @@ export function FilesView() {
     a.download = file.name;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    // Use a.remove() instead of removeChild to avoid NotFoundError
+    // when the element may have already been detached from the DOM
+    a.remove();
     URL.revokeObjectURL(url);
   }, []);
 
   // Share file
   const handleShare = useCallback((file: FileItem) => {
     const shareUrl = `${window.location.origin}/files/${file.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      toast.success(`Lien de partage copié pour "${file.name}" !`);
-    }).catch(() => {
-      toast.error("Impossible de copier le lien de partage.");
-    });
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        toast.success(`Lien de partage copié pour "${file.name}" !`);
+      })
+      .catch(() => {
+        toast.error("Impossible de copier le lien de partage.");
+      });
   }, []);
 
   // Delete files (single or bulk)
@@ -1443,18 +1477,8 @@ export function FilesView() {
                                 "Engineering",
                                 "Actif",
                               ],
-                              [
-                                "Bob Martel",
-                                "Designer",
-                                "Design",
-                                "Actif",
-                              ],
-                              [
-                                "Carol Dubois",
-                                "Manager",
-                                "Product",
-                                "Actif",
-                              ],
+                              ["Bob Martel", "Designer", "Design", "Actif"],
+                              ["Carol Dubois", "Manager", "Product", "Actif"],
                               [
                                 "David Park",
                                 "Analyste",
@@ -1470,9 +1494,7 @@ export function FilesView() {
                             ].map((row, i) => (
                               <tr
                                 key={i}
-                                className={
-                                  i % 2 === 0 ? "bg-muted/10" : ""
-                                }
+                                className={i % 2 === 0 ? "bg-muted/10" : ""}
                               >
                                 {row.map((cell, j) => (
                                   <td
@@ -1644,9 +1666,7 @@ export function FilesView() {
                         <p className="opacity-50">
                           {"// File content preview..."}
                         </p>
-                        <p className="mt-1">
-                          Apercu du contenu du fichier.
-                        </p>
+                        <p className="mt-1">Apercu du contenu du fichier.</p>
                         <p>Dans une application reelle, ceci afficherait</p>
                         <p>le contenu reel du fichier.</p>
                       </div>

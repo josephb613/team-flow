@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { mockProjects, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { cn } from "@/lib/utils";
 import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
@@ -51,6 +50,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+import type { Project, User } from "@/lib/types";
 
 const TITLE_MAX_LENGTH = 120;
 
@@ -88,20 +88,30 @@ interface Subtask {
 
 export function CreateTaskDialog() {
   const { createTaskDialogOpen, setCreateTaskDialogOpen, columns, editingTask, setEditingTask } = useAppStore();
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const isEditMode = editingTask !== null;
 
   // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: projectsData } = useApiData("/api/projects", {
-    fallback: mockProjects,
+  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
+  const {
+    data: projectsData,
+    isLoading: projectsLoading,
+    error: projectsError,
+  } = useApiData("/api/projects", {
+    params: wsParams,
   });
-  const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useApiData("/api/users", {
+    params: wsParams,
   });
-  const projects = (projectsData as typeof mockProjects) || mockProjects;
-  const users = (usersData as typeof mockUsers) || mockUsers;
+  const projects = (projectsData as Project[]) || [];
+  const users = (usersData as User[]) || [];
 
   const statusOptions = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
@@ -478,17 +488,32 @@ export function CreateTaskDialog() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: project.color }}
-                            />
-                            <span className="truncate">{project.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {projectsLoading ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[oklch(0.55_0.15_160)] border-t-transparent mr-2" />
+                          Loading...
+                        </div>
+                      ) : projectsError ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-destructive">
+                          {projectsError}
+                        </div>
+                      ) : projects.length === 0 ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          No projects available
+                        </div>
+                      ) : (
+                        projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: project.color }}
+                              />
+                              <span className="truncate">{project.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <AnimatePresence>

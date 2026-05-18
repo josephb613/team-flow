@@ -13,7 +13,7 @@ export function ConnectionStatus() {
     // Check server health periodically
     const checkConnection = async () => {
       try {
-        const res = await fetch('/api/tasks', { method: 'HEAD' }).catch(() => null);
+        const res = await fetch('/api/health', { method: 'HEAD' }).catch(() => null);
         setIsOnline(res !== null && res.ok);
       } catch {
         setIsOnline(false);
@@ -42,7 +42,7 @@ export function ConnectionStatus() {
   const handleRetry = async () => {
     setIsChecking(true);
     try {
-      const res = await fetch('/api/tasks').catch(() => null);
+      const res = await fetch('/api/health').catch(() => null);
       setIsOnline(res !== null && res.ok);
     } catch {
       setIsOnline(false);

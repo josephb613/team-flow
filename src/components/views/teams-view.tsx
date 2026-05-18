@@ -28,13 +28,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { mockTeams, mockUsers } from "@/lib/mock-data";
 import { useApiData } from "@/hooks/use-api-data";
 import { useTranslation } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { Team } from "@/lib/types";
+import type { Team, User } from "@/lib/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ApiTeamMember {
@@ -148,7 +147,7 @@ function normalizeTeam(t: ApiTeam | Team, idx: number): Team {
 
 function getTeamMembers(
   team: Team,
-  users: typeof mockUsers,
+  users: User[],
 ): { id: string; name: string }[] {
   return team.members
     .map((memberId) => {
@@ -177,15 +176,11 @@ export function TeamsView() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: teamsData, isLoading, refetch } = useApiData("/api/teams", {
-    fallback: mockTeams,
-  });
-  const { data: usersData } = useApiData("/api/users", {
-    fallback: mockUsers,
-  });
+  const { data: teamsData, isLoading, refetch } = useApiData("/api/teams");
+  const { data: usersData } = useApiData("/api/users");
 
   const rawTeams = (teamsData as (ApiTeam | Team)[]) ?? [];
-  const users = (usersData as typeof mockUsers) ?? [];
+  const users = (usersData as User[]) ?? [];
 
   // Normalize API data to match Team type
   const teams = rawTeams

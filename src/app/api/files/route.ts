@@ -34,7 +34,7 @@ export const GET = withErrorHandler(
     const files = await db.fileItem.findMany({
       where: whereClause,
       include: {
-        uploader: { select: { id: true, name: true, avatar: true } },
+        uploader: { select: { neonAuthUserId: true, name: true, avatar: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -73,7 +73,7 @@ export const POST = withErrorHandler(
         uploadedBy: user.id,
       },
       include: {
-        uploader: { select: { id: true, name: true, avatar: true } },
+        uploader: { select: { neonAuthUserId: true, name: true, avatar: true } },
       },
     });
 
