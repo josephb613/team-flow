@@ -15,6 +15,7 @@ export const translations = {
       noAccount: "Pas de compte ?",
       createOne: "Créer un compte",
       enterCredentials: "Veuillez entrer vos identifiants",
+      invalidCredentials: "Email ou mot de passe incorrect",
       leftTitle1: "Gérez vos projets.",
       leftTitle2: "Autonomisez vos équipes.",
       leftSubtitle:
@@ -78,6 +79,7 @@ export const translations = {
       reports: "Rapports",
       automations: "Automatisations",
       opportunities: "Opportunités",
+      phases: "Phases",
       settings: "Paramètres",
     },
 
@@ -107,27 +109,33 @@ export const translations = {
         features: [
           {
             title: "Tableau Kanban amélioré",
-            description: "Glissez-déposez les tâches entre les colonnes, filtres avancés et vue personnalisable.",
+            description:
+              "Glissez-déposez les tâches entre les colonnes, filtres avancés et vue personnalisable.",
           },
           {
             title: "Calendrier intelligent",
-            description: "Planifiez vos tâches et réunions avec une vue calendrier interactive et des rappels automatiques.",
+            description:
+              "Planifiez vos tâches et réunions avec une vue calendrier interactive et des rappels automatiques.",
           },
           {
             title: "Messages en temps réel",
-            description: "Discutez avec votre équipe en temps réel avec le nouveau système de messagerie intégré.",
+            description:
+              "Discutez avec votre équipe en temps réel avec le nouveau système de messagerie intégré.",
           },
           {
             title: "Rapports et analyses",
-            description: "Suivez la productivité de votre équipe avec des rapports détaillés et des graphiques interactifs.",
+            description:
+              "Suivez la productivité de votre équipe avec des rapports détaillés et des graphiques interactifs.",
           },
           {
             title: "Automatisations",
-            description: "Créez des règles d'automatisation pour simplifier vos flux de travail répétitifs.",
+            description:
+              "Créez des règles d'automatisation pour simplifier vos flux de travail répétitifs.",
           },
           {
             title: "Mode sombre amélioré",
-            description: "Expérience visuelle optimisée en mode sombre avec de nouveaux thèmes et une meilleure lisibilité.",
+            description:
+              "Expérience visuelle optimisée en mode sombre avec de nouveaux thèmes et une meilleure lisibilité.",
           },
         ],
       },
@@ -423,7 +431,8 @@ export const translations = {
       manageScopes: "Gérer les scopes",
       addMember: "Ajouter un membre",
       noMembers: "Aucun membre dans cette équipe",
-      noMembersHint: "Ajoutez des membres pour commencer à gérer les rôles et les scopes.",
+      noMembersHint:
+        "Ajoutez des membres pour commencer à gérer les rôles et les scopes.",
       editRoleScopes: "Modifier rôle & scopes",
       removeFromTeam: "Retirer de l'équipe",
       noRole: "Aucun rôle",
@@ -554,8 +563,10 @@ export const translations = {
       deleteColumn: "Supprimer",
       renameColumn: "Renommer",
       defaultColumn: "Par défaut",
-      cannotDeleteDefault: "Les colonnes par défaut ne peuvent pas être supprimées",
-      cannotDeleteWithTasks: "Impossible de supprimer : colonne utilisée par des tâches",
+      cannotDeleteDefault:
+        "Les colonnes par défaut ne peuvent pas être supprimées",
+      cannotDeleteWithTasks:
+        "Impossible de supprimer : colonne utilisée par des tâches",
       columnAdded: "Colonne ajoutée",
       columnUpdated: "Colonne mise à jour",
       columnDeleted: "Colonne supprimée",
@@ -606,6 +617,12 @@ export const translations = {
       create: "Créer la tâche",
       editTitle: "Modifier la tâche",
       update: "Mettre à jour",
+      audio: {
+        listening: "Cliquez pour dicter",
+        recording: "Enregistrement en cours...",
+        errorPermission: "Accès au microphone refusé",
+        errorTranscription: "Échec de la transcription",
+      },
     },
 
     // Create Project Dialog
@@ -618,7 +635,8 @@ export const translations = {
       icon: "Icône",
       color: "Couleur",
       logo: "Logo du projet",
-      logoHint: "Ajoutez un logo personnalisé. PNG, JPG, SVG ou WebP (max 5 Mo).",
+      logoHint:
+        "Ajoutez un logo personnalisé. PNG, JPG, SVG ou WebP (max 5 Mo).",
       uploadLogo: "Téléverser un logo",
       changeLogo: "Changer le logo",
       sourceUrl: "Lien d'origine",
@@ -875,6 +893,7 @@ export const translations = {
       noAccount: "Don't have an account?",
       createOne: "Create one",
       enterCredentials: "Please enter your credentials",
+      invalidCredentials: "Invalid email or password",
       leftTitle1: "Manage projects.",
       leftTitle2: "Empower teams.",
       leftSubtitle:
@@ -933,6 +952,7 @@ export const translations = {
       reports: "Reports",
       automations: "Automations",
       opportunities: "Opportunities",
+      phases: "Phases",
       settings: "Settings",
     },
     topbar: {
@@ -960,27 +980,33 @@ export const translations = {
         features: [
           {
             title: "Enhanced Kanban Board",
-            description: "Drag-and-drop tasks between columns, advanced filters, and customizable views.",
+            description:
+              "Drag-and-drop tasks between columns, advanced filters, and customizable views.",
           },
           {
             title: "Smart Calendar",
-            description: "Schedule tasks and meetings with an interactive calendar view and automatic reminders.",
+            description:
+              "Schedule tasks and meetings with an interactive calendar view and automatic reminders.",
           },
           {
             title: "Real-time Messaging",
-            description: "Chat with your team in real-time with the new integrated messaging system.",
+            description:
+              "Chat with your team in real-time with the new integrated messaging system.",
           },
           {
             title: "Reports & Analytics",
-            description: "Track your team's productivity with detailed reports and interactive charts.",
+            description:
+              "Track your team's productivity with detailed reports and interactive charts.",
           },
           {
             title: "Automations",
-            description: "Create automation rules to streamline your repetitive workflows.",
+            description:
+              "Create automation rules to streamline your repetitive workflows.",
           },
           {
             title: "Enhanced Dark Mode",
-            description: "Optimized dark mode experience with new themes and improved readability.",
+            description:
+              "Optimized dark mode experience with new themes and improved readability.",
           },
         ],
       },
@@ -1424,6 +1450,12 @@ export const translations = {
       create: "Create Task",
       editTitle: "Edit Task",
       update: "Update",
+      audio: {
+        listening: "Click to dictate",
+        recording: "Recording...",
+        errorPermission: "Microphone access denied",
+        errorTranscription: "Transcription failed",
+      },
     },
     createProject: {
       title: "Create New Project",

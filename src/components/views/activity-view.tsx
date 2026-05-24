@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
@@ -126,6 +126,20 @@ const activityConfig: Record<
     dotColor: "bg-amber-500",
     borderColor: "border-amber-500/20",
   },
+  wiki_updated: {
+    icon: FileText,
+    color: "text-amber-600",
+    bg: "bg-amber-500/15",
+    dotColor: "bg-amber-500",
+    borderColor: "border-amber-500/20",
+  },
+  wiki_deleted: {
+    icon: FileText,
+    color: "text-rose-600",
+    bg: "bg-rose-500/15",
+    dotColor: "bg-rose-500",
+    borderColor: "border-rose-500/20",
+  },
   member_joined: {
     icon: Users,
     color: "text-pink-600",
@@ -213,6 +227,8 @@ const filterOptions = [
       "meeting_created",
       "meeting_scheduled",
       "wiki_created",
+      "wiki_updated",
+      "wiki_deleted",
       "member_joined",
     ],
   },
@@ -227,7 +243,10 @@ const filterOptions = [
     ],
   },
   { value: "comments", types: ["comment_added"] },
-  { value: "files", types: ["file_uploaded", "wiki_created"] },
+  {
+    value: "files",
+    types: ["file_uploaded", "wiki_created", "wiki_updated", "wiki_deleted"],
+  },
   {
     value: "projects",
     types: [
@@ -275,13 +294,10 @@ export function ActivityView() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState("all");
 
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: activitiesData, isLoading: activitiesLoading } = useApiData(
-    "/api/activity",
-  );
-  const { data: usersData, isLoading: usersLoading } = useApiData(
-    "/api/users",
-  );
+  // ─── API Data (React Query cached) ─────────────────────────────────────
+  const { data: activitiesData, isLoading: activitiesLoading } =
+    useApiQuery("/api/activity");
+  const { data: usersData, isLoading: usersLoading } = useApiQuery("/api/users");
   const activities = (activitiesData as ActivityItem[]) ?? [];
   const users = (usersData as User[]) ?? [];
   const isLoading = activitiesLoading || usersLoading;
@@ -432,7 +448,7 @@ export function ActivityView() {
                         className="group relative flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-all duration-200 cursor-pointer"
                       >
                         {/* Timeline Dot */}
-                        <div className="relative z-10 flex-shrink-0 mt-1">
+                        <div className="relative z-10 shrink-0 mt-1">
                           <div
                             className={cn(
                               "w-[7px] h-[7px] rounded-full ring-[3px] ring-background transition-all duration-200",
@@ -445,7 +461,7 @@ export function ActivityView() {
                         {/* Activity Icon */}
                         <div
                           className={cn(
-                            "flex-shrink-0 p-2 rounded-xl border transition-all duration-200 group-hover:scale-105 group-hover:shadow-sm",
+                            "shrink-0 p-2 rounded-xl border transition-all duration-200 group-hover:scale-105 group-hover:shadow-sm",
                             config.bg,
                             config.borderColor,
                           )}

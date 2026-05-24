@@ -37,7 +37,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(teams);
+    return NextResponse.json(teams, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 

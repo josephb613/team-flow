@@ -47,6 +47,7 @@ import {
   Keyboard,
   Clock,
   Target,
+  GitBranch,
 } from "lucide-react";
 import type { PageId } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -126,7 +127,7 @@ function NavItem({
       )}
       <span
         className={cn(
-          "flex-shrink-0 transition-transform duration-150 group-hover:scale-110",
+          "shrink-0 transition-transform duration-150 group-hover:scale-110",
           active ? "text-[oklch(0.55_0.15_160)]" : "",
         )}
       >
@@ -155,7 +156,7 @@ function NavItem({
                   handleToggleFavorite(e as any);
                 }
               }}
-              className="flex-shrink-0 h-5 w-5 rounded-full flex items-center justify-center hover:bg-amber-400/20 transition-colors cursor-pointer"
+              className="shrink-0 h-5 w-5 rounded-full flex items-center justify-center hover:bg-amber-400/20 transition-colors cursor-pointer"
               title="Détacher / Unpin"
             >
               <X className="h-3 w-3 text-amber-400" />
@@ -177,7 +178,7 @@ function NavItem({
                   handleToggleFavorite(e as any);
                 }
               }}
-              className="flex-shrink-0 h-5 w-5 rounded-full flex items-center justify-center hover:bg-amber-400/20 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+              className="shrink-0 h-5 w-5 rounded-full flex items-center justify-center hover:bg-amber-400/20 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
               title="Épingler / Pin"
             >
               <Star className="h-3 w-3 text-amber-400/50" />
@@ -307,6 +308,11 @@ const allNavItems: NavItemConfig[] = [
     label: "Opportunities",
     pageId: "opportunities",
   },
+  {
+    icon: <GitBranch className="h-4 w-4" />,
+    label: "Phases",
+    pageId: "phases",
+  },
 ];
 
 const mainPageIds: Set<string> = new Set([
@@ -328,6 +334,7 @@ const managePageIds: Set<string> = new Set([
   "reports",
   "automations",
   "team-management",
+  "phases",
 ]);
 const ventesPageIds: Set<string> = new Set(["opportunities"]);
 
@@ -376,7 +383,8 @@ export function AppSidebar() {
     if (item.pageId === "projects") return { ...item, badge: projectCount };
     if (item.pageId === "messages") return { ...item, badge: messageCount };
     if (item.pageId === "meetings") return { ...item, badge: meetingCount };
-    if (item.pageId === "opportunities") return { ...item, badge: opportunityCount };
+    if (item.pageId === "opportunities")
+      return { ...item, badge: opportunityCount };
     return item;
   });
 
@@ -412,7 +420,7 @@ export function AppSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-screen bg-sidebar text-sidebar-foreground">
       {/* Workspace Switcher - with gradient background */}
-      <div className="px-3 py-3 flex-shrink-0 bg-gradient-to-b from-sidebar-accent/50 to-transparent">
+      <div className="px-3 py-3 shrink-0 bg-gradient-to-b from-sidebar-accent/50 to-transparent">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -423,7 +431,7 @@ export function AppSidebar() {
             >
               <div
                 className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm",
+                  "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 shadow-sm",
                   sidebarCollapsed &&
                     "ring-2 ring-offset-1 ring-offset-sidebar",
                 )}
@@ -454,7 +462,7 @@ export function AppSidebar() {
                       {t.sidebar.members}
                     </div>
                   </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
+                  <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 shrink-0" />
                 </>
               )}
             </button>
@@ -507,12 +515,12 @@ export function AppSidebar() {
         <div className="px-3 py-2">
           <button
             onClick={() => useAppStore.getState().setSearchOpen(true)}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border bg-sidebar-accent/30"
           >
             <span className="text-sidebar-foreground/30 text-[10px]">✦</span>
             <Search className="h-3.5 w-3.5" />
             <span>{t.sidebar.search}</span>
-            <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">
+            <kbd className="ml-auto text-[10px] border border-sidebar-border rounded px-1 bg-sidebar-accent/20">
               ⌘K
             </kbd>
           </button>
@@ -529,7 +537,7 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] border border-sidebar-border/20"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] border border-sidebar-border"
                     onClick={() => setCreateTaskDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
@@ -547,7 +555,7 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-amber-500 hover:bg-amber-500/10 border border-sidebar-border/20"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-amber-500 hover:bg-amber-500/10 border border-sidebar-border"
                     onClick={() => setCreateProjectDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
@@ -565,7 +573,7 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-rose-500 hover:bg-rose-500/10 border border-sidebar-border/20"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-rose-500 hover:bg-rose-500/10 border border-sidebar-border"
                     onClick={() => setActivePage("meetings")}
                   >
                     <Plus className="h-3 w-3" />
@@ -581,7 +589,7 @@ export function AppSidebar() {
         </div>
       )}
 
-      <Separator className="bg-sidebar-border/50" />
+      <Separator className="bg-sidebar-border" />
 
       {/* Scrollable Navigation */}
       <ScrollArea className="flex-1 px-2 py-1">
@@ -633,7 +641,7 @@ export function AppSidebar() {
                       : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                   )}
                 >
-                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span className="shrink-0">{item.icon}</span>
                   <span className="flex-1 text-left truncate">
                     {getNavLabel(item.pageId)}
                   </span>
@@ -812,10 +820,10 @@ export function AppSidebar() {
         )}
       </ScrollArea>
 
-      <Separator className="bg-sidebar-border/50" />
+      <Separator className="bg-sidebar-border" />
 
       {/* Settings */}
-      <div className="px-2 py-2 flex-shrink-0">
+      <div className="px-2 py-2 shrink-0">
         <NavItem
           icon={<Settings className="h-4 w-4" />}
           label={t.nav.settings}
@@ -827,10 +835,10 @@ export function AppSidebar() {
       </div>
 
       {/* Separator above shortcuts hint */}
-      <div className="mx-3 border-t border-sidebar-border/30" />
+      <div className="mx-3 border-t border-sidebar-border" />
 
       {/* Keyboard Shortcuts hint */}
-      <div className="px-3 py-2 flex-shrink-0">
+      <div className="px-3 py-2 shrink-0">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -839,7 +847,7 @@ export function AppSidebar() {
                   useAppStore.getState().setShortcutsHelpOpen(true)
                 }
                 className={cn(
-                  "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 min-h-[36px]",
+                  "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border min-h-[36px]",
                   sidebarCollapsed && "justify-center px-0",
                 )}
               >
@@ -847,7 +855,7 @@ export function AppSidebar() {
                 {!sidebarCollapsed && (
                   <>
                     <span>{t.shortcuts.title}</span>
-                    <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">
+                    <kbd className="ml-auto text-[10px] border border-sidebar-border rounded px-1 bg-sidebar-accent/20">
                       ?
                     </kbd>
                   </>
@@ -861,11 +869,11 @@ export function AppSidebar() {
         </TooltipProvider>
       </div>
 
-      <Separator className="bg-sidebar-border/50" />
+      <Separator className="bg-sidebar-border" />
 
       {/* Online users indicator with status text */}
       {!sidebarCollapsed && (
-        <div className="px-3 pb-3 pt-2 flex-shrink-0">
+        <div className="px-3 pb-3 pt-2 shrink-0">
           <div className="flex items-center">
             {/* Stacked avatars with overlap */}
             <div className="flex items-center">
@@ -925,7 +933,7 @@ export function AppSidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 border-r border-sidebar-border/30",
+          "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-40 transition-all duration-300 border-r border-sidebar-border",
           sidebarCollapsed ? "w-[68px]" : "w-[260px]",
         )}
       >

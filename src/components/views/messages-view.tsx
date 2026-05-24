@@ -35,7 +35,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import type { Channel, Message, User } from "@/lib/types";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -340,8 +340,8 @@ export function MessagesView() {
   const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ── API Data ──────────────────────────────────────────────────────────
-  const { data: users, isLoading: usersLoading } = useApiData<User[]>(
+  // ── API Data (React Query cached) ─────────────────────────────────────
+  const { data: users, isLoading: usersLoading } = useApiQuery<User[]>(
     "/api/users",
   );
   const usersData = users || [];

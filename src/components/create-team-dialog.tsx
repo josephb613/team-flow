@@ -180,7 +180,7 @@ export function CreateTeamDialog() {
           <div className="p-3 rounded-xl border bg-muted/30 overflow-hidden">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border border-white/10 shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border border-black/5 dark:border-white/10 shrink-0"
                 style={{ backgroundColor: color + "20", color }}
               >
                 {name.trim() ? name.trim().charAt(0).toUpperCase() : "?"}

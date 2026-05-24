@@ -464,7 +464,7 @@ function DroppableKanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200",
+        "shrink-0 w-[240px] sm:w-[260px] transition-all duration-200",
         isOver &&
           "ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl",
       )}
@@ -663,6 +663,7 @@ function KanbanView({
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["phases"] });
       })
       .catch(() => {
         setTasks((prev) =>
@@ -745,7 +746,7 @@ function KanbanView({
       {/* Drag Overlay */}
       <DragOverlay>
         {activeTask ? (
-          <div className="w-[280px] sm:w-[300px] rotate-2 opacity-90 shadow-2xl">
+          <div className="w-[240px] sm:w-[260px] rotate-2 opacity-90 shadow-2xl">
             <TaskCardContent
               task={activeTask}
               users={users}
@@ -1016,7 +1017,7 @@ function ListView({
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                        "w-1.5 h-1.5 rounded-full shrink-0",
                         priority.dotColor,
                       )}
                     />
@@ -1037,7 +1038,7 @@ function ListView({
                 </div>
                 <div className="hidden sm:flex items-center gap-1.5 w-24">
                   <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    className="w-2 h-2 rounded-full shrink-0"
                     style={{
                       backgroundColor: getProjectColor(
                         task.projectId,
@@ -1301,7 +1302,7 @@ function MyTasksView({
                             />
                             <div
                               className={cn(
-                                "w-1 h-8 rounded-full flex-shrink-0",
+                                "w-1 h-8 rounded-full shrink-0",
                                 priority.strip.replace("border-l-", "bg-"),
                               )}
                             />
@@ -1340,7 +1341,7 @@ function MyTasksView({
                             </div>
                             <div
                               className={cn(
-                                "flex items-center gap-1 text-[10px] font-medium flex-shrink-0",
+                                "flex items-center gap-1 text-[10px] font-medium shrink-0",
                                 overdue
                                   ? "text-rose-600 dark:text-rose-400"
                                   : "text-muted-foreground",

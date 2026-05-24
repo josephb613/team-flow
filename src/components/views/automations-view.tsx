@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,26 +53,29 @@ const item = {
 export function AutomationsView() {
   const { t } = useTranslation();
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
+  // ─── API Data (React Query cached) ─────────────────────────────────────
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: apiAutomations, isLoading } = useApiQuery("/api/automations");
 
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: apiAutomations, isLoading } = useApiData("/api/automations", {
-    params: wsParams,
-  });
-  const automationsData = (apiAutomations as Automation[]) ?? [];
+  // ─── Local toggle overrides (optimistic UI) ───────────────────────────
+  const [toggledIds, setToggledIds] = useState<Set<string>>(new Set());
 
-  const [automations, setAutomations] = useState(automationsData);
-
-  // Sync local state when API data arrives
-  useEffect(() => {
-    if (apiAutomations)
-      setAutomations(apiAutomations as Automation[]);
-  }, [apiAutomations]);
+  // Derive final automations: API data + local toggle overrides
+  const automations: Automation[] = useMemo(() => {
+    const base = (apiAutomations as Automation[]) ?? [];
+    if (toggledIds.size === 0) return base;
+    return base.map((a) =>
+      toggledIds.has(a.id) ? { ...a, enabled: !a.enabled } : a,
+    );
+  }, [apiAutomations, toggledIds]);
 
   const toggleAutomation = useCallback((id: string) => {
-    setAutomations((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)),
-    );
+    setToggledIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
   const enabledCount = automations.filter((a) => a.enabled).length;
@@ -202,7 +205,7 @@ export function AutomationsView() {
                       {/* Automation Icon */}
                       <div
                         className={cn(
-                          "p-2.5 rounded-xl flex-shrink-0 border transition-colors duration-300",
+                          "p-2.5 rounded-xl shrink-0 border transition-colors duration-300",
                           automation.enabled
                             ? "bg-[oklch(0.55_0.15_160/0.1)] border-[oklch(0.55_0.15_160/0.15)]"
                             : "bg-muted border-border",
@@ -257,7 +260,7 @@ export function AutomationsView() {
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.3 + idx * 0.05 }}
                           >
-                            <ArrowRight className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                            <ArrowRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                           </motion.div>
                           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/15 text-cyan-700 text-xs font-medium">
                             <Zap className="h-3 w-3" />
@@ -292,7 +295,7 @@ export function AutomationsView() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Switch
                         checked={automation.enabled}
                         onCheckedChange={() => toggleAutomation(automation.id)}

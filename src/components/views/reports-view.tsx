@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -100,21 +100,12 @@ const healthColors: Record<string, { bg: string; text: string; dot: string }> =
 export function ReportsView() {
   const { t } = useTranslation();
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
-
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: tasksData } = useApiData("/api/tasks", {
-    params: wsParams,
-  });
-  const { data: projectsData } = useApiData("/api/projects", {
-    params: wsParams,
-  });
-  const { data: usersData } = useApiData("/api/users", {
-    params: wsParams,
-  });
-  const { data: teamsData } = useApiData("/api/teams", {
-    params: wsParams,
-  });
+  // ─── API Data (React Query cached) ─────────────────────────────────────
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: tasksData } = useApiQuery("/api/tasks");
+  const { data: projectsData } = useApiQuery("/api/projects");
+  const { data: usersData } = useApiQuery("/api/users");
+  const { data: teamsData } = useApiQuery("/api/teams");
   const tasks = (tasksData as Task[]) ?? [];
   const projects = (projectsData as Project[]) ?? [];
   const users = (usersData as User[]) ?? [];
@@ -299,7 +290,7 @@ export function ReportsView() {
                         </p>
                       </div>
                       <div
-                        className={`p-3 rounded-2xl ${stat.iconBg} backdrop-blur-sm border border-white/10 shadow-sm`}
+                        className={`p-3 rounded-2xl ${stat.iconBg} backdrop-blur-sm border border-black/5 dark:border-white/10 shadow-sm`}
                       >
                         <IconComp className={`h-5 w-5 ${stat.iconColor}`} />
                       </div>
@@ -634,7 +625,7 @@ export function ReportsView() {
                   >
                     {/* Project Icon */}
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-sm flex-shrink-0 border border-white/10 shadow-sm"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0 border border-black/5 dark:border-white/10 shadow-sm"
                       style={{
                         backgroundColor: project.color + "20",
                         color: project.color,
@@ -673,7 +664,7 @@ export function ReportsView() {
                     {/* Status Badge */}
                     <Badge
                       className={cn(
-                        "text-[10px] px-2.5 py-0.5 gap-1 font-medium flex-shrink-0 border-0",
+                        "text-[10px] px-2.5 py-0.5 gap-1 font-medium shrink-0 border-0",
                         health.bg,
                         health.text,
                       )}

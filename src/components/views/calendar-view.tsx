@@ -24,7 +24,7 @@ import {
   Crosshair,
   Loader2,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useAppStore } from "@/lib/store";
 import type { CalendarEvent, Project } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -316,20 +316,16 @@ export function CalendarView() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [direction, setDirection] = useState<number>(0);
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
-
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: eventsData, isLoading: eventsLoading } = useApiData(
+  // ─── API Data (React Query cached) ─────────────────────────────────────
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: eventsData, isLoading: eventsLoading } = useApiQuery(
     "/api/meetings",
-    { params: wsParams },
   );
-  const { data: tasksData, isLoading: tasksLoading } = useApiData(
+  const { data: tasksData, isLoading: tasksLoading } = useApiQuery(
     "/api/tasks",
-    { params: wsParams },
   );
-  const { data: projectsData, isLoading: projectsLoading } = useApiData(
+  const { data: projectsData, isLoading: projectsLoading } = useApiQuery(
     "/api/projects",
-    { params: wsParams },
   );
 
   // Transform tasks with due dates into calendar events

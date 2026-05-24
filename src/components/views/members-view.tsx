@@ -272,7 +272,7 @@ export function MembersView() {
           const gradient = avatarGradients[idx % avatarGradients.length];
 
           return (
-            <motion.div key={user.id} variants={item}>
+            <motion.div key={`${user.id}-${idx}`} variants={item}>
               <Card
                 className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-border/60 overflow-hidden cursor-pointer"
                 onClick={() => handleViewProfile(user)}

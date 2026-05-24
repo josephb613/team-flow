@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { InputWithAudioRecorder } from "@/components/InputWithAudioRecorder";
 import {
   Select,
   SelectContent,
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { cn } from "@/lib/utils";
 import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,9 +48,10 @@ import {
   Plus,
   X,
   ChevronDown,
+  GitBranch,
 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import type { Project, User } from "@/lib/types";
+import type { Project, User, ProjectPhase } from "@/lib/types";
 
 const TITLE_MAX_LENGTH = 120;
 
@@ -87,7 +88,13 @@ interface Subtask {
 }
 
 export function CreateTaskDialog() {
-  const { createTaskDialogOpen, setCreateTaskDialogOpen, columns, editingTask, setEditingTask } = useAppStore();
+  const {
+    createTaskDialogOpen,
+    setCreateTaskDialogOpen,
+    columns,
+    editingTask,
+    setEditingTask,
+  } = useAppStore();
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -95,23 +102,25 @@ export function CreateTaskDialog() {
   const isEditMode = editingTask !== null;
 
   // ─── API Data ──────────────────────────────────────────────────────────
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
+  const wsParams = activeWorkspaceId
+    ? { workspaceId: activeWorkspaceId }
+    : undefined;
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
   const {
     data: projectsData,
     isLoading: projectsLoading,
     error: projectsError,
-  } = useApiData("/api/projects", {
-    params: wsParams,
-  });
+  } = useApiQuery<Project[]>("/api/projects");
   const {
     data: usersData,
     isLoading: usersLoading,
     error: usersError,
-  } = useApiData("/api/users", {
-    params: wsParams,
-  });
-  const projects = (projectsData as Project[]) || [];
-  const users = (usersData as User[]) || [];
+  } = useApiQuery<User[]>("/api/users");
+  const projects = projectsData || [];
+  const users = usersData || [];
+
+  const { data: phasesData } = useApiQuery<ProjectPhase[]>("/api/phases");
+  const phases = phasesData || [];
 
   const statusOptions = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
@@ -123,6 +132,7 @@ export function CreateTaskDialog() {
   const [status, setStatus] = useState("todo");
   const [priority, setPriority] = useState("medium");
   const [projectId, setProjectId] = useState("");
+  const [phaseId, setPhaseId] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [tagInput, setTagInput] = useState("");
@@ -130,9 +140,15 @@ export function CreateTaskDialog() {
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [newSubtask, setNewSubtask] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const projectPhases = useMemo(() => {
+    if (!projectId) return [];
+    return phases.filter((p) => p.projectId === projectId);
+  }, [phases, projectId]);
   const [titleError, setTitleError] = useState("");
   const [projectError, setProjectError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false); // Garde synchrone anti double-clic
 
   // Pré-remplir le formulaire en mode édition
   useEffect(() => {
@@ -142,8 +158,11 @@ export function CreateTaskDialog() {
       setStatus(editingTask.status || "todo");
       setPriority(editingTask.priority || "medium");
       setProjectId(editingTask.projectId || "");
+      setPhaseId(editingTask.phaseId || "");
       setAssigneeId(editingTask.assigneeId || "");
-      setDueDate(editingTask.dueDate ? new Date(editingTask.dueDate) : undefined);
+      setDueDate(
+        editingTask.dueDate ? new Date(editingTask.dueDate) : undefined,
+      );
       setTagInput("");
       setTags(editingTask.tags || []);
       setSubtasks([]);
@@ -161,6 +180,7 @@ export function CreateTaskDialog() {
     setStatus("todo");
     setPriority("medium");
     setProjectId("");
+    setPhaseId("");
     setAssigneeId("");
     setDueDate(undefined);
     setTagInput("");
@@ -236,8 +256,10 @@ export function CreateTaskDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
+    // Garde synchrone via ref pour éviter les doubles soumissions (race condition React)
+    if (!validate() || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const method = isEditMode ? "PATCH" : "POST";
@@ -248,6 +270,7 @@ export function CreateTaskDialog() {
         status,
         priority,
         projectId: projectId || null,
+        phaseId: phaseId && phaseId !== "none" ? phaseId : null,
         assigneeId: assigneeId || null,
         dueDate: dueDate?.toISOString() || null,
         tags,
@@ -267,22 +290,32 @@ export function CreateTaskDialog() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to ${isEditMode ? "update" : "create"} task`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${isEditMode ? "update" : "create"} task`,
+        );
       }
 
       toast.success(isEditMode ? t.toast.taskUpdated : t.toast.taskCreated);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["phases"] });
       setCreateTaskDialogOpen(false);
       resetForm();
       setEditingTask(null);
     } catch (error) {
-      console.error(`Error ${isEditMode ? "updating" : "creating"} task:`, error);
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} task:`,
+        error,
+      );
       toast.error(
-        error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} task`,
+        error instanceof Error
+          ? error.message
+          : `Failed to ${isEditMode ? "update" : "create"} task`,
       );
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -340,24 +373,25 @@ export function CreateTaskDialog() {
                   {t.createTask.taskTitle}{" "}
                   <span className="text-destructive text-xs">*</span>
                 </Label>
-                <div className="relative">
-                  <Input
+                <div className="space-y-1">
+                  <InputWithAudioRecorder
                     id="task-title"
-                    placeholder={t.createTask.taskTitlePlaceholder}
                     value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value.slice(0, TITLE_MAX_LENGTH));
+                    onChange={(newValue) => {
+                      setTitle(newValue.slice(0, TITLE_MAX_LENGTH));
                       if (titleError) setTitleError("");
                     }}
+                    placeholder={t.createTask.taskTitlePlaceholder}
+                    maxLength={TITLE_MAX_LENGTH}
                     className={cn(
-                      "h-10 pr-16",
+                      "h-10",
                       titleError
                         ? "border-destructive focus-visible:ring-destructive/30"
                         : "focus-visible:ring-[oklch(0.55_0.15_160/0.3)]",
                     )}
                     autoFocus
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground tabular-nums">
+                  <span className="text-[11px] text-muted-foreground tabular-nums text-right block pr-1">
                     {title.length}/{TITLE_MAX_LENGTH}
                   </span>
                 </div>
@@ -387,11 +421,12 @@ export function CreateTaskDialog() {
                     ({t.createTask.markdownHint})
                   </span>
                 </Label>
-                <Textarea
+                <InputWithAudioRecorder
                   id="task-desc"
-                  placeholder={t.createTask.descriptionPlaceholder}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
+                  placeholder={t.createTask.descriptionPlaceholder}
+                  multiline
                   className="min-h-[80px] resize-none focus-visible:ring-[oklch(0.55_0.15_160/0.3)]"
                 />
               </div>
@@ -586,47 +621,81 @@ export function CreateTaskDialog() {
                 </div>
               </div>
 
-              {/* Due Date */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.createTask.dueDate}
-                </Label>
-                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.15_160/0.3)]",
-                        !dueDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {dueDate
-                        ? dueDate.toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : t.createTask.selectDate}
-                      <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dueDate}
-                      onSelect={(date: Date | undefined) => {
-                        setDueDate(date);
-                        setCalendarOpen(false);
-                      }}
-                      disabled={(date) =>
-                        date < new Date(new Date().setHours(0, 0, 0, 0))
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              {/* Phase & Due Date row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Phase */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                    Phase du projet
+                  </Label>
+                  <Select
+                    value={phaseId || "none"}
+                    onValueChange={(v) => setPhaseId(v === "none" ? "" : v)}
+                    disabled={!projectId}
+                  >
+                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                      <SelectValue
+                        placeholder={
+                          projectId
+                            ? "Sélectionner une phase"
+                            : "Sélectionnez d'abord un projet"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Aucune phase</SelectItem>
+                      {projectPhases.map((phase) => (
+                        <SelectItem key={phase.id} value={phase.id}>
+                          {phase.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Due Date */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    {t.createTask.dueDate}
+                  </Label>
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.15_160/0.3)]",
+                          !dueDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarDays className="mr-2 h-4 w-4" />
+                        {dueDate
+                          ? dueDate.toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : t.createTask.selectDate}
+                        <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dueDate}
+                        onSelect={(date: Date | undefined) => {
+                          setDueDate(date);
+                          setCalendarOpen(false);
+                        }}
+                        disabled={(date) =>
+                          date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               {/* Tags */}
@@ -674,69 +743,69 @@ export function CreateTaskDialog() {
 
               {/* Subtasks - masquées en mode édition */}
               {!isEditMode && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-1.5">
-                  <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t.createTask.subtasks}
-                  {subtasks.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground/60 ml-1">
-                      ({subtasks.length})
-                    </span>
-                  )}
-                </Label>
-                <AnimatePresence>
-                  {subtasks.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-1.5 overflow-hidden"
-                    >
-                      {subtasks.map((subtask, index) => (
-                        <motion.div
-                          key={subtask.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 10 }}
-                          transition={{ duration: 0.15, delay: index * 0.03 }}
-                          className="flex items-center gap-2 group"
-                        >
-                          <div className="h-4 w-4 rounded border border-muted-foreground/30 shrink-0" />
-                          <span className="text-sm flex-1 truncate">
-                            {subtask.title}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeSubtask(subtask.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+                    {t.createTask.subtasks}
+                    {subtasks.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground/60 ml-1">
+                        ({subtasks.length})
+                      </span>
+                    )}
+                  </Label>
+                  <AnimatePresence>
+                    {subtasks.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-1.5 overflow-hidden"
+                      >
+                        {subtasks.map((subtask, index) => (
+                          <motion.div
+                            key={subtask.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            transition={{ duration: 0.15, delay: index * 0.03 }}
+                            className="flex items-center gap-2 group"
                           >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newSubtask}
-                    onChange={(e) => setNewSubtask(e.target.value)}
-                    onKeyDown={handleSubtaskKeyDown}
-                    placeholder={t.createTask.subtaskPlaceholder}
-                    className="h-9 text-sm focus-visible:ring-[oklch(0.55_0.15_160/0.3)]"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addSubtask}
-                    disabled={!newSubtask.trim()}
-                    className="h-9 px-3 shrink-0 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
+                            <div className="h-4 w-4 rounded border border-muted-foreground/30 shrink-0" />
+                            <span className="text-sm flex-1 truncate">
+                              {subtask.title}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeSubtask(subtask.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={handleSubtaskKeyDown}
+                      placeholder={t.createTask.subtaskPlaceholder}
+                      className="h-9 text-sm focus-visible:ring-[oklch(0.55_0.15_160/0.3)]"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSubtask}
+                      disabled={!newSubtask.trim()}
+                      className="h-9 px-3 shrink-0 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* Actions */}
@@ -757,7 +826,8 @@ export function CreateTaskDialog() {
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      {isEditMode ? t.createTask.update : t.createTask.create}...
+                      {isEditMode ? t.createTask.update : t.createTask.create}
+                      ...
                     </span>
                   ) : (
                     <>

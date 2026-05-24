@@ -19,8 +19,15 @@ export function getQueryClient(): QueryClient {
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
-          staleTime: 30_000,
+          // Données métier : restent fraîches 5 minutes
+          staleTime: 5 * 60 * 1000,
+          // Gardées en cache 30 minutes même après inactivité
+          gcTime: 30 * 60 * 1000,
           retry: 1,
+          // Pas de refetch au montage si le cache est encore frais
+          refetchOnMount: false,
+          // Pas de refetch quand l'onglet reprend le focus
+          refetchOnWindowFocus: false,
         },
       },
     });

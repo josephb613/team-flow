@@ -3,6 +3,23 @@
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
 import { AppSidebar } from "@/components/app-sidebar";
+import { TopBar } from "@/components/top-bar";
+import { ConnectionStatus } from "@/components/connection-status";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Heart,
+  ArrowUp,
+  Plus,
+  CheckSquare,
+  FolderKanban,
+  Video,
+} from "lucide-react";
+import { useState, useEffect, lazy, Suspense, memo } from "react";
+
+// Import views directly for instant rendering (no lazy loading delay)
 import { DashboardView } from "@/components/views/dashboard-view";
 import { TasksView } from "@/components/views/tasks-view";
 import { ProjectsView } from "@/components/views/projects-view";
@@ -18,38 +35,28 @@ import { TeamManagementView } from "@/components/views/team-management-view";
 import { ReportsView } from "@/components/views/reports-view";
 import { AutomationsView } from "@/components/views/automations-view";
 import { OpportunitiesView } from "@/components/views/opportunities-view";
+import { PhasesView } from "@/components/views/phases-view";
 import { SettingsView } from "@/components/views/settings-view";
-import { TopBar } from "@/components/top-bar";
+
+// Import frequently used drawers directly for instant rendering
 import { NotificationPanel } from "@/components/notification-panel";
-import { CreateWorkspaceDialog } from "@/components/create-workspace-dialog";
-import { InviteMemberDialog } from "@/components/invite-member-dialog";
-import { CreateTaskDialog } from "@/components/create-task-dialog";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
-import { CreateChannelDialog } from "@/components/create-channel-dialog";
-import { CreateTeamDialog } from "@/components/create-team-dialog";
-import { CreateOpportunityDialog } from "@/components/create-opportunity-dialog";
 import { TaskDetailDrawer } from "@/components/task-detail-drawer";
 import { ProjectDetailDrawer } from "@/components/project-detail-drawer";
 import { MemberDetailDrawer } from "@/components/member-detail-drawer";
-import { ShortcutsDialog } from "@/components/shortcuts-dialog";
-import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog";
-import { WhatsNewDialog } from "@/components/whats-new-dialog";
-import { TrelloIntegrationDialog } from "@/components/trello-integration-dialog";
-import { ConnectionStatus } from "@/components/connection-status";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { Toaster } from "@/components/ui/sonner";
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Heart,
-  ArrowUp,
-  Plus,
-  CheckSquare,
-  FolderKanban,
-  Video,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { PageTransition } from "@/components/page-transition";
+import { CreateTaskDialog } from "@/components/create-task-dialog";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+
+// Lazy load less frequently used dialogs
+const CreateWorkspaceDialog = lazy(() => import("@/components/create-workspace-dialog").then(m => ({ default: m.CreateWorkspaceDialog })));
+const InviteMemberDialog = lazy(() => import("@/components/invite-member-dialog").then(m => ({ default: m.InviteMemberDialog })));
+const CreateChannelDialog = lazy(() => import("@/components/create-channel-dialog").then(m => ({ default: m.CreateChannelDialog })));
+const CreateTeamDialog = lazy(() => import("@/components/create-team-dialog").then(m => ({ default: m.CreateTeamDialog })));
+const CreateOpportunityDialog = lazy(() => import("@/components/create-opportunity-dialog").then(m => ({ default: m.CreateOpportunityDialog })));
+const CreatePhaseDialog = lazy(() => import("@/components/create-phase-dialog").then(m => ({ default: m.CreatePhaseDialog })));
+const ShortcutsDialog = lazy(() => import("@/components/shortcuts-dialog").then(m => ({ default: m.ShortcutsDialog })));
+const KeyboardShortcutsDialog = lazy(() => import("@/components/keyboard-shortcuts-dialog").then(m => ({ default: m.KeyboardShortcutsDialog })));
+const WhatsNewDialog = lazy(() => import("@/components/whats-new-dialog").then(m => ({ default: m.WhatsNewDialog })));
+const TrelloIntegrationDialog = lazy(() => import("@/components/trello-integration-dialog").then(m => ({ default: m.TrelloIntegrationDialog })));
 
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
@@ -67,6 +74,7 @@ const viewMap: Record<string, React.ComponentType> = {
   reports: ReportsView,
   automations: AutomationsView,
   opportunities: OpportunitiesView,
+  phases: PhasesView,
   settings: SettingsView,
 };
 
@@ -211,101 +219,145 @@ function MobileFAB() {
   );
 }
 
-export function MainApp() {
-  const activePage = useAppStore((s) => s.activePage);
-  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
-  const trelloDialogOpen = useAppStore((s) => s.trelloDialogOpen);
-  const setTrelloDialogOpen = useAppStore((s) => s.setTrelloDialogOpen);
+// Optimized selectors to prevent unnecessary re-renders
+const useActivePage = () => useAppStore((s) => s.activePage);
+const useSidebarCollapsed = () => useAppStore((s) => s.sidebarCollapsed);
+const useTrelloDialogOpen = () => useAppStore((s) => s.trelloDialogOpen);
+const useSetTrelloDialogOpen = () => useAppStore((s) => s.setTrelloDialogOpen);
 
-  useKeyboardShortcuts();
+// Dialog open state selectors (only for lazy-loaded dialogs)
+const useCreateWorkspaceDialogOpen = () => useAppStore((s) => s.createWorkspaceDialogOpen);
+const useInviteMemberDialogOpen = () => useAppStore((s) => s.inviteMemberDialogOpen);
+const useCreateChannelDialogOpen = () => useAppStore((s) => s.createChannelDialogOpen);
+const useCreateTeamDialogOpen = () => useAppStore((s) => s.createTeamDialogOpen);
+const useCreateOpportunityDialogOpen = () => useAppStore((s) => s.createOpportunityDialogOpen);
+const useCreatePhaseDialogOpen = () => useAppStore((s) => s.createPhaseDialogOpen);
+const useShortcutsHelpOpen = () => useAppStore((s) => s.shortcutsHelpOpen);
+const useKeyboardShortcutsOpen = () => useAppStore((s) => s.keyboardShortcutsOpen);
+const useWhatsNewDialogOpen = () => useAppStore((s) => s.whatsNewDialogOpen);
 
+// Conditional dialog renderer - only renders when open
+function LazyDialog({ 
+  isOpen, 
+  children 
+}: { 
+  isOpen: boolean; 
+  children: React.ReactNode;
+}) {
+  if (!isOpen) return null;
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
+
+// Memoized main content area to prevent re-renders from dialog state changes
+const MainContent = memo(function MainContent() {
+  const activePage = useActivePage();
+  const sidebarCollapsed = useSidebarCollapsed();
   const ActiveView = viewMap[activePage] || DashboardView;
+
+  return (
+    <div
+      className={cn(
+        "flex-1 flex flex-col min-h-screen transition-all duration-300",
+        sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[260px]",
+      )}
+    >
+      <TopBar />
+      <main
+        id="main-content-area"
+        className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
+      >
+        <div className="relative z-10">
+          <ActiveView />
+        </div>
+      </main>
+      <AppFooter />
+    </div>
+  );
+});
+
+// Dialogs container - only subscribes to dialog states
+const DialogsContainer = memo(function DialogsContainer() {
+  const createWorkspaceDialogOpen = useCreateWorkspaceDialogOpen();
+  const inviteMemberDialogOpen = useInviteMemberDialogOpen();
+  const createChannelDialogOpen = useCreateChannelDialogOpen();
+  const createTeamDialogOpen = useCreateTeamDialogOpen();
+  const createOpportunityDialogOpen = useCreateOpportunityDialogOpen();
+  const createPhaseDialogOpen = useCreatePhaseDialogOpen();
+  const shortcutsHelpOpen = useShortcutsHelpOpen();
+  const keyboardShortcutsOpen = useKeyboardShortcutsOpen();
+  const whatsNewDialogOpen = useWhatsNewDialogOpen();
+  const trelloDialogOpen = useTrelloDialogOpen();
+  const setTrelloDialogOpen = useSetTrelloDialogOpen();
+
+  return (
+    <>
+      {/* Directly imported components - always rendered for instant access */}
+      <NotificationPanel />
+      <TaskDetailDrawer />
+      <ProjectDetailDrawer />
+      <MemberDetailDrawer />
+      <CreateTaskDialog />
+      <CreateProjectDialog />
+
+      {/* Lazy loaded dialogs - less frequently used */}
+      <LazyDialog isOpen={createWorkspaceDialogOpen}>
+        <CreateWorkspaceDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={inviteMemberDialogOpen}>
+        <InviteMemberDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={createChannelDialogOpen}>
+        <CreateChannelDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={createTeamDialogOpen}>
+        <CreateTeamDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={createOpportunityDialogOpen}>
+        <CreateOpportunityDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={createPhaseDialogOpen}>
+        <CreatePhaseDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={shortcutsHelpOpen}>
+        <ShortcutsDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={keyboardShortcutsOpen}>
+        <KeyboardShortcutsDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={whatsNewDialogOpen}>
+        <WhatsNewDialog />
+      </LazyDialog>
+
+      <LazyDialog isOpen={trelloDialogOpen}>
+        <TrelloIntegrationDialog
+          open={trelloDialogOpen}
+          onOpenChange={setTrelloDialogOpen}
+        />
+      </LazyDialog>
+    </>
+  );
+});
+
+export function MainApp() {
+  useKeyboardShortcuts();
 
   return (
     <>
       <ConnectionStatus />
       <div className="min-h-screen flex bg-background">
-        {/* Sidebar */}
         <AppSidebar />
-
-        {/* Main content */}
-        <div
-          className={cn(
-            "flex-1 flex flex-col min-h-screen transition-all duration-300",
-            sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[260px]",
-          )}
-        >
-          <TopBar />
-          <main
-            id="main-content-area"
-            className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
-          >
-            {/* Subtle dot-pattern background overlay */}
-            <div className="relative z-10">
-              <PageTransition pageId={activePage}>
-                <ActiveView />
-              </PageTransition>
-            </div>
-          </main>
-          <AppFooter />
-        </div>
-
-        {/* Back to top button */}
+        <MainContent />
         <BackToTopButton />
-
-        {/* Mobile FAB */}
         <MobileFAB />
-
-        {/* Notification Panel (slide-out overlay) */}
-        <NotificationPanel />
-
-        {/* Task Detail Drawer */}
-        <TaskDetailDrawer />
-
-        {/* Project Detail Drawer */}
-        <ProjectDetailDrawer />
-
-        {/* Member Detail Drawer */}
-        <MemberDetailDrawer />
-
-        {/* Create Workspace Dialog */}
-        <CreateWorkspaceDialog />
-
-        {/* Invite Member Dialog */}
-        <InviteMemberDialog />
-
-        {/* Create Task Dialog */}
-        <CreateTaskDialog />
-
-        {/* Create Project Dialog */}
-        <CreateProjectDialog />
-
-        {/* Create Channel Dialog */}
-        <CreateChannelDialog />
-
-        {/* Create Team Dialog */}
-        <CreateTeamDialog />
-
-        {/* Create Opportunity Dialog */}
-        <CreateOpportunityDialog />
-
-        {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}
-        <ShortcutsDialog />
-
-        {/* Keyboard Shortcuts Dialog (new, triggered by ⌘/) */}
-        <KeyboardShortcutsDialog />
-
-        {/* What's New Dialog */}
-        <WhatsNewDialog />
-
-        {/* Trello Integration Dialog (rendered here outside PageTransition
-          to avoid insertBefore DOM errors with Radix portals + AnimatePresence) */}
-        <TrelloIntegrationDialog
-          open={trelloDialogOpen}
-          onOpenChange={setTrelloDialogOpen}
-        />
-
-        {/* Toast Notifications */}
+        <DialogsContainer />
         <Toaster />
       </div>
     </>

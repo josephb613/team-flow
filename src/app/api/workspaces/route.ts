@@ -20,7 +20,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(workspaces);
+    return NextResponse.json(workspaces, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 
@@ -64,10 +69,38 @@ export const POST = withErrorHandler(
           },
           columns: {
             create: [
-              { name: "À faire", slug: "todo", color: "#64748b", icon: "circle", order: 0, isDefault: true },
-              { name: "En cours", slug: "in_progress", color: "#06b6d4", icon: "clock", order: 1, isDefault: true },
-              { name: "En revue", slug: "review", color: "#f59e0b", icon: "alert-circle", order: 2, isDefault: true },
-              { name: "Terminé", slug: "done", color: "#10b981", icon: "check-circle-2", order: 3, isDefault: true },
+              {
+                name: "À faire",
+                slug: "todo",
+                color: "#64748b",
+                icon: "circle",
+                order: 0,
+                isDefault: true,
+              },
+              {
+                name: "En cours",
+                slug: "in_progress",
+                color: "#06b6d4",
+                icon: "clock",
+                order: 1,
+                isDefault: true,
+              },
+              {
+                name: "En revue",
+                slug: "review",
+                color: "#f59e0b",
+                icon: "alert-circle",
+                order: 2,
+                isDefault: true,
+              },
+              {
+                name: "Terminé",
+                slug: "done",
+                color: "#10b981",
+                icon: "check-circle-2",
+                order: 3,
+                isDefault: true,
+              },
             ],
           },
         },
@@ -86,9 +119,10 @@ export const POST = withErrorHandler(
       return NextResponse.json(
         {
           error: "Database error during workspace creation",
-          details: process.env.NODE_ENV === "development"
-            ? String(prismaError)
-            : undefined,
+          details:
+            process.env.NODE_ENV === "development"
+              ? String(prismaError)
+              : undefined,
         },
         { status: 500 },
       );

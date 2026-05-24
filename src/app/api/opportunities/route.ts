@@ -41,7 +41,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(opportunities);
+    return NextResponse.json(opportunities, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 
@@ -52,8 +57,15 @@ export const POST = withErrorHandler(
     const validation = validateBody(createOpportunitySchema, body);
     if (validation.error) return validation.error;
 
-    const { title, description, organisation, status, dueDate, responsableId, workspaceId } =
-      validation.data;
+    const {
+      title,
+      description,
+      organisation,
+      status,
+      dueDate,
+      responsableId,
+      workspaceId,
+    } = validation.data;
 
     // Verify the workspace belongs to the user
     const workspace = await db.workspace.findFirst({

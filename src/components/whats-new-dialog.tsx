@@ -49,7 +49,7 @@ export function WhatsNewDialog() {
               key={index}
               className="group flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"
             >
-              <div className="flex-shrink-0 mt-0.5">
+              <div className="shrink-0 mt-0.5">
                 <div className="flex items-center justify-center h-7 w-7 rounded-full bg-[oklch(0.55_0.15_160/0.1)]">
                   <Check className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
                 </div>

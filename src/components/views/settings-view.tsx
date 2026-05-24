@@ -54,6 +54,7 @@ import {
   Figma,
   HardDrive,
   Code2,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -129,6 +130,7 @@ export function SettingsView() {
 
   const [activeSection, setActiveSection] = useState("general");
   const currentUser = useAppStore((s) => s.currentUser);
+  const updateCurrentUser = useAppStore((s) => s.updateCurrentUser);
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const workspaces = useAppStore((s) => s.workspaces);
   const removeWorkspace = useAppStore((s) => s.removeWorkspace);
@@ -209,6 +211,74 @@ export function SettingsView() {
     compactSidebar: false,
   });
 
+  // Performance settings
+  const reducedMotion = useAppStore((s) => s.reducedMotion);
+  const setReducedMotion = useAppStore((s) => s.setReducedMotion);
+
+  // ─── Profile form state ──────────────────────────────────────────────────
+  const [profileForm, setProfileForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    bio: "",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveFeedback, setProfileSaveFeedback] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+
+  // Sync profile form when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      const nameParts = (currentUser.name || "").split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+      setProfileForm({
+        firstName,
+        lastName,
+        email: currentUser.email || "",
+        bio: currentUser?.bio || "",
+      });
+    }
+  }, [currentUser?.id]);
+
+  const handleSaveProfile = useCallback(async () => {
+    if (!currentUser?.id) return;
+    setProfileSaving(true);
+    setProfileSaveFeedback("idle");
+    try {
+      const fullName =
+        `${profileForm.firstName} ${profileForm.lastName}`.trim();
+      const res = await fetch(`/api/users/${currentUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName,
+          email: profileForm.email,
+          bio: profileForm.bio,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update profile");
+      }
+      const updated = await res.json();
+      updateCurrentUser({
+        name: updated.name,
+        email: updated.email,
+        bio: updated.bio,
+      });
+      setProfileSaveFeedback("success");
+      setTimeout(() => setProfileSaveFeedback("idle"), 2500);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      setProfileSaveFeedback("error");
+      setTimeout(() => setProfileSaveFeedback("idle"), 3500);
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [currentUser?.id, profileForm, updateCurrentUser]);
+
   // Trello integration state
   const trelloDialogOpen = useAppStore((s) => s.trelloDialogOpen);
   const setTrelloDialogOpen = useAppStore((s) => s.setTrelloDialogOpen);
@@ -278,7 +348,7 @@ export function SettingsView() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* ─── Settings Nav Sidebar ──────────────────────────────────────── */}
-        <nav className="lg:w-56 flex-shrink-0">
+        <nav className="lg:w-56 shrink-0">
           <Card className="lg:p-2 overflow-hidden border shadow-sm">
             <div className="flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-visible p-1">
               {settingsSections.map((section) => {
@@ -306,7 +376,7 @@ export function SettingsView() {
                         }}
                       />
                     )}
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0" />
                     {getSectionLabel(section.id)}
                   </button>
                 );
@@ -416,6 +486,25 @@ export function SettingsView() {
                         }
                       />
                     </div>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-muted/50">
+                          <Zap className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">
+                            {t.settings.reducedMotion || "Animations réduites"}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t.settings.reducedMotionDesc || "Désactiver les animations pour de meilleures performances"}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={reducedMotion}
+                        onCheckedChange={setReducedMotion}
+                      />
+                    </div>
                     <Button className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white">
                       <Save className="h-4 w-4" /> {t.settings.saveChanges}
                     </Button>
@@ -448,7 +537,9 @@ export function SettingsView() {
                           {currentUser?.name
                             ?.split(" ")
                             .map((n: string) => n[0])
-                            .join("") || "AT"}
+                            .join("") ||
+                            profileForm.firstName?.[0] ||
+                            "?"}
                         </div>
                         <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[oklch(0.55_0.15_160)] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                           <Camera className="h-3.5 w-3.5" />
@@ -456,13 +547,15 @@ export function SettingsView() {
                       </div>
                       <div>
                         <p className="font-semibold">
-                          {currentUser?.name || "Alex Thompson"}
+                          {profileForm.firstName
+                            ? `${profileForm.firstName} ${profileForm.lastName}`.trim()
+                            : currentUser?.name || "—"}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {currentUser?.email || "alex@acmecorp.com"}
+                          {currentUser?.email || "—"}
                         </p>
                         <Badge className="mt-1 text-[10px] bg-teal-500/10 text-teal-700 border-0">
-                          Admin
+                          {currentUser?.role || "Member"}
                         </Badge>
                       </div>
                     </div>
@@ -473,7 +566,14 @@ export function SettingsView() {
                           {t.settings.firstName}
                         </Label>
                         <Input
-                          defaultValue="Alex"
+                          value={profileForm.firstName}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              firstName: e.target.value,
+                            }))
+                          }
+                          placeholder={t.settings.firstName}
                           className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                         />
                       </div>
@@ -482,7 +582,14 @@ export function SettingsView() {
                           {t.settings.lastName}
                         </Label>
                         <Input
-                          defaultValue="Thompson"
+                          value={profileForm.lastName}
+                          onChange={(e) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              lastName: e.target.value,
+                            }))
+                          }
+                          placeholder={t.settings.lastName}
                           className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                         />
                       </div>
@@ -492,8 +599,15 @@ export function SettingsView() {
                         {t.settings.email}
                       </Label>
                       <Input
-                        defaultValue={currentUser?.email || "alex@acmecorp.com"}
+                        value={profileForm.email}
+                        onChange={(e) =>
+                          setProfileForm((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
                         type="email"
+                        placeholder={t.settings.email}
                         className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                       />
                     </div>
@@ -502,7 +616,7 @@ export function SettingsView() {
                         {t.settings.role}
                       </Label>
                       <Input
-                        defaultValue="Admin"
+                        value={currentUser?.role || "Member"}
                         disabled
                         className="bg-muted/30 border-transparent max-w-xs"
                       />
@@ -512,13 +626,48 @@ export function SettingsView() {
                         {t.settings.bio}
                       </Label>
                       <Input
-                        defaultValue="Product Manager at Acme Corp"
+                        value={profileForm.bio}
+                        onChange={(e) =>
+                          setProfileForm((prev) => ({
+                            ...prev,
+                            bio: e.target.value,
+                          }))
+                        }
+                        placeholder={t.settings.bio}
                         className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
                       />
                     </div>
-                    <Button className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white">
-                      <Save className="h-4 w-4" /> {t.settings.saveChanges}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={handleSaveProfile}
+                        disabled={profileSaving}
+                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+                      >
+                        {profileSaving ? (
+                          <>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            {t.settings.saving || "Saving..."}
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4" />{" "}
+                            {t.settings.saveChanges}
+                          </>
+                        )}
+                      </Button>
+                      {profileSaveFeedback === "success" && (
+                        <span className="text-sm text-emerald-600 flex items-center gap-1 animate-in fade-in">
+                          <Check className="h-4 w-4" />
+                          {t.settings.saved || "Saved!"}
+                        </span>
+                      )}
+                      {profileSaveFeedback === "error" && (
+                        <span className="text-sm text-red-500 flex items-center gap-1 animate-in fade-in">
+                          <AlertTriangle className="h-4 w-4" />
+                          {t.settings.saveError || "Error"}
+                        </span>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -740,7 +889,7 @@ export function SettingsView() {
                         >
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm border border-white/10"
+                              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm border border-black/5 dark:border-white/10"
                               style={{ backgroundColor: integration.color }}
                             >
                               <Icon className="h-5 w-5" />

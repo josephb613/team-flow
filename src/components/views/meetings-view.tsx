@@ -26,7 +26,7 @@ import {
   Radio,
 } from "lucide-react";
 import type { Meeting, MeetingStatus, User, Project } from "@/lib/types";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useAppStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -607,14 +607,14 @@ export function MeetingsView() {
   const [activeTab, setActiveTab] = useState<string>("upcoming");
   const [viewMode, setViewMode] = useState<"cards" | "timeline">("cards");
 
-  // ── API Data ──────────────────────────────────────────────────────────
-  const { data: meetings, isLoading: meetingsLoading } = useApiData<Meeting[]>(
+  // ── API Data (React Query cached) ─────────────────────────────────────
+  const { data: meetings, isLoading: meetingsLoading } = useApiQuery<Meeting[]>(
     "/api/meetings",
   );
-  const { data: users, isLoading: usersLoading } = useApiData<User[]>(
+  const { data: users, isLoading: usersLoading } = useApiQuery<User[]>(
     "/api/users",
   );
-  const { data: projects } = useApiData<Project[]>("/api/projects");
+  const { data: projects } = useApiQuery<Project[]>("/api/projects");
 
   const meetingsData = meetings || [];
   const usersData = users || [];

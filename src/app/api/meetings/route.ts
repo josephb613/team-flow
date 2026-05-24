@@ -33,10 +33,12 @@ export const GET = withErrorHandler(
           { status: 403 },
         );
       }
-      (whereClause.project as Record<string, unknown>).workspaceId = workspaceId;
+      (whereClause.project as Record<string, unknown>).workspaceId =
+        workspaceId;
     }
 
-    if (projectId) (whereClause as Record<string, unknown>).projectId = projectId;
+    if (projectId)
+      (whereClause as Record<string, unknown>).projectId = projectId;
 
     const meetings = await db.meeting.findMany({
       where: whereClause,
@@ -46,7 +48,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { date: "asc" },
     });
-    return NextResponse.json(meetings);
+    return NextResponse.json(meetings, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DEFAULT_OPPORTUNITY_COLUMNS } from "@/lib/column-utils";
@@ -56,10 +56,9 @@ export function CreateOpportunityDialog() {
 
   const effectiveWorkspaceId = activeWorkspaceId || workspaces[0]?.id || "";
 
-  const { data: usersData } = useApiData("/api/users", {
-    params: activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined,
-  });
-  const users = (usersData as User[]) || [];
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: usersData } = useApiQuery<User[]>("/api/users");
+  const users = usersData || [];
 
   const [title, setTitle] = useState("");
   const [organisation, setOrganisation] = useState("");

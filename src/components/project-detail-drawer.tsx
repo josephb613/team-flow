@@ -46,7 +46,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Project, ProjectStatus, User, Task } from "@/lib/types";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { cn } from "@/lib/utils";
 import { buildStatusConfig, DEFAULT_COLUMNS } from "@/lib/column-utils";
 import { motion } from "framer-motion";
@@ -220,11 +220,9 @@ export function ProjectDetailDrawer() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
-  const { data: usersData } = useApiData("/api/users", {
-    params: wsParams,
-  });
-  const users = (usersData as User[]) || [];
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: usersData } = useApiQuery<User[]>("/api/users");
+  const users = usersData || [];
 
   const { taskStatusLabels, taskStatusColors } = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;
@@ -242,16 +240,13 @@ export function ProjectDetailDrawer() {
 
   // Fetch activity logs for this project
   const projectId = selectedProject?.id as string | undefined;
-  const { data: activityData, refetch: refetchActivity } = useApiData(
-    projectId ? `/api/activity?projectId=${projectId}` : "",
-    { immediate: false },
+  const { data: activityData, refetch: refetchActivity } = useApiQuery(
+    "/api/activity",
+    {
+      params: projectId ? { projectId } : {},
+      enabled: projectDetailOpen && !!projectId,
+    },
   );
-
-  useEffect(() => {
-    if (projectDetailOpen && projectId) {
-      refetchActivity();
-    }
-  }, [projectDetailOpen, projectId, refetchActivity]);
 
   if (!selectedProject) return null;
 
@@ -352,7 +347,7 @@ export function ProjectDetailDrawer() {
                 </SheetTitle>
               </div>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <div className="flex items-center gap-1 shrink-0 ml-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">

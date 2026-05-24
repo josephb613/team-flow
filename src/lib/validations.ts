@@ -10,6 +10,7 @@ export const createTaskSchema = z.object({
   tags: z.array(z.string()).optional(),
   dueDate: z.string().datetime().optional().nullable(),
   projectId: z.string().min(1, "Project is required"),
+  phaseId: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
   creatorId: z.string().optional().nullable(),
   subtasks: z
@@ -30,6 +31,7 @@ export const updateTaskSchema = z.object({
   tags: z.array(z.string()).optional(),
   dueDate: z.string().datetime().optional().nullable(),
   projectId: z.string().optional(),
+  phaseId: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
 });
 
@@ -164,6 +166,32 @@ export const createAutomationSchema = z.object({
 });
 
 export const updateAutomationSchema = createAutomationSchema.partial();
+
+// ---- Phase schemas ----
+
+export const createPhaseSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  description: z.string().max(2000).optional().nullable(),
+  status: z.enum(["pending", "active", "completed"]).optional(),
+  order: z.number().int().min(0).optional(),
+  startDate: z.string().datetime().optional().nullable(),
+  endDate: z.string().datetime().optional().nullable(),
+  projectId: z.string().min(1, "Project is required"),
+  responsableId: z.string().optional().nullable(),
+  workspaceId: z.string().min(1, "Workspace is required"),
+});
+
+export const updatePhaseSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional().nullable(),
+  status: z.enum(["pending", "active", "completed"]).optional(),
+  order: z.number().int().min(0).optional(),
+  progress: z.number().int().min(0).max(100).optional(),
+  startDate: z.string().datetime().optional().nullable(),
+  endDate: z.string().datetime().optional().nullable(),
+  projectId: z.string().optional(),
+  responsableId: z.string().optional().nullable(),
+});
 
 // ---- Wiki schemas ----
 

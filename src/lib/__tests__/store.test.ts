@@ -7,6 +7,7 @@ import type { Workspace, Notification, User, Channel, TaskStatus } from "../type
 function resetStore() {
   // Reset the store to its initial state
   useAppStore.setState({
+    _hasHydrated: false,
     activePage: "dashboard",
     workspaces: [],
     activeWorkspaceId: "",
@@ -72,6 +73,21 @@ function createMockUser(id = "user-001"): User {
     status: "online",
   };
 }
+
+// ─── Hydration ──────────────────────────────────────────────────────────────
+
+describe("useAppStore - Hydration", () => {
+  beforeEach(() => resetStore());
+
+  it("starts with _hasHydrated as false", () => {
+    expect(useAppStore.getState()._hasHydrated).toBe(false);
+  });
+
+  it("setHasHydrated updates hydration state", () => {
+    useAppStore.getState().setHasHydrated(true);
+    expect(useAppStore.getState()._hasHydrated).toBe(true);
+  });
+});
 
 // ─── Navigation ──────────────────────────────────────────────────────────────
 

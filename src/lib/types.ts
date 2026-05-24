@@ -19,6 +19,7 @@ export type PageId =
   | "reports"
   | "automations"
   | "opportunities"
+  | "phases"
   | "settings";
 
 export type KnownTaskStatus = "todo" | "in_progress" | "review" | "done";
@@ -109,6 +110,8 @@ export interface Task {
   priority: TaskPriority;
   assigneeId: string;
   projectId: string;
+  phaseId?: string | null;
+  phase?: ProjectPhase | null;
   tags: string[];
   dueDate: string;
   createdAt: string;
@@ -144,6 +147,26 @@ export interface Meeting {
   status: MeetingStatus;
   link?: string;
   projectId?: string;
+}
+
+export type PhaseStatus = "pending" | "active" | "completed";
+
+export interface ProjectPhase {
+  id: string;
+  name: string;
+  description: string | null;
+  status: PhaseStatus;
+  order: number;
+  progress: number;
+  startDate: string | null;
+  endDate: string | null;
+  projectId: string;
+  responsableId: string | null;
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
+  project?: { id: string; name: string };
+  responsable?: Pick<User, "id" | "name" | "avatar">;
 }
 
 export interface Opportunity {

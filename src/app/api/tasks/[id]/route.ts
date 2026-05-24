@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-utils";
 import { updateTaskSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import { updatePhasesProgress } from "@/lib/phase-utils";
 import * as TrelloSync from "@/lib/trello-sync";
 
 export const GET = withErrorHandler(
@@ -29,6 +30,7 @@ export const GET = withErrorHandler(
         creator: true,
         subtasks: true,
         project: true,
+        phase: true,
         comments: {
           include: { user: true },
         },
@@ -65,6 +67,7 @@ export const PATCH = withErrorHandler(
       select: {
         title: true,
         status: true,
+        phaseId: true,
         project: { select: { workspaceId: true } },
       },
     });
@@ -72,12 +75,16 @@ export const PATCH = withErrorHandler(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const { tags, dueDate, ...rest } = validation.data;
+    const { tags, dueDate, phaseId, ...rest } = validation.data;
+
+    // Sauvegarder l'ancienne phaseId avant la mise à jour
+    const oldPhaseId = existing.phaseId;
 
     const task = await db.task.update({
       where: { id },
       data: {
         ...rest,
+        ...(phaseId !== undefined && { phaseId: phaseId }),
         ...(tags !== undefined && {
           tags: Array.isArray(tags) ? tags.join(",") : tags,
         }),
@@ -90,8 +97,29 @@ export const PATCH = withErrorHandler(
         creator: true,
         subtasks: true,
         project: true,
+        phase: true,
       },
     });
+
+    // Recalculer la progression des phases impactées
+    // (ancienne phase si changée, nouvelle phase, ou la phase actuelle si statut modifié)
+    const affectedPhases: (string | null | undefined)[] = [];
+    if (phaseId !== undefined && oldPhaseId !== phaseId) {
+      // La tâche a changé de phase : les deux sont impactées
+      affectedPhases.push(oldPhaseId);
+      affectedPhases.push(phaseId);
+    } else if (
+      validation.data.status !== undefined &&
+      validation.data.status !== existing.status
+    ) {
+      // Le statut a changé : la phase actuelle est impactée
+      affectedPhases.push(task.phaseId || oldPhaseId);
+    }
+    if (affectedPhases.length > 0) {
+      updatePhasesProgress(affectedPhases).catch((err) =>
+        console.error("[PhaseProgress] Failed to update phase progress:", err),
+      );
+    }
 
     // Log d'activité non-bloquant — détecter le type selon le changement de statut
     const newStatus = validation.data.status;
@@ -166,7 +194,19 @@ export const DELETE = withErrorHandler(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    const deletedTask = await db.task.findUnique({
+      where: { id },
+      select: { phaseId: true },
+    });
+
     await db.task.delete({ where: { id } });
+
+    // Recalculer la progression de la phase si la tâche en avait une
+    if (deletedTask?.phaseId) {
+      updatePhasesProgress([deletedTask.phaseId]).catch((err) =>
+        console.error("[PhaseProgress] Failed to update phase progress:", err),
+      );
+    }
 
     // Log d'activité non-bloquant
     logActivity({

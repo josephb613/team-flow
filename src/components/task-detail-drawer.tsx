@@ -53,8 +53,9 @@ import type {
   Project,
   Comment,
   ActivityItem,
+  ProjectPhase,
 } from "@/lib/types";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { cn } from "@/lib/utils";
 import {
   buildStatusConfig,
@@ -198,17 +199,13 @@ export function TaskDetailDrawer() {
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
   // ─── API Data ──────────────────────────────────────────────────────────
-  const wsParams = activeWorkspaceId
-    ? { workspaceId: activeWorkspaceId }
-    : undefined;
-  const { data: projectsData } = useApiData("/api/projects", {
-    params: wsParams,
-  });
-  const { data: usersData } = useApiData("/api/users", {
-    params: wsParams,
-  });
-  const projects = (projectsData as Project[]) || [];
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: projectsData } = useApiQuery<Project[]>("/api/projects");
+  const { data: usersData } = useApiQuery<User[]>("/api/users");
+  const { data: phasesData } = useApiQuery<ProjectPhase[]>("/api/phases");
+  const projects = projectsData || [];
   const users = (usersData as User[]) || [];
+  const phases = (phasesData as ProjectPhase[]) || [];
 
   // ─── Fetch full task detail when drawer opens ──────────────────────────
   const taskId = selectedTask?.id ?? null;
@@ -276,19 +273,33 @@ export function TaskDetailDrawer() {
     [columns],
   );
 
-  if (!selectedTask) return null;
+  const task = (taskDetail ?? selectedTask) as Task | undefined;
 
-  const task = (taskDetail ?? selectedTask) as Task;
-  const status = statusConfig[task.status];
-  const statusLabel =
-    columns.find((c) => c.slug === task.status)?.name || task.status;
-  const priority = priorityConfig[task.priority];
-  const subtaskDone = task.subtasks.filter((s) => s.completed).length;
-  const subtaskTotal = task.subtasks.length;
+  const projectPhases = useMemo(() => {
+    if (!task?.projectId) return [];
+    return phases.filter((p) => p.projectId === task.projectId);
+  }, [phases, task?.projectId]);
+
+  const currentPhaseName = useMemo(() => {
+    if (!task?.phaseId) return "Aucune phase";
+    const phase = task.phase || phases.find((p) => p.id === task.phaseId);
+    return phase ? phase.name : "Aucune phase";
+  }, [phases, task?.phaseId, task?.phase]);
+
+  const status = statusConfig[task?.status || "backlog"];
+  const statusLabel = task
+    ? columns.find((c) => c.slug === task.status)?.name || task.status
+    : "";
+  const priority = task ? priorityConfig[task.priority] : priorityConfig.medium;
+  const subtaskDone = task
+    ? task.subtasks.filter((s) => s.completed).length
+    : 0;
+  const subtaskTotal = task ? task.subtasks.length : 0;
   const subtaskPercent =
     subtaskTotal > 0 ? Math.round((subtaskDone / subtaskTotal) * 100) : 0;
 
   const handleStatusChange = async (newStatus: string) => {
+    if (!task) return;
     const oldLabel =
       columns.find((c) => c.slug === task.status)?.name || task.status;
     const newLabel =
@@ -318,6 +329,7 @@ export function TaskDetailDrawer() {
 
       // Invalider le cache pour que les vues (Kanban/Liste) se mettent à jour
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["phases"] });
 
       // Refresh activity logs after status change
       const actRes = await fetch(
@@ -337,8 +349,59 @@ export function TaskDetailDrawer() {
     }
   };
 
+  const handlePhaseChange = async (newPhaseId: string) => {
+    if (!task) return;
+    const oldPhaseId = task.phaseId;
+    const nextPhaseId = newPhaseId || null;
+    const nextPhase = phases.find((p) => p.id === nextPhaseId) || null;
+
+    // Optimistic local update
+    if (taskDetail) {
+      setTaskDetail({
+        ...taskDetail,
+        phaseId: nextPhaseId,
+        phase: nextPhase,
+      });
+    }
+
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phaseId: nextPhaseId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      toast.success("Phase de la tâche mise à jour");
+
+      // Invalidate cache to update other views
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["phases"] });
+
+      // Refresh activity logs
+      const actRes = await fetch(
+        `/api/activity?targetId=${encodeURIComponent(task.id)}&targetType=task`,
+      );
+      if (actRes.ok) {
+        const actData = await actRes.json();
+        setActivityLogs(actData as ActivityItem[]);
+      }
+    } catch {
+      // Rollback
+      if (taskDetail) {
+        setTaskDetail({
+          ...taskDetail,
+          phaseId: oldPhaseId,
+          phase: phases.find((p) => p.id === oldPhaseId) || null,
+        });
+      }
+      toast.error("Échec de la mise à jour de la phase");
+    }
+  };
+
   const handleAddComment = async () => {
-    if (!commentText.trim()) return;
+    if (!task || !commentText.trim()) return;
 
     const tempText = commentText.trim();
     setCommentText("");
@@ -369,6 +432,7 @@ export function TaskDetailDrawer() {
   };
 
   const handleDelete = async () => {
+    if (!task) return;
     try {
       const res = await fetch(`/api/tasks/${task.id}`, {
         method: "DELETE",
@@ -376,6 +440,7 @@ export function TaskDetailDrawer() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success(t.taskDetail.taskDeleted);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["phases"] });
       setTaskDetailOpen(false);
     } catch {
       toast.error(t.taskDetail.taskDeleteFailed || "Failed to delete task");
@@ -385,6 +450,7 @@ export function TaskDetailDrawer() {
   // ─── Subtask handlers ─────────────────────────────────────────────────
 
   const handleToggleSubtask = async (subtaskId: string, completed: boolean) => {
+    if (!task) return;
     // Optimistic update
     if (taskDetail) {
       setTaskDetail({
@@ -426,6 +492,7 @@ export function TaskDetailDrawer() {
   };
 
   const handleAddSubtask = async () => {
+    if (!task) return;
     const trimmed = newSubtaskText.trim();
     if (!trimmed || isAddingSubtask) return;
 
@@ -470,6 +537,7 @@ export function TaskDetailDrawer() {
   };
 
   const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!task) return;
     // Optimistic update
     if (taskDetail) {
       setTaskDetail({
@@ -510,6 +578,7 @@ export function TaskDetailDrawer() {
   };
 
   const handleSaveEditSubtask = async (subtaskId: string) => {
+    if (!task) return;
     const trimmed = editingSubtaskTitle.trim();
     if (!trimmed) return;
 
@@ -545,6 +614,8 @@ export function TaskDetailDrawer() {
 
   // ─── Render ────────────────────────────────────────────────────────────
 
+  if (!task) return null;
+
   return (
     <Sheet open={taskDetailOpen} onOpenChange={setTaskDetailOpen}>
       <SheetContent className="w-full sm:max-w-[480px] p-0 gap-0 overflow-y-auto [&>button]:hidden">
@@ -552,12 +623,8 @@ export function TaskDetailDrawer() {
         <SheetTitle className="sr-only">
           {task.title || "Task details"}
         </SheetTitle>
-        {isLoadingDetail && !taskDetail ? (
-          <div className="flex items-center justify-center h-full min-h-[200px]">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <>
+        {/* Show content immediately using selectedTask data, enriched with API data when available */}
+        <>
             {/* Header */}
             <SheetHeader className="px-6 pt-6 pb-4 border-b">
               <div className="flex items-start justify-between">
@@ -617,7 +684,7 @@ export function TaskDetailDrawer() {
                     {task.title}
                   </SheetTitle>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                <div className="flex items-center gap-1 shrink-0 ml-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -744,6 +811,70 @@ export function TaskDetailDrawer() {
                         })
                       : "—"}
                   </div>
+                </div>
+                {/* Phase */}
+                <div className="col-span-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Phase
+                  </h4>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={cn(
+                          "flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-md border transition-colors",
+                          "hover:bg-muted/50 cursor-pointer",
+                          task.phaseId
+                            ? "border-[oklch(0.55_0.15_160/0.3)] bg-[oklch(0.55_0.15_160/0.05)]"
+                            : "border-muted-foreground/20 bg-transparent",
+                        )}
+                      >
+                        <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span
+                          className={cn(
+                            task.phaseId
+                              ? "text-foreground"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {currentPhaseName}
+                        </span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
+                      <DropdownMenuItem
+                        onClick={() => handlePhaseChange("")}
+                        className={cn("gap-2", !task.phaseId && "bg-muted")}
+                      >
+                        <span className="text-muted-foreground">—</span>
+                        <span className="text-sm">Aucune phase</span>
+                        {!task.phaseId && (
+                          <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+                        )}
+                      </DropdownMenuItem>
+                      {projectPhases.length > 0 && <DropdownMenuSeparator />}
+                      {projectPhases.map((phase) => (
+                        <DropdownMenuItem
+                          key={phase.id}
+                          onClick={() => handlePhaseChange(phase.id)}
+                          className={cn(
+                            "gap-2",
+                            task.phaseId === phase.id && "bg-muted",
+                          )}
+                        >
+                          <GitBranch className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
+                          <span className="text-sm">{phase.name}</span>
+                          {task.phaseId === phase.id && (
+                            <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                      {projectPhases.length === 0 && (
+                        <div className="px-2 py-3 text-xs text-center text-muted-foreground">
+                          Aucune phase disponible pour ce projet
+                        </div>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
@@ -1069,7 +1200,6 @@ export function TaskDetailDrawer() {
               </div>
             </div>
           </>
-        )}
       </SheetContent>
     </Sheet>
   );

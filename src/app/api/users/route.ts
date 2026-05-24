@@ -48,7 +48,12 @@ export const GET = withErrorHandler(
       createdAt: u.createdAt,
     }));
 
-    return NextResponse.json(mapped);
+    return NextResponse.json(mapped, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 

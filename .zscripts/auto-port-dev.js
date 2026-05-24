@@ -19,7 +19,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-const PORT_START = 3001;
+const PORT_START = 3002;
 const PORT_END = 3010; // On essaie jusqu'à 3010 max
 const NEXT_DIR = path.resolve(__dirname, "..");
 
@@ -61,10 +61,10 @@ function killProcessOnPort(port) {
   try {
     let pid = null;
     if (os.platform() === "win32") {
-      const output = execSync(
-        `netstat -ano | findstr ":${port} "`,
-        { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
-      );
+      const output = execSync(`netstat -ano | findstr ":${port} "`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "ignore"],
+      });
       for (const line of output.split("\n")) {
         if (line.includes("LISTENING")) {
           const parts = line.trim().split(/\s+/);
@@ -72,10 +72,10 @@ function killProcessOnPort(port) {
         }
       }
     } else {
-      const output = execSync(
-        `lsof -ti:${port} 2>/dev/null`,
-        { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
-      );
+      const output = execSync(`lsof -ti:${port} 2>/dev/null`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "ignore"],
+      });
       pid = parseInt(output.trim(), 10);
     }
     if (pid && !isNaN(pid)) {

@@ -426,7 +426,7 @@ export function TopBar() {
                     !n.read ? 'bg-muted/20' : ''
                   )}
                 >
-                  <div className="flex-shrink-0 mt-0.5">
+                  <div className="shrink-0 mt-0.5">
                     {notificationTypeIcons[n.type] || <Bell className="h-3.5 w-3.5 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -438,7 +438,7 @@ export function TopBar() {
                     </p>
                   </div>
                   {!n.read && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)] flex-shrink-0 mt-1.5" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)] shrink-0 mt-1.5" />
                   )}
                 </div>
               ))}

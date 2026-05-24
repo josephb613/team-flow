@@ -67,7 +67,7 @@ import {
   GripVertical,
   Loader2,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import type { FileItem, User } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -611,16 +611,12 @@ export function FilesView() {
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 
   // API Data
-  const wsParams = activeWorkspaceId
-    ? { workspaceId: activeWorkspaceId }
-    : undefined;
-  const { data: filesData, isLoading: filesLoading } = useApiData(
+  // useApiQuery auto-adds workspaceId when scoped=true (default)
+  const { data: filesData, isLoading: filesLoading } = useApiQuery(
     "/api/files",
-    { params: wsParams },
   );
-  const { data: usersData, isLoading: usersLoading } = useApiData(
+  const { data: usersData, isLoading: usersLoading } = useApiQuery(
     "/api/users",
-    { params: wsParams },
   );
   const apiFiles = useMemo(
     () => (filesData as FileItem[]) ?? [],

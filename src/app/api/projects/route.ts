@@ -52,7 +52,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(projects.map(transformProject));
+    return NextResponse.json(projects.map(transformProject), {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 
@@ -63,7 +68,16 @@ export const POST = withErrorHandler(
     const validation = validateBody(createProjectSchema, body);
     if (validation.error) return validation.error;
 
-    const { name, description, logo, sourceUrl, color, icon, dueDate, workspaceId } = validation.data;
+    const {
+      name,
+      description,
+      logo,
+      sourceUrl,
+      color,
+      icon,
+      dueDate,
+      workspaceId,
+    } = validation.data;
 
     // Verify workspace membership
     const membership = await db.workspaceMember.findUnique({

@@ -379,7 +379,7 @@ export function SearchDialog() {
                     className="flex items-center gap-2"
                   >
                     <span
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: project.color }}
                     />
                     <span className="flex-1 truncate text-sm">

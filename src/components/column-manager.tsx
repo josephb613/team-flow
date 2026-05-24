@@ -95,7 +95,7 @@ export function AddColumnButton({
 
   if (adding) {
     return (
-      <div className="flex-shrink-0 w-[280px] sm:w-[300px] rounded-xl border-2 border-dashed border-muted-foreground/20 p-4 bg-muted/30">
+      <div className="shrink-0 w-[240px] sm:w-[260px] rounded-xl border-2 border-dashed border-muted-foreground/20 p-4 bg-muted/30">
         <Input
           placeholder="Nom de la colonne..."
           value={name}
@@ -177,7 +177,7 @@ export function AddColumnButton({
     <button
       type="button"
       onClick={() => setAdding(true)}
-      className="flex-shrink-0 w-[280px] sm:w-[300px] rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-muted-foreground/30 bg-muted/20 hover:bg-muted/40 transition-all flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground hover:text-foreground min-h-[80px]"
+      className="shrink-0 w-[240px] sm:w-[260px] rounded-xl border-2 border-dashed border-muted-foreground/15 hover:border-muted-foreground/30 bg-muted/20 hover:bg-muted/40 transition-all flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground hover:text-foreground min-h-[80px]"
     >
       <Plus className="h-4 w-4" />
       Ajouter une colonne

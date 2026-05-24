@@ -151,7 +151,7 @@ function NotificationItem({
         if (!notification.read) onMarkRead(notification.id);
       }}
     >
-      <div className={cn('rounded-lg p-2 flex-shrink-0 mt-0.5', getNotificationIconBg(notification.type))}>
+      <div className={cn('rounded-lg p-2 shrink-0 mt-0.5', getNotificationIconBg(notification.type))}>
         {getNotificationIcon(notification.type)}
       </div>
       <div className="flex-1 min-w-0">
@@ -160,7 +160,7 @@ function NotificationItem({
             {notification.title}
           </span>
           {!notification.read && (
-            <div className="w-2 h-2 rounded-full bg-teal-500 flex-shrink-0 mt-1.5" />
+            <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5" />
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
@@ -267,7 +267,7 @@ export function NotificationPanel() {
             className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] bg-background border-l shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-teal-500/12 p-2">
                   <Bell className="h-4 w-4 text-teal-500" />
@@ -308,7 +308,7 @@ export function NotificationPanel() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="px-5 py-2.5 border-b flex-shrink-0">
+            <div className="px-5 py-2.5 border-b shrink-0">
               <div className="flex items-center gap-1">
                 {filterTabs.map((tab) => (
                   <button

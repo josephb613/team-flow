@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-utils";
 import { createTaskSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/activity-logger";
+import { updatePhaseProgress } from "@/lib/phase-utils";
 import * as TrelloSync from "@/lib/trello-sync";
 
 export const GET = withErrorHandler(
@@ -48,10 +49,16 @@ export const GET = withErrorHandler(
         creator: true,
         subtasks: true,
         project: true,
+        phase: true,
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(tasks.map(normalizeTaskTags));
+    return NextResponse.json(tasks.map(normalizeTaskTags), {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 
@@ -70,6 +77,7 @@ export const POST = withErrorHandler(
       tags,
       dueDate,
       projectId,
+      phaseId,
       assigneeId,
       subtasks: subtaskInput,
     } = validation.data;
@@ -100,6 +108,7 @@ export const POST = withErrorHandler(
         tags: tags ? tags.join(",") : "",
         dueDate: dueDate ? new Date(dueDate) : null,
         projectId,
+        phaseId: phaseId || null,
         assigneeId: assigneeId || null,
         creatorId: user.id,
         ...(subtaskInput &&
@@ -113,6 +122,7 @@ export const POST = withErrorHandler(
         assignee: true,
         subtasks: true,
         project: true,
+        phase: true,
       },
     });
 
@@ -125,6 +135,13 @@ export const POST = withErrorHandler(
       targetId: task.id,
       targetType: "task",
     });
+
+    // Recalculer la progression de la phase si la tâche est liée à une phase
+    if (task.phaseId) {
+      updatePhaseProgress(task.phaseId).catch((err) =>
+        console.error("[PhaseProgress] Failed to update phase progress:", err),
+      );
+    }
 
     // Trello sync — fire and forget
     (async () => {

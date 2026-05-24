@@ -345,7 +345,7 @@ function DroppableKanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex-shrink-0 w-[280px] min-w-0 max-w-[280px] sm:w-[300px] sm:max-w-[300px] transition-all duration-200",
+        "shrink-0 w-[280px] min-w-0 max-w-[280px] sm:w-[300px] sm:max-w-[300px] transition-all duration-200",
         isOver &&
           "ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl",
       )}

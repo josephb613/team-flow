@@ -489,7 +489,7 @@ export function DashboardView() {
           className="flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-500/10 dark:border-rose-500/20 px-4 py-3"
         >
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-500 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
             <span className="text-sm text-rose-700 dark:text-rose-400">{t.dashboard.errorLoading}</span>
           </div>
           <Button
@@ -552,7 +552,7 @@ export function DashboardView() {
                             </p>
                           </div>
                         </div>
-                        <div className={`p-3 rounded-2xl ${stat.iconBg} backdrop-blur-sm border border-white/10 shadow-sm`}>
+                        <div className={`p-3 rounded-2xl ${stat.iconBg} backdrop-blur-sm border border-black/5 dark:border-white/10 shadow-sm`}>
                           <IconComp className={`h-5 w-5 ${stat.iconColor}`} />
                         </div>
                       </div>
@@ -827,7 +827,7 @@ export function DashboardView() {
                           className="group flex items-start gap-3 py-2 cursor-pointer"
                         >
                           {/* Timeline Dot */}
-                          <div className="relative z-10 mt-1 flex-shrink-0">
+                          <div className="relative z-10 mt-1 shrink-0">
                             <div
                               className={`w-[7px] h-[7px] rounded-full ${config.dotColor} ring-4 ring-background group-hover:scale-125 transition-transform duration-200`}
                             />
@@ -836,7 +836,7 @@ export function DashboardView() {
                           {/* Content */}
                           <div className="flex-1 min-w-0 -mt-0.5">
                             <div className="flex items-center gap-2">
-                              <IconComp className={`h-3 w-3 ${config.color} flex-shrink-0`} />
+                              <IconComp className={`h-3 w-3 ${config.color} shrink-0`} />
                               <p className="text-xs leading-relaxed">
                                 <span className="font-semibold">{getUserName(activity.userId as string)}</span>{' '}
                                 <span className="text-muted-foreground">{activity.description as string}</span>
@@ -909,7 +909,7 @@ export function DashboardView() {
                             <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
                               {meeting.title as string}
                             </p>
-                            <Video className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Video className="h-3.5 w-3.5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-muted-foreground">
@@ -983,7 +983,7 @@ export function DashboardView() {
                         className="flex items-center gap-2.5 py-1.5 group cursor-pointer"
                       >
                         <div
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          className={`w-2 h-2 rounded-full shrink-0 ${
                             isOverdue
                               ? 'bg-rose-500 shadow-sm shadow-rose-500/30'
                               : isDueSoon

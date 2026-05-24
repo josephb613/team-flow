@@ -11,14 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -42,11 +34,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
 import {
   Plus,
   Search,
@@ -81,9 +68,9 @@ import {
   PlusCircle,
   Check,
   GitCommit,
-  AlertTriangle,
 } from "lucide-react";
-import { useApiData } from "@/hooks/use-api-data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/query-utils";
 import { useAppStore } from "@/lib/store";
 import type { WikiPage, User } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -527,27 +514,54 @@ function renderContent(content: string) {
 export function WikiView() {
   const { t } = useTranslation();
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
+  const currentUser = useAppStore((s) => s.currentUser);
 
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: wikiData, isLoading } = useApiData("/api/wiki", {
-    params: wsParams,
-  });
-  const { data: usersData } = useApiData("/api/users", {
-    params: wsParams,
-  });
-  const apiPages = (wikiData as WikiPage[]) ?? [];
-  const users = (usersData as User[]) ?? [];
+  // ─── API Data (React Query avec cache) ─────────────────────────────────
+  const wikiParams = activeWorkspaceId
+    ? `?workspaceId=${activeWorkspaceId}`
+    : "";
+  const usersParams = activeWorkspaceId
+    ? `?workspaceId=${activeWorkspaceId}`
+    : "";
 
-  const [selectedPageId, setSelectedPageId] = useState<string>(
-    apiPages[0]?.id || "",
-  );
+  const {
+    data: wikiData,
+    isLoading: wikiLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["wiki", activeWorkspaceId],
+    queryFn: () => fetchJson<WikiPage[]>(`/api/wiki${wikiParams}`),
+  });
+  const { data: usersData } = useQuery({
+    queryKey: ["users", activeWorkspaceId],
+    queryFn: () => fetchJson<User[]>(`/api/users${usersParams}`),
+  });
+  const apiPages = wikiData ?? [];
+  const users = usersData ?? [];
+  const isLoading = wikiLoading;
+
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
+  const [pages, setPages] = useState<WikiPage[]>([]);
+
+  // Sync pages from API data when it loads (handles mount/remount after navigation)
+  useEffect(() => {
+    if (!isLoading && apiPages.length >= 0) {
+      setPages(apiPages);
+      // Auto-select first page if nothing is selected yet
+      if (apiPages.length > 0) {
+        setSelectedPageId((prev) => {
+          // Keep current selection if it still exists in the new data
+          if (prev && apiPages.some((p) => p.id === prev)) return prev;
+          return apiPages[0].id;
+        });
+      }
+    }
+  }, [apiPages, isLoading]);
   const [searchQuery, setSearchQuery] = useState("");
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [activeTab, setActiveTab] = useState<"content" | "history">("content");
   const [editContent, setEditContent] = useState("");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<WikiPage | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -555,8 +569,6 @@ export function WikiView() {
     null,
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const [pages, setPages] = useState<WikiPage[]>([...apiPages]);
 
   const tree = useMemo(() => buildTree(pages), [pages]);
 
@@ -578,59 +590,63 @@ export function WikiView() {
     return selectedPageId ? getMockVersions(selectedPageId, pages) : [];
   }, [selectedPageId, pages]);
 
-  // Word and character count
-  const wordCount = useMemo(() => {
-    if (!editContent) return 0;
-    return editContent.trim().split(/\s+/).filter(Boolean).length;
-  }, [editContent]);
-
-  const charCount = useMemo(() => {
-    return editContent.length;
-  }, [editContent]);
-
   // Handle edit mode
   const enterEditMode = useCallback(() => {
     if (selectedPage) {
       setEditContent(selectedPage.content);
-      setHasUnsavedChanges(false);
+      setEditTitle(selectedPage.title);
       setMode("edit");
     }
   }, [selectedPage]);
 
   const exitEditMode = useCallback(() => {
-    if (hasUnsavedChanges) {
-      setShowDiscardDialog(true);
-    } else {
-      setMode("view");
-    }
-  }, [hasUnsavedChanges]);
-
-  const handleSave = useCallback(() => {
-    setPages((prev) =>
-      prev.map((p) =>
-        p.id === selectedPageId
-          ? {
-              ...p,
-              content: editContent,
-              updatedAt: new Date().toISOString(),
-              lastEditedBy: "u-1",
-            }
-          : p,
-      ),
-    );
-    setHasUnsavedChanges(false);
-    setMode("view");
-  }, [selectedPageId, editContent]);
-
-  const handleDiscard = useCallback(() => {
-    setShowDiscardDialog(false);
-    setHasUnsavedChanges(false);
     setMode("view");
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!selectedPageId || !currentUser?.id) return;
+
+    try {
+      const res = await fetch(`/api/wiki/${selectedPageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle,
+          content: editContent,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Save failed" }));
+        console.error("Failed to save wiki page:", err);
+        return;
+      }
+
+      const updated: WikiPage = await res.json();
+
+      setPages((prev) =>
+        prev.map((p) =>
+          p.id === selectedPageId
+            ? {
+                ...p,
+                title: updated.title,
+                content: updated.content,
+                updatedAt: updated.updatedAt,
+                lastEditedBy: updated.lastEditedBy ?? currentUser.id,
+              }
+            : p,
+        ),
+      );
+      setEditTitle(updated.title);
+      setMode("view");
+      refetch();
+    } catch (err) {
+      console.error("Failed to save wiki page:", err);
+    }
+  }, [selectedPageId, editContent, editTitle, currentUser, refetch]);
+
   const handleContentChange = useCallback((value: string) => {
     setEditContent(value);
-    setHasUnsavedChanges(true);
   }, []);
 
   // Formatting insert functions
@@ -648,7 +664,6 @@ export function WikiView() {
         suffix +
         editContent.substring(end);
       setEditContent(newContent);
-      setHasUnsavedChanges(true);
       // Restore cursor position
       requestAnimationFrame(() => {
         textarea.focus();
@@ -676,7 +691,6 @@ export function WikiView() {
         newLine +
         editContent.substring(endOfLine);
       setEditContent(newContent);
-      setHasUnsavedChanges(true);
       requestAnimationFrame(() => {
         textarea.focus();
         textarea.setSelectionRange(
@@ -689,49 +703,128 @@ export function WikiView() {
   );
 
   // Page management
-  const handleDuplicatePage = useCallback((page: WikiPage) => {
-    const newPage: WikiPage = {
-      ...page,
-      id: `w-${Date.now()}`,
-      title: `${page.title} (copy)`,
-      parentId: page.parentId,
-      updatedAt: new Date().toISOString(),
-      lastEditedBy: "u-1",
-    };
-    setPages((prev) => [...prev, newPage]);
-  }, []);
+  const handleDuplicatePage = useCallback(
+    async (page: WikiPage) => {
+      if (!activeWorkspaceId || !currentUser?.id) return;
+
+      try {
+        const res = await fetch("/api/wiki", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: `${page.title} (copy)`,
+            content: page.content,
+            icon: page.icon,
+            parentId: page.parentId ?? null,
+            workspaceId: activeWorkspaceId,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res
+            .json()
+            .catch(() => ({ error: "Duplicate failed" }));
+          console.error("Failed to duplicate wiki page:", err);
+          return;
+        }
+
+        const created: WikiPage = await res.json();
+
+        setPages((prev) => [
+          ...prev,
+          {
+            ...created,
+            lastEditedBy: created.lastEditedBy ?? currentUser.id,
+          },
+        ]);
+        refetch();
+      } catch (err) {
+        console.error("Failed to duplicate wiki page:", err);
+      }
+    },
+    [activeWorkspaceId, currentUser, refetch],
+  );
 
   const handleDeletePage = useCallback((page: WikiPage) => {
     setPageToDelete(page);
     setShowDeleteDialog(true);
   }, []);
 
-  const confirmDeletePage = useCallback(() => {
-    if (pageToDelete) {
-      setPages((prev) => {
-        // Also remove children references
-        return prev.filter((p) => p.id !== pageToDelete.id);
+  const handleCreatePage = useCallback(async () => {
+    if (!activeWorkspaceId || !currentUser?.id) return;
+
+    try {
+      const res = await fetch("/api/wiki", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New Page",
+          content: "",
+          icon: "📄",
+          parentId: null,
+          workspaceId: activeWorkspaceId,
+        }),
       });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Create failed" }));
+        console.error("Failed to create wiki page:", err);
+        return;
+      }
+
+      const created: WikiPage = await res.json();
+
+      setPages((prev) => [
+        ...prev,
+        {
+          ...created,
+          lastEditedBy: created.lastEditedBy ?? currentUser.id,
+        },
+      ]);
+      setSelectedPageId(created.id);
+      // Auto-enter edit mode so user can name and write content
+      setEditTitle(created.title);
+      setEditContent(created.content);
+      setMode("edit");
+      setActiveTab("content");
+      refetch();
+    } catch (err) {
+      console.error("Failed to create wiki page:", err);
+    }
+  }, [activeWorkspaceId, currentUser, refetch]);
+
+  const confirmDeletePage = useCallback(async () => {
+    if (!pageToDelete) return;
+
+    try {
+      const res = await fetch(`/api/wiki/${pageToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Delete failed" }));
+        console.error("Failed to delete wiki page:", err);
+        return;
+      }
+
+      setPages((prev) => prev.filter((p) => p.id !== pageToDelete.id));
       if (selectedPageId === pageToDelete.id) {
         setSelectedPageId(pages[0]?.id || "");
       }
+      refetch();
+    } catch (err) {
+      console.error("Failed to delete wiki page:", err);
+    } finally {
+      setShowDeleteDialog(false);
+      setPageToDelete(null);
     }
-    setShowDeleteDialog(false);
-    setPageToDelete(null);
-  }, [pageToDelete, selectedPageId, pages]);
+  }, [pageToDelete, selectedPageId, pages, refetch]);
 
-  const handleSelectPage = useCallback(
-    (page: WikiPage) => {
-      if (hasUnsavedChanges) {
-        setShowDiscardDialog(true);
-        return;
-      }
-      setSelectedPageId(page.id);
-      setMode("view");
-      setActiveTab("content");
-    },
-    [hasUnsavedChanges],
-  );
+  const handleSelectPage = useCallback((page: WikiPage) => {
+    setSelectedPageId(page.id);
+    setMode("view");
+    setActiveTab("content");
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -755,6 +848,7 @@ export function WikiView() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={handleCreatePage}
                 className="h-7 w-7 p-0 text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
               >
                 <Plus className="h-4 w-4" />
@@ -820,6 +914,7 @@ export function WikiView() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleCreatePage}
               className="w-full h-8 text-xs justify-start text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.wiki.newPage}
@@ -999,14 +1094,18 @@ export function WikiView() {
                                                 backgroundColor:
                                                   getUserAvatarColor(
                                                     version.author,
+                                                    users,
                                                   ),
                                               }}
                                             >
-                                              {getUserInitials(version.author)}
+                                              {getUserInitials(
+                                                version.author,
+                                                users,
+                                              )}
                                             </AvatarFallback>
                                           </Avatar>
                                           <span className="font-medium">
-                                            {getUserName(version.author)}
+                                            {getUserName(version.author, users)}
                                           </span>
                                           <span>·</span>
                                           <span>
@@ -1057,6 +1156,15 @@ export function WikiView() {
                 ) : mode === "edit" ? (
                   /* Edit Mode - Split Pane */
                   <div className="flex-1 flex flex-col overflow-hidden">
+                    {/* Title input */}
+                    <div className="px-4 py-2.5 border-b bg-muted/10">
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Page title..."
+                        className="text-lg font-semibold border-0 bg-transparent p-0 h-auto focus-visible:ring-0 focus-visible:shadow-none placeholder:text-muted-foreground/50"
+                      />
+                    </div>
                     {/* Formatting Toolbar - Sticky */}
                     <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur-sm px-4 py-1.5">
                       <div className="flex items-center gap-0.5 flex-wrap">
@@ -1134,69 +1242,16 @@ export function WikiView() {
                       </div>
                     </div>
 
-                    {/* Editor + Preview Split */}
-                    <ResizablePanelGroup
-                      direction="horizontal"
-                      className="flex-1"
-                    >
-                      <ResizablePanel defaultSize={50} minSize={30}>
-                        <div className="h-full flex flex-col">
-                          <div className="px-4 py-2 border-b bg-muted/20">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              {t.wiki.editor}
-                            </span>
-                          </div>
-                          <ScrollArea className="flex-1">
-                            <Textarea
-                              ref={textareaRef}
-                              value={editContent}
-                              onChange={(e) =>
-                                handleContentChange(e.target.value)
-                              }
-                              className="border-0 rounded-none resize-none min-h-full focus-visible:ring-0 focus-visible:border-transparent p-4 text-sm font-mono leading-relaxed bg-transparent"
-                              placeholder="Start writing..."
-                            />
-                          </ScrollArea>
-                        </div>
-                      </ResizablePanel>
-                      <ResizableHandle withHandle />
-                      <ResizablePanel defaultSize={50} minSize={30}>
-                        <div className="h-full flex flex-col">
-                          <div className="px-4 py-2 border-b bg-muted/20">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              {t.wiki.livePreview}
-                            </span>
-                          </div>
-                          <ScrollArea className="flex-1">
-                            <div className="px-6 py-5 max-w-3xl">
-                              {renderContent(editContent)}
-                            </div>
-                          </ScrollArea>
-                        </div>
-                      </ResizablePanel>
-                    </ResizablePanelGroup>
-
-                    {/* Bottom bar with word/char count */}
-                    <div className="flex items-center justify-between px-4 py-1.5 border-t bg-muted/20 text-[10px] text-muted-foreground">
-                      <div className="flex items-center gap-3">
-                        <span>
-                          {wordCount} {t.wiki.wordCount}
-                        </span>
-                        <span>
-                          {charCount} {t.wiki.charCount}
-                        </span>
-                      </div>
-                      {hasUnsavedChanges && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex items-center gap-1 text-amber-500"
-                        >
-                          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                          <span>{t.wiki.unsavedChanges}</span>
-                        </motion.div>
-                      )}
-                    </div>
+                    {/* Editor (full width) */}
+                    <ScrollArea className="flex-1">
+                      <Textarea
+                        ref={textareaRef}
+                        value={editContent}
+                        onChange={(e) => handleContentChange(e.target.value)}
+                        className="border-0 rounded-none resize-none min-h-full focus-visible:ring-0 focus-visible:border-transparent p-4 text-sm font-mono leading-relaxed bg-transparent"
+                        placeholder="Start writing..."
+                      />
+                    </ScrollArea>
                   </div>
                 ) : (
                   /* View Mode */
@@ -1217,16 +1272,23 @@ export function WikiView() {
                                   style={{
                                     backgroundColor: getUserAvatarColor(
                                       selectedPage.lastEditedBy,
+                                      users,
                                     ),
                                   }}
                                 >
-                                  {getUserInitials(selectedPage.lastEditedBy)}
+                                  {getUserInitials(
+                                    selectedPage.lastEditedBy,
+                                    users,
+                                  )}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-xs text-muted-foreground">
                                 {t.wiki.lastEditedBy}{" "}
                                 <span className="font-semibold text-foreground">
-                                  {getUserName(selectedPage.lastEditedBy)}
+                                  {getUserName(
+                                    selectedPage.lastEditedBy,
+                                    users,
+                                  )}
                                 </span>
                               </span>
                               <span className="text-xs text-muted-foreground/60">
@@ -1315,33 +1377,6 @@ export function WikiView() {
         </Card>
       </div>
 
-      {/* Discard Changes Confirmation Dialog */}
-      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-              </div>
-              {t.wiki.unsavedChanges}
-            </DialogTitle>
-            <DialogDescription>{t.wiki.unsavedWarning}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDiscardDialog(false)}
-            >
-              {t.wiki.keepEditing}
-            </Button>
-            <Button variant="destructive" size="sm" onClick={handleDiscard}>
-              {t.wiki.discardChanges}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Delete Page Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -1387,8 +1422,13 @@ export function WikiView() {
             <AlertDialogAction
               className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
               onClick={() => {
-                setShowRestoreDialog(false);
-                setVersionToRestore(null);
+                if (versionToRestore) {
+                  // Since version content is not persisted yet,
+                  // restore switches to edit mode so user can review & save.
+                  setShowRestoreDialog(false);
+                  setVersionToRestore(null);
+                  enterEditMode();
+                }
               }}
             >
               {t.wiki.restoreVersion}

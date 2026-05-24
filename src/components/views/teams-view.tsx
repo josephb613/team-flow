@@ -28,7 +28,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useTranslation } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -175,9 +175,9 @@ export function TeamsView() {
   const [deleteTarget, setDeleteTarget] = useState<Team | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // ─── API Data ──────────────────────────────────────────────────────────
-  const { data: teamsData, isLoading, refetch } = useApiData("/api/teams");
-  const { data: usersData } = useApiData("/api/users");
+  // ─── API Data (React Query cached) ─────────────────────────────────────
+  const { data: teamsData, isLoading, refetch } = useApiQuery("/api/teams");
+  const { data: usersData } = useApiQuery("/api/users");
 
   const rawTeams = (teamsData as (ApiTeam | Team)[]) ?? [];
   const users = (usersData as User[]) ?? [];
@@ -268,7 +268,7 @@ export function TeamsView() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border border-white/10"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm border border-black/5 dark:border-white/10"
                         style={{
                           backgroundColor: team.color + "20",
                           color: team.color,

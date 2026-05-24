@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
 import { useAppStore } from "@/lib/store";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchJson } from "@/lib/query-utils";
 
 interface DashboardStats {
   totalTasks: number;
@@ -29,109 +31,107 @@ interface DashboardData {
   lastUpdated: Date | null;
 }
 
+const STALE_TIME = 2 * 60 * 1000; // 2 minutes
+const GC_TIME = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Hook de données dashboard optimisé utilisant React Query.
+ * Utilise le cache populé par useBootstrapData pour un affichage instantané.
+ * Ne refetch que si les données sont stale.
+ */
 export function useDashboardData(): DashboardData {
-  const [tasks, setTasks] = useState<DataRecord[]>([]);
-  const [projects, setProjects] = useState<DataRecord[]>([]);
-  const [users, setUsers] = useState<DataRecord[]>([]);
-  const [activities] = useState<DataRecord[]>([]);
-  const [meetings] = useState<DataRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
+  const activeWsId = useAppStore((s) => s.activeWorkspaceId);
+  const setCounts = useAppStore((s) => s.setCounts);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    useAppStore.getState().setApiLoading(true);
-    setError(null);
-    try {
-      const activeWsId = useAppStore.getState().activeWorkspaceId;
-      const params = activeWsId ? `?workspaceId=${activeWsId}` : "";
-      const usersUrl = activeWsId
-        ? `/api/users?workspaceId=${activeWsId}`
-        : "/api/users";
-      const [tasksRes, projectsRes, usersRes] = await Promise.all([
-        fetch(`/api/tasks${params}`),
-        fetch(`/api/projects${params}`),
-        fetch(usersUrl),
-      ]);
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", activeWsId],
+    queryFn: () => fetchJson<DataRecord[]>(`/api/tasks?workspaceId=${activeWsId}`),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    enabled: !!activeWsId,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
-      let fetchedTasks: DataRecord[] = [];
-      let fetchedProjects: DataRecord[] = [];
-      let fetchedUsers: DataRecord[] = [];
+  const projectsQuery = useQuery({
+    queryKey: ["projects", activeWsId],
+    queryFn: () => fetchJson<DataRecord[]>(`/api/projects?workspaceId=${activeWsId}`),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    enabled: !!activeWsId,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
-      if (tasksRes.ok) {
-        const data = await tasksRes.json();
-        fetchedTasks = Array.isArray(data) ? data : data.tasks || [];
-      }
-      if (projectsRes.ok) {
-        const data = await projectsRes.json();
-        fetchedProjects = Array.isArray(data) ? data : data.projects || [];
-      }
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        fetchedUsers = Array.isArray(data) ? data : data.users || [];
-      }
+  const usersQuery = useQuery({
+    queryKey: ["users", activeWsId],
+    queryFn: () => fetchJson<DataRecord[]>(`/api/users?workspaceId=${activeWsId}`),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    enabled: !!activeWsId,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
-      setTasks(fetchedTasks);
-      setProjects(fetchedProjects);
-      setUsers(fetchedUsers);
+  const tasks = tasksQuery.data ?? [];
+  const projects = projectsQuery.data ?? [];
+  const users = usersQuery.data ?? [];
 
-      // Update store counts for sidebar badges
-      useAppStore.getState().setCounts({
-        taskCount: fetchedTasks.length,
-        projectCount: fetchedProjects.length,
-        meetingCount: 0,
-      });
+  const stats = useMemo<DashboardStats>(() => {
+    const totalTasks = tasks.length;
+    const doneTasks = tasks.filter((t) => t.status === "done").length;
+    const activeProjects = projects.filter((p) => p.status === "active").length;
+    const inProgress = tasks.filter((t) => t.status === "in_progress").length;
+    const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error("useDashboardData fetch error:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch data");
-      setTasks([]);
-      setProjects([]);
-      setUsers([]);
-    } finally {
-      setIsLoading(false);
-      useAppStore.getState().setApiLoading(false);
-    }
-  }, []);
+    setCounts({
+      taskCount: totalTasks,
+      projectCount: projects.length,
+      meetingCount: 0,
+    });
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    return {
+      totalTasks,
+      activeProjects,
+      inProgress,
+      completionRate,
+      taskTrend: 0,
+      projectTrend: 0,
+      inProgressTrend: 0,
+      completionTrend: 0,
+    };
+  }, [tasks, projects, setCounts]);
 
-  // Calculate stats from real data
-  const totalTasks = tasks.length || 0;
-  const doneTasks =
-    tasks.filter((t: DataRecord) => t.status === "done").length || 0;
-  const activeProjects =
-    projects.filter((p: DataRecord) => p.status === "active").length || 0;
-  const inProgress =
-    tasks.filter((t: DataRecord) => t.status === "in_progress").length || 0;
-  const completionRate =
-    totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const isLoading = tasksQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading;
+  const error = tasksQuery.error || projectsQuery.error || usersQuery.error;
 
-  const stats: DashboardStats = {
-    totalTasks,
-    activeProjects,
-    inProgress,
-    completionRate,
-    taskTrend: 0,
-    projectTrend: 0,
-    inProgressTrend: 0,
-    completionTrend: 0,
+  const refetch = () => {
+    tasksQuery.refetch();
+    projectsQuery.refetch();
+    usersQuery.refetch();
   };
+
+  const lastUpdated = useMemo(() => {
+    const timestamps = [
+      tasksQuery.dataUpdatedAt,
+      projectsQuery.dataUpdatedAt,
+      usersQuery.dataUpdatedAt,
+    ].filter(Boolean);
+    if (timestamps.length === 0) return null;
+    return new Date(Math.max(...timestamps));
+  }, [tasksQuery.dataUpdatedAt, projectsQuery.dataUpdatedAt, usersQuery.dataUpdatedAt]);
 
   return {
     stats,
     tasks,
     projects,
     users,
-    activities,
-    meetings,
+    activities: [],
+    meetings: [],
     isLoading,
-    error,
-    refetch: fetchData,
+    error: error ? (error instanceof Error ? error.message : "Failed to fetch data") : null,
+    refetch,
     lastUpdated,
   };
 }

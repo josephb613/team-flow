@@ -38,7 +38,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { updatedAt: "desc" },
     });
-    return NextResponse.json(pages);
+    return NextResponse.json(pages, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 

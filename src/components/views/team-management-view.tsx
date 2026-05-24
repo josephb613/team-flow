@@ -34,7 +34,7 @@ import { ManageMemberDialog } from "@/components/manage-member-dialog";
 import { ManageTeamRolesDialog } from "@/components/manage-team-roles-dialog";
 import { ManageTeamScopesDialog } from "@/components/manage-team-scopes-dialog";
 import { AddTeamMemberDialog } from "@/components/add-team-member-dialog";
-import { useApiData } from "@/hooks/use-api-data";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -108,9 +108,8 @@ export function TeamManagementView() {
   const [deleteTarget, setDeleteTarget] = useState<TeamMemberDetailed | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch workspace users
-  const wsParams = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : undefined;
-  const { data: usersData } = useApiData("/api/users", { params: wsParams });
+  // Fetch workspace users (React Query cached)
+  const { data: usersData } = useApiQuery("/api/users");
   const allUsers = useMemo(() => (usersData as any[]) ?? [], [usersData]);
 
   useEffect(() => {

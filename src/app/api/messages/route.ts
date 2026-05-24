@@ -26,7 +26,12 @@ export const GET = withErrorHandler(
       },
       orderBy: { createdAt: "asc" },
     });
-    return NextResponse.json(messages);
+    return NextResponse.json(messages, {
+      headers: {
+        "Cache-Control":
+          "max-age=300, s-maxage=600, stale-while-revalidate=86400",
+      },
+    });
   }),
 );
 

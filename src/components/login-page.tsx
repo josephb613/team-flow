@@ -108,18 +108,31 @@ export function LoginPage() {
     }
 
     // Connexion via Neon Auth
-    const { error: signInError } = await authClient.signIn.email({
-      email,
-      password,
-      callbackURL: "/",
-      rememberMe,
-    });
+    try {
+      const { error: signInError } = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: "/",
+        rememberMe,
+      });
 
-    if (signInError) {
-      setError(signInError.message || "Identifiants invalides");
+      if (signInError) {
+        const message =
+          signInError.message ||
+          t.login.invalidCredentials ||
+          "Identifiants invalides";
+        setError(message);
+        toast.error(message);
+        setIsLoading(false);
+      } else {
+        toast.success(t.toast.welcomeBack);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Identifiants invalides";
+      setError(message);
+      toast.error(message);
       setIsLoading(false);
-    } else {
-      toast.success(t.toast.welcomeBack);
     }
   };
 
@@ -305,7 +318,7 @@ export function LoginPage() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4"
+                className="bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 rounded-xl p-4"
               >
                 <p className="text-sm text-white/70 italic leading-relaxed mb-3">
                   &ldquo;{t.login.testimonialText}&rdquo;

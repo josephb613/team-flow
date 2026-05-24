@@ -31,6 +31,7 @@ model UserProfile {
   sentInvitations        Invitation[]       @relation("SentInvitations")
   createdOpportunities   Opportunity[]      @relation("CreatedOpportunities")
   responsableOpportunities Opportunity[]    @relation("ResponsableOpportunities")
+  responsablePhases     ProjectPhase[]
 }
 
 model Workspace {
@@ -53,6 +54,7 @@ model Workspace {
   activityLogs ActivityLog[]
   invitations  Invitation[]
   opportunities Opportunity[]
+  phases       ProjectPhase[]
   columns      BoardColumn[]
   trelloIntegration TrelloIntegration?
 }
@@ -126,6 +128,7 @@ model Project {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   tasks     Task[]
   meetings  Meeting[]
+  phases    ProjectPhase[]
 
   @@index([workspaceId])
 }
@@ -152,6 +155,30 @@ model Opportunity {
   @@index([responsableId])
 }
 
+model ProjectPhase {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  status         String    @default("pending")
+  order          Int       @default(0)
+  progress       Int       @default(0)
+  startDate      DateTime?
+  endDate        DateTime?
+  projectId      String
+  responsableId  String?
+  workspaceId    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  responsable UserProfile? @relation(fields: [responsableId], references: [neonAuthUserId], onDelete: SetNull)
+  tasks       Task[]
+
+  @@index([workspaceId])
+  @@index([projectId])
+}
+
 model Task {
   id          String    @id @default(cuid())
   title       String
@@ -161,19 +188,22 @@ model Task {
   tags        String    @default("")
   dueDate     DateTime?
   projectId   String
+  phaseId     String?
   assigneeId  String?
   creatorId   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee  UserProfile? @relation("AssignedTo", fields: [assigneeId], references: [neonAuthUserId], onDelete: SetNull)
-  creator   UserProfile? @relation("CreatedBy", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase     ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  assignee  UserProfile?  @relation("AssignedTo", fields: [assigneeId], references: [neonAuthUserId], onDelete: SetNull)
+  creator   UserProfile?  @relation("CreatedBy", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
   subtasks  Subtask[]
   comments  Comment[]
 
   @@index([projectId])
   @@index([assigneeId])
+  @@index([phaseId])
 }
 
 model Subtask {

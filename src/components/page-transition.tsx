@@ -2,6 +2,7 @@
 
 import { useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppStore } from "@/lib/store";
 import type { PageId } from "@/lib/types";
 
 // Navigation order for determining direction
@@ -48,10 +49,16 @@ const variants = {
   }),
 };
 
+// Faster transition for better perceived performance
 const transition = {
   type: "tween" as const,
   ease: [0.25, 0.46, 0.45, 0.94] as const,
-  duration: 0.2,
+  duration: 0.1, // Reduced from 0.12 to 0.1
+};
+
+// Instant transition for reduced motion
+const instantTransition = {
+  duration: 0,
 };
 
 interface PageTransitionProps {
@@ -59,8 +66,12 @@ interface PageTransitionProps {
   children: React.ReactNode;
 }
 
+// Optimized selector
+const useReducedMotion = () => useAppStore((s) => s.reducedMotion);
+
 export function PageTransition({ pageId, children }: PageTransitionProps) {
   const prevPageRef = useRef<PageId | null>(null);
+  const reducedMotion = useReducedMotion();
 
   // Compute direction synchronously (no state → no extra re-render)
   const direction = useMemo(() => {
@@ -70,10 +81,15 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageId]);
 
+  // If reduced motion is enabled, render without animation
+  if (reducedMotion) {
+    return <div key={pageId}>{children}</div>;
+  }
+
   // AnimatePresence with initial={false} prevents animation on first mount.
   // No need for a separate "mounted" state that would disrupt the React tree.
   return (
-    <AnimatePresence mode="wait" custom={direction} initial={false}>
+    <AnimatePresence mode="popLayout" custom={direction} initial={false}>
       <motion.div
         key={pageId}
         custom={direction}
