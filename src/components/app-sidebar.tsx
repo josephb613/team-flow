@@ -431,18 +431,17 @@ export function AppSidebar() {
             >
               <div
                 className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 shadow-sm",
+                  "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 bg-[var(--ws-color)]",
+                  !sidebarCollapsed && "shadow-sm",
                   sidebarCollapsed &&
-                    "ring-2 ring-offset-1 ring-offset-sidebar",
+                    "ring-2 ring-offset-1 ring-offset-sidebar shadow-[0_0_0_2px_var(--sidebar-background),0_0_0_4px_var(--ws-shadow)]",
                 )}
-                style={{
-                  backgroundColor: activeWorkspace?.color || "#10b981",
-                  ...(sidebarCollapsed
-                    ? {
-                        boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeWorkspace?.color || "#10b981"}40`,
-                      }
-                    : {}),
-                }}
+                style={
+                  {
+                    "--ws-color": activeWorkspace?.color || "#10b981",
+                    "--ws-shadow": `${activeWorkspace?.color || "#10b981"}40`,
+                  } as React.CSSProperties
+                }
               >
                 {activeWorkspace?.icon || "🏢"}
               </div>
@@ -478,8 +477,8 @@ export function AppSidebar() {
                 className="flex items-center gap-2.5 cursor-pointer"
               >
                 <div
-                  className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: ws.color }}
+                  className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold bg-[var(--ws-dd-color)]"
+                  style={{ "--ws-dd-color": ws.color } as React.CSSProperties}
                 >
                   {ws.icon}
                 </div>
@@ -877,38 +876,38 @@ export function AppSidebar() {
           <div className="flex items-center">
             {/* Stacked avatars with overlap */}
             <div className="flex items-center">
-              {onlineUsers.slice(0, 5).map((user, idx) => (
-                <TooltipProvider key={user.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div
-                        className="relative"
-                        style={{
-                          marginLeft: idx === 0 ? 0 : "-6px",
-                          zIndex: 5 - idx,
-                        }}
-                      >
-                        <Avatar className="h-6 w-6 border-2 border-sidebar">
-                          <AvatarFallback className="text-[8px] bg-sidebar-accent text-sidebar-foreground">
-                            {user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{user.name}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
+              {(() => {
+                const zMap = ["z-[5]", "z-[4]", "z-[3]", "z-[2]", "z-[1]"];
+                return onlineUsers.slice(0, 5).map((user, idx) => (
+                  <TooltipProvider key={user.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "relative",
+                            idx !== 0 && "-ml-1.5",
+                            zMap[idx],
+                          )}
+                        >
+                          <Avatar className="h-6 w-6 border-2 border-sidebar">
+                            <AvatarFallback className="text-[8px] bg-sidebar-accent text-sidebar-foreground">
+                              {user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>{user.name}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ));
+              })()}
               {/* +N indicator for more users */}
               {extraOnlineCount > 0 && (
-                <div
-                  className="relative flex items-center justify-center h-6 w-6 rounded-full bg-sidebar-accent text-[9px] font-medium text-sidebar-foreground/60 border-2 border-sidebar"
-                  style={{ marginLeft: "-6px", zIndex: 0 }}
-                >
+                <div className="relative flex items-center justify-center h-6 w-6 rounded-full bg-sidebar-accent text-[9px] font-medium text-sidebar-foreground/60 border-2 border-sidebar -ml-1.5 z-0">
                   +{extraOnlineCount}
                 </div>
               )}
