@@ -570,6 +570,9 @@ export const translations = {
       columnAdded: "Colonne ajoutée",
       columnUpdated: "Colonne mise à jour",
       columnDeleted: "Colonne supprimée",
+      reducedMotion: "Animations réduites",
+      reducedMotionDesc:
+        "Désactiver les animations pour de meilleures performances",
     },
 
     // Search
@@ -1407,6 +1410,8 @@ export const translations = {
       columnAdded: "Column added",
       columnUpdated: "Column updated",
       columnDeleted: "Column deleted",
+      reducedMotion: "Reduced Motion",
+      reducedMotionDesc: "Disable animations for better performance",
     },
     search: {
       title: "Search",
