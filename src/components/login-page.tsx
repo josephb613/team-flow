@@ -197,37 +197,11 @@ export function LoginPage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center shadow-lg shadow-teal-500/20">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 2L2 7L12 12L22 7L12 2Z"
-                    fill="white"
-                    fillOpacity="0.9"
-                  />
-                  <path
-                    d="M2 17L12 22L22 17"
-                    stroke="white"
-                    strokeOpacity="0.7"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M2 12L12 17L22 12"
-                    stroke="white"
-                    strokeOpacity="0.5"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+              <img
+                src="/logo.png"
+                alt="TeamFlow"
+                className="w-12 h-12 rounded-xl shadow-lg shadow-teal-500/20 object-contain"
+              />
               <span className="text-2xl font-bold text-white tracking-tight">
                 TeamFlow
               </span>
@@ -365,37 +339,11 @@ export function LoginPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 2L2 7L12 12L22 7L12 2Z"
-                  fill="white"
-                  fillOpacity="0.9"
-                />
-                <path
-                  d="M2 17L12 22L22 17"
-                  stroke="white"
-                  strokeOpacity="0.7"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M2 12L12 17L22 12"
-                  stroke="white"
-                  strokeOpacity="0.5"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+            <img
+              src="/logo.png"
+              alt="TeamFlow"
+              className="w-10 h-10 rounded-xl object-contain"
+            />
             <span className="text-xl font-bold tracking-tight">TeamFlow</span>
           </div>
 

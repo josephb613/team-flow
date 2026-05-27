@@ -3,7 +3,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useEffect, useRef } from "react";
-import type { Workspace, User, Channel, Task, Project, BoardColumn } from "@/lib/types";
+import type {
+  Workspace,
+  User,
+  Channel,
+  Task,
+  Project,
+  ProjectPhase,
+  BoardColumn,
+} from "@/lib/types";
 
 interface BootstrapData {
   workspaces: Workspace[];
@@ -12,6 +20,7 @@ interface BootstrapData {
   channels: Channel[];
   tasks: Task[];
   projects: Project[];
+  phases: ProjectPhase[];
   notifications: Array<{
     id: string;
     type: string;
@@ -34,21 +43,23 @@ const BOOTSTRAP_QUERY_KEY = ["bootstrap"] as const;
 const BOOTSTRAP_STALE_TIME = 2 * 60 * 1000; // 2 minutes
 const BOOTSTRAP_CACHE_TIME = 30 * 60 * 1000; // 30 minutes
 
-async function fetchBootstrapData(workspaceId?: string): Promise<BootstrapData> {
+async function fetchBootstrapData(
+  workspaceId?: string,
+): Promise<BootstrapData> {
   const params = workspaceId ? `?workspaceId=${workspaceId}` : "";
-  const res = await fetch(`/api/bootstrap${params}`);
-  
+  const res = await fetch(`/api/bootstrap${params}`, { cache: "no-cache" });
+
   if (!res.ok) {
     throw new Error(`Bootstrap fetch failed: ${res.status}`);
   }
-  
+
   return res.json();
 }
 
 /**
  * Hook to fetch all initial application data in a single request.
  * Uses React Query for caching, deduplication, and background refresh.
- * 
+ *
  * On success, automatically syncs data to Zustand store and
  * populates individual query caches for views that need them.
  */
@@ -62,10 +73,12 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
   const setColumnsOpportunity = useAppStore((s) => s.setColumnsOpportunity);
   const setNotifications = useAppStore((s) => s.setNotifications);
   const setCounts = useAppStore((s) => s.setCounts);
-  
+  const setProjectPhases = useAppStore((s) => s.setProjectPhases);
+  const setPhaseCount = useAppStore((s) => s.setPhaseCount);
+
   // Track if we've synced to avoid re-syncing on every render
   const hasSyncedRef = useRef(false);
-  
+
   const query = useQuery({
     queryKey: BOOTSTRAP_QUERY_KEY,
     queryFn: () => fetchBootstrapData(activeWorkspaceId || undefined),
@@ -80,7 +93,7 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
   // Sync bootstrap data to Zustand store and populate individual query caches
   useEffect(() => {
     if (!query.data || hasSyncedRef.current) return;
-    
+
     const data = query.data;
     hasSyncedRef.current = true;
 
@@ -90,12 +103,20 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
     setChannels(data.channels);
     setColumns(data.columns.tasks);
     setColumnsOpportunity(data.columns.opportunities);
-    
+    setProjectPhases(data.phases ?? []);
+    setPhaseCount((data.phases ?? []).length);
+
     // Map notifications to store format (notifications are empty for now)
     if (data.notifications && data.notifications.length > 0) {
       const mappedNotifications = data.notifications.map((n) => ({
         id: n.id,
-        type: (n.type || "system") as "mention" | "assignment" | "comment" | "deadline" | "invitation" | "system",
+        type: (n.type || "system") as
+          | "mention"
+          | "assignment"
+          | "comment"
+          | "deadline"
+          | "invitation"
+          | "system",
         title: n.title || "",
         message: n.message || "",
         read: n.read,
@@ -116,6 +137,7 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
     if (wsId) {
       queryClient.setQueryData(["tasks", wsId], data.tasks);
       queryClient.setQueryData(["projects", wsId], data.projects);
+      queryClient.setQueryData(["phases", wsId], data.phases ?? []);
       queryClient.setQueryData(["users", wsId], data.users);
       queryClient.setQueryData(["channels", wsId], data.channels);
       queryClient.setQueryData(["notifications"], data.notifications);
@@ -130,6 +152,8 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
     setColumnsOpportunity,
     setNotifications,
     setCounts,
+    setProjectPhases,
+    setPhaseCount,
   ]);
 
   // Reset sync flag when workspace changes
@@ -151,7 +175,9 @@ export function useBootstrapData(options?: { enabled?: boolean }) {
  * Prefetch bootstrap data - useful to call during auth flow
  * before the main app renders.
  */
-export function prefetchBootstrapData(queryClient: ReturnType<typeof useQueryClient>) {
+export function prefetchBootstrapData(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
   return queryClient.prefetchQuery({
     queryKey: BOOTSTRAP_QUERY_KEY,
     queryFn: () => fetchBootstrapData(),
@@ -163,6 +189,8 @@ export function prefetchBootstrapData(queryClient: ReturnType<typeof useQueryCli
  * Invalidate bootstrap cache - call after mutations that affect
  * initial data (workspace changes, etc.)
  */
-export function invalidateBootstrapCache(queryClient: ReturnType<typeof useQueryClient>) {
+export function invalidateBootstrapCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
   return queryClient.invalidateQueries({ queryKey: BOOTSTRAP_QUERY_KEY });
 }

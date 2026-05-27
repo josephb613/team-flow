@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "TeamFlow" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.png",
   },
 };
 
@@ -54,9 +54,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <QueryProvider>
-              {children}
-            </QueryProvider>
+            <QueryProvider>{children}</QueryProvider>
             <SearchDialog />
             <Toaster />
           </ThemeProvider>

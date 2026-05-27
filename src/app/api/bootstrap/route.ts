@@ -5,7 +5,7 @@ import { withAuth, withErrorHandler, normalizeTaskTags } from "@/lib/api-utils";
 /**
  * Bootstrap endpoint - Returns all initial data needed for the app in a single request.
  * This eliminates the waterfall of sequential API calls on first load.
- * 
+ *
  * Returns:
  * - workspaces (with members, projects, columns)
  * - users (for the active workspace)
@@ -55,6 +55,7 @@ export const GET = withErrorHandler(
           channels: [],
           tasks: [],
           projects: [],
+          phases: [],
           notifications: [],
           columns: { tasks: [], opportunities: [] },
         },
@@ -62,7 +63,7 @@ export const GET = withErrorHandler(
           headers: {
             "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
           },
-        }
+        },
       );
     }
 
@@ -71,7 +72,7 @@ export const GET = withErrorHandler(
     if (!hasAccess) {
       return NextResponse.json(
         { error: "Workspace not found or access denied" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -79,7 +80,9 @@ export const GET = withErrorHandler(
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
     const allColumns = activeWorkspace?.columns || [];
     const taskColumns = allColumns.filter((c) => c.boardType === "tasks");
-    const oppColumns = allColumns.filter((c) => c.boardType === "opportunities");
+    const oppColumns = allColumns.filter(
+      (c) => c.boardType === "opportunities",
+    );
 
     // 3. Fetch remaining data in batches to avoid connection pool exhaustion
     // First batch: lightweight queries
@@ -108,7 +111,7 @@ export const GET = withErrorHandler(
     ]);
 
     // Second batch: heavier queries
-    const [tasks, projects] = await Promise.all([
+    const [tasks, projects, phases] = await Promise.all([
       db.task.findMany({
         where: {
           project: { workspaceId: activeWorkspaceId },
@@ -137,6 +140,16 @@ export const GET = withErrorHandler(
         },
         orderBy: { createdAt: "desc" },
       }),
+      db.projectPhase.findMany({
+        where: { workspaceId: activeWorkspaceId },
+        include: {
+          responsable: true,
+          project: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { order: "asc" },
+      }),
     ]);
 
     // Map users to frontend format
@@ -161,6 +174,7 @@ export const GET = withErrorHandler(
         channels,
         tasks: normalizedTasks,
         projects,
+        phases,
         notifications: [], // TODO: Add Notification model to schema when needed
         columns: {
           tasks: taskColumns,
@@ -175,7 +189,7 @@ export const GET = withErrorHandler(
         headers: {
           "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
         },
-      }
+      },
     );
-  })
+  }),
 );

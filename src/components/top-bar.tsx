@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useAppStore } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAppStore } from "@/lib/store";
+import { useTranslation } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,7 +12,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from "@/components/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,18 +20,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
 import {
   Search,
   Bell,
@@ -56,17 +56,19 @@ import {
   Mail,
   AlertTriangle,
   Globe,
-} from 'lucide-react';
-import { MessageSquare } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import type { PageId } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+} from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import type { PageId } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
-  assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
+  assignment: (
+    <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
+  ),
   comment: <MessageSquare className="h-3.5 w-3.5 text-cyan-500" />,
   deadline: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />,
   mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
@@ -75,27 +77,31 @@ const notificationTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export function TopBar() {
-  const {
-    activePage,
-    activeWorkspaceId,
-    workspaces,
-    sidebarCollapsed,
-    toggleSidebar,
-    setSearchOpen,
-    notifications,
-    setNotificationPanelOpen,
-    setCreateWorkspaceDialogOpen,
-    setCreateTaskDialogOpen,
-    setCreateProjectDialogOpen,
-    currentUser,
-    logout,
-    setMobileSidebarOpen,
-    locale,
-    setLocale,
-    setActivePage,
-    isApiLoading,
-    setWhatsNewDialogOpen,
-  } = useAppStore();
+  const workspaces = useAppStore((s) => s.workspaces);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const activePage = useAppStore((s) => s.activePage);
+  const setSearchOpen = useAppStore((s) => s.setSearchOpen);
+  const notifications = useAppStore((s) => s.notifications);
+  const setNotificationPanelOpen = useAppStore(
+    (s) => s.setNotificationPanelOpen,
+  );
+  const setCreateWorkspaceDialogOpen = useAppStore(
+    (s) => s.setCreateWorkspaceDialogOpen,
+  );
+  const setCreateTaskDialogOpen = useAppStore((s) => s.setCreateTaskDialogOpen);
+  const setCreateProjectDialogOpen = useAppStore(
+    (s) => s.setCreateProjectDialogOpen,
+  );
+  const currentUser = useAppStore((s) => s.currentUser);
+  const logout = useAppStore((s) => s.logout);
+  const setMobileSidebarOpen = useAppStore((s) => s.setMobileSidebarOpen);
+  const locale = useAppStore((s) => s.locale);
+  const setLocale = useAppStore((s) => s.setLocale);
+  const setActivePage = useAppStore((s) => s.setActivePage);
+  const isApiLoading = useAppStore((s) => s.isApiLoading);
+  const setWhatsNewDialogOpen = useAppStore((s) => s.setWhatsNewDialogOpen);
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
   const [searchFocused, setSearchFocused] = useState(false);
@@ -156,7 +162,9 @@ export function TopBar() {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {sidebarCollapsed ? t.topbar.expandSidebar : t.topbar.collapseSidebar}
+              {sidebarCollapsed
+                ? t.topbar.expandSidebar
+                : t.topbar.collapseSidebar}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -169,8 +177,11 @@ export function TopBar() {
                 asChild
                 className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
               >
-                <span onClick={() => setActivePage('dashboard')} className="flex items-center gap-1.5">
-                  {activeWorkspace?.name || 'TeamFlow'}
+                <span
+                  onClick={() => setActivePage("dashboard")}
+                  className="flex items-center gap-1.5"
+                >
+                  {activeWorkspace?.name || "TeamFlow"}
                   <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.15_160/0.12)] text-[oklch(0.55_0.15_160)] leading-none">
                     {t.topbar.pro}
                   </span>
@@ -224,10 +235,11 @@ export function TopBar() {
           <Button
             variant="outline"
             className={cn(
-              'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
-              'w-48 justify-start shadow-sm bg-muted/30',
-              'transition-all duration-200',
-              searchFocused && 'ring-2 ring-[oklch(0.55_0.15_160/0.3)] border-[oklch(0.55_0.15_160/0.3)]'
+              "hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground",
+              "w-48 justify-start shadow-sm bg-muted/30",
+              "transition-all duration-200",
+              searchFocused &&
+                "ring-2 ring-[oklch(0.55_0.15_160/0.3)] border-[oklch(0.55_0.15_160/0.3)]",
             )}
             onClick={() => setSearchOpen(true)}
             onFocus={() => setSearchFocused(true)}
@@ -308,7 +320,7 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('meetings')}
+              onClick={() => setActivePage("meetings")}
             >
               <Video className="h-4 w-4 mr-2 text-rose-500" />
               {t.topbar.scheduleMeeting}
@@ -331,12 +343,14 @@ export function TopBar() {
               <Button
                 variant="ghost"
                 className="h-9 w-9 text-xs font-bold hidden sm:flex"
-                onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+                onClick={() => setLocale(locale === "fr" ? "en" : "fr")}
               >
                 {locale.toUpperCase()}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{locale === 'fr' ? 'English' : 'Français'}</TooltipContent>
+            <TooltipContent>
+              {locale === "fr" ? "English" : "Français"}
+            </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
@@ -345,7 +359,7 @@ export function TopBar() {
           variant="ghost"
           size="icon"
           className="sm:hidden h-9 w-9 text-xs font-bold"
-          onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+          onClick={() => setLocale(locale === "fr" ? "en" : "fr")}
         >
           {locale.toUpperCase()}
         </Button>
@@ -358,7 +372,9 @@ export function TopBar() {
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9"
-                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                onClick={() =>
+                  setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                }
               >
                 <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -371,21 +387,25 @@ export function TopBar() {
         {/* Notifications with hover dropdown preview */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 relative"
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
               <motion.div
-                animate={unreadCount > 0 ? {
-                  rotate: [0, -8, 8, -4, 4, 0],
-                } : { rotate: 0 }}
-                transition={unreadCount > 0 ? {
-                  duration: 0.6,
-                  repeat: Infinity,
-                  repeatDelay: 4,
-                  ease: 'easeInOut',
-                } : undefined}
+                animate={
+                  unreadCount > 0
+                    ? {
+                        rotate: [0, -8, 8, -4, 4, 0],
+                      }
+                    : { rotate: 0 }
+                }
+                transition={
+                  unreadCount > 0
+                    ? {
+                        duration: 0.6,
+                        repeat: Infinity,
+                        repeatDelay: 4,
+                        ease: "easeInOut",
+                      }
+                    : undefined
+                }
               >
                 <Bell className="h-4 w-4" />
               </motion.div>
@@ -393,7 +413,7 @@ export function TopBar() {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 >
                   <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] p-0 flex items-center justify-center text-[10px] bg-[oklch(0.55_0.15_160)] text-white border-2 border-background">
                     {unreadCount}
@@ -409,7 +429,9 @@ export function TopBar() {
           >
             <div className="p-3 border-b bg-muted/30 rounded-t-xl">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold">{t.topbar.notifications}</h4>
+                <h4 className="text-sm font-semibold">
+                  {t.topbar.notifications}
+                </h4>
                 {unreadCount > 0 && (
                   <Badge className="h-5 px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white">
                     {unreadCount} {t.topbar.new}
@@ -422,15 +444,22 @@ export function TopBar() {
                 <div
                   key={n.id}
                   className={cn(
-                    'flex items-start gap-2.5 p-3 transition-colors',
-                    !n.read ? 'bg-muted/20' : ''
+                    "flex items-start gap-2.5 p-3 transition-colors",
+                    !n.read ? "bg-muted/20" : "",
                   )}
                 >
                   <div className="shrink-0 mt-0.5">
-                    {notificationTypeIcons[n.type] || <Bell className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {notificationTypeIcons[n.type] || (
+                      <Bell className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn('text-xs truncate', !n.read ? 'font-medium' : 'text-muted-foreground')}>
+                    <p
+                      className={cn(
+                        "text-xs truncate",
+                        !n.read ? "font-medium" : "text-muted-foreground",
+                      )}
+                    >
                       {n.title}
                     </p>
                     <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
@@ -461,11 +490,17 @@ export function TopBar() {
         {/* User menu - enhanced with online dot and separator */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-9 gap-2 px-2 ml-1.5 pl-1.5 border-l border-border hidden sm:flex">
+            <Button
+              variant="ghost"
+              className="h-9 gap-2 px-2 ml-1.5 pl-1.5 border-l border-border hidden sm:flex"
+            >
               <div className="relative">
                 <Avatar className="h-7 w-7">
                   <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                    {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                    {currentUser?.name
+                      ?.split(" ")
+                      .map((n: string) => n[0])
+                      .join("") || "AT"}
                   </AvatarFallback>
                 </Avatar>
                 {/* Online status dot */}
@@ -473,7 +508,7 @@ export function TopBar() {
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight max-w-[120px] truncate">
-                  {currentUser?.name || 'Alex Thompson'}
+                  {currentUser?.name || "Alex Thompson"}
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-tight">
                   {currentUser?.role || t.topbar.admin}
@@ -485,12 +520,19 @@ export function TopBar() {
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name
+                    ?.split(" ")
+                    .map((n: string) => n[0])
+                    .join("") || "AT"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Alex Thompson'}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                <p className="text-sm font-medium truncate">
+                  {currentUser?.name || "Alex Thompson"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {currentUser?.email || "alex@acmecorp.com"}
+                </p>
               </div>
             </div>
             <DropdownMenuSeparator />
@@ -500,13 +542,18 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => useAppStore.getState().setActivePage('settings' as PageId)}
+              onClick={() =>
+                useAppStore.getState().setActivePage("settings" as PageId)
+              }
             >
               <Settings className="h-4 w-4 mr-2" />
               {t.topbar.settings}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive cursor-pointer"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               {t.topbar.signOut}
             </DropdownMenuItem>
@@ -519,7 +566,10 @@ export function TopBar() {
             <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name
+                    ?.split(" ")
+                    .map((n: string) => n[0])
+                    .join("") || "AT"}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -528,12 +578,19 @@ export function TopBar() {
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name
+                    ?.split(" ")
+                    .map((n: string) => n[0])
+                    .join("") || "AT"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Alex Thompson'}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                <p className="text-sm font-medium truncate">
+                  {currentUser?.name || "Alex Thompson"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {currentUser?.email || "alex@acmecorp.com"}
+                </p>
               </div>
             </div>
             <DropdownMenuSeparator />
@@ -543,13 +600,18 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => useAppStore.getState().setActivePage('settings' as PageId)}
+              onClick={() =>
+                useAppStore.getState().setActivePage("settings" as PageId)
+              }
             >
               <Settings className="h-4 w-4 mr-2" />
               {t.topbar.settings}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive cursor-pointer"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               {t.topbar.signOut}
             </DropdownMenuItem>

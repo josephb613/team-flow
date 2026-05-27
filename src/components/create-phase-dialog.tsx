@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import {
@@ -28,6 +28,7 @@ import { motion } from "framer-motion";
 import {
   GitBranch,
   Sparkles,
+  Pencil,
   Type,
   FileText,
   CircleDot,
@@ -41,14 +42,16 @@ export function CreatePhaseDialog() {
   const {
     createPhaseDialogOpen,
     setCreatePhaseDialogOpen,
+    editingPhase,
+    setEditingPhase,
     activeWorkspaceId,
     workspaces,
   } = useAppStore();
   const queryClient = useQueryClient();
 
   const effectiveWorkspaceId = activeWorkspaceId || workspaces[0]?.id || "";
+  const isEditing = !!editingPhase;
 
-  // useApiQuery auto-adds workspaceId when scoped=true (default)
   const { data: usersData } = useApiQuery<User[]>("/api/users");
   const users = usersData || [];
 
@@ -65,6 +68,18 @@ export function CreatePhaseDialog() {
   const [projectError, setProjectError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pré-remplir le formulaire quand on passe en mode édition
+  useEffect(() => {
+    if (createPhaseDialogOpen && editingPhase) {
+      setName(editingPhase.name || "");
+      setDescription(editingPhase.description || "");
+      setStatus(editingPhase.status || "pending");
+      setOrder(editingPhase.order ?? 0);
+      setProjectId(editingPhase.projectId || "");
+      setResponsableId(editingPhase.responsableId || "");
+    }
+  }, [createPhaseDialogOpen, editingPhase]);
+
   const resetForm = useCallback(() => {
     setName("");
     setDescription("");
@@ -78,7 +93,10 @@ export function CreatePhaseDialog() {
 
   const handleOpenChange = (open: boolean) => {
     setCreatePhaseDialogOpen(open);
-    if (!open) resetForm();
+    if (!open) {
+      resetForm();
+      setEditingPhase(null);
+    }
   };
 
   const validate = (): boolean => {
@@ -108,33 +126,67 @@ export function CreatePhaseDialog() {
 
     setIsSubmitting(true);
     try {
-      const body: Record<string, unknown> = {
-        name: name.trim(),
-        description: description.trim() || null,
-        status,
-        order,
-        projectId,
-        responsableId: responsableId || null,
-        workspaceId: effectiveWorkspaceId,
-      };
+      if (isEditing && editingPhase) {
+        // Mode édition : PATCH
+        const body: Record<string, unknown> = {
+          name: name.trim(),
+          description: description.trim() || null,
+          status,
+          order,
+          projectId,
+          responsableId:
+            responsableId && responsableId !== "none" ? responsableId : null,
+        };
 
-      const response = await fetch("/api/phases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch(`/api/phases/${editingPhase.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create phase");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to update phase");
+        }
+
+        toast.success("Phase modifiée avec succès");
+      } else {
+        // Mode création : POST
+        const body: Record<string, unknown> = {
+          name: name.trim(),
+          description: description.trim() || null,
+          status,
+          order,
+          projectId,
+          responsableId:
+            responsableId && responsableId !== "none" ? responsableId : null,
+          workspaceId: effectiveWorkspaceId,
+        };
+
+        const response = await fetch("/api/phases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to create phase");
+        }
+
+        toast.success("Phase créée avec succès");
       }
 
-      toast.success("Phase créée avec succès");
       queryClient.invalidateQueries({ queryKey: ["phases"] });
       setCreatePhaseDialogOpen(false);
       resetForm();
-    } catch (error) {
-      toast.error("Erreur lors de la création de la phase");
+      setEditingPhase(null);
+    } catch {
+      toast.error(
+        isEditing
+          ? "Erreur lors de la modification de la phase"
+          : "Erreur lors de la création de la phase",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -157,15 +209,23 @@ export function CreatePhaseDialog() {
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.15_160/0.08)] via-[oklch(0.55_0.15_160/0.04)] to-transparent border-b">
             <div className="absolute top-3 right-4 text-[oklch(0.55_0.15_160/0.15)]">
-              <Sparkles className="h-5 w-5" />
+              {isEditing ? (
+                <Pencil className="h-5 w-5" />
+              ) : (
+                <Sparkles className="h-5 w-5" />
+              )}
             </div>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2.5 text-lg">
                 <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white shadow-sm">
-                  <GitBranch className="h-4 w-4" />
+                  {isEditing ? (
+                    <Pencil className="h-4 w-4" />
+                  ) : (
+                    <GitBranch className="h-4 w-4" />
+                  )}
                 </div>
                 <span className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.12_160)] bg-clip-text text-transparent font-bold">
-                  Nouvelle phase
+                  {isEditing ? "Modifier la phase" : "Nouvelle phase"}
                 </span>
               </DialogTitle>
             </DialogHeader>
@@ -326,7 +386,10 @@ export function CreatePhaseDialog() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setCreatePhaseDialogOpen(false)}
+                onClick={() => {
+                  setCreatePhaseDialogOpen(false);
+                  setEditingPhase(null);
+                }}
                 disabled={isSubmitting}
               >
                 Annuler
@@ -336,8 +399,18 @@ export function CreatePhaseDialog() {
                 disabled={isSubmitting}
                 className="gap-2 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm"
               >
-                <GitBranch className="h-4 w-4" />
-                {isSubmitting ? "Création..." : "Créer la phase"}
+                {isEditing ? (
+                  <Pencil className="h-4 w-4" />
+                ) : (
+                  <GitBranch className="h-4 w-4" />
+                )}
+                {isSubmitting
+                  ? isEditing
+                    ? "Modification..."
+                    : "Création..."
+                  : isEditing
+                    ? "Enregistrer"
+                    : "Créer la phase"}
               </Button>
             </div>
           </form>

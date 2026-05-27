@@ -178,6 +178,10 @@ interface AppState extends HydrationState {
   editingOpportunity: Opportunity | null;
   setEditingOpportunity: (opp: Opportunity | null) => void;
 
+  // Edit phase
+  editingPhase: ProjectPhase | null;
+  setEditingPhase: (phase: ProjectPhase | null) => void;
+
   // Create phase dialog
   createPhaseDialogOpen: boolean;
   setCreatePhaseDialogOpen: (open: boolean) => void;
@@ -365,9 +369,11 @@ export const useAppStore = create<AppState>()(
       setLocale: (locale) => set({ locale }),
 
       // Performance - reduced motion (respects system preference by default)
-      reducedMotion: typeof window !== "undefined" 
-        ? window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false 
-        : false,
+      reducedMotion:
+        typeof window !== "undefined"
+          ? (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ??
+            false)
+          : false,
       setReducedMotion: (enabled) => set({ reducedMotion: enabled }),
 
       // Task detail drawer
@@ -480,6 +486,10 @@ export const useAppStore = create<AppState>()(
       // Edit opportunity
       editingOpportunity: null,
       setEditingOpportunity: (opp) => set({ editingOpportunity: opp }),
+
+      // Edit phase
+      editingPhase: null,
+      setEditingPhase: (phase) => set({ editingPhase: phase }),
 
       // Create phase dialog
       createPhaseDialogOpen: false,

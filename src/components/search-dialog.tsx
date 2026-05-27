@@ -39,7 +39,13 @@ import {
   Keyboard,
   Search,
 } from "lucide-react";
-import type { PageId, TaskStatus, TaskPriority, Task, Project } from "@/lib/types";
+import type {
+  PageId,
+  TaskStatus,
+  TaskPriority,
+  Task,
+  Project,
+} from "@/lib/types";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -123,18 +129,22 @@ const priorityDotMap: Record<
 };
 
 export function SearchDialog() {
-  const {
-    searchOpen,
-    setSearchOpen,
-    setActivePage,
-    setSelectedTask,
-    recentItems,
-    addRecentItem,
-    setCreateTaskDialogOpen,
-    setCreateProjectDialogOpen,
-    setShortcutsHelpOpen,
-    columns,
-  } = useAppStore();
+  // Atomic selectors — each subscribes to a single store slice,
+  // preventing re-renders caused by unrelated state changes.
+  const searchOpen = useAppStore((s) => s.searchOpen);
+  const setSearchOpen = useAppStore((s) => s.setSearchOpen);
+  const setActivePage = useAppStore((s) => s.setActivePage);
+  const setSelectedTask = useAppStore((s) => s.setSelectedTask);
+  const recentItems = useAppStore((s) => s.recentItems);
+  const addRecentItem = useAppStore((s) => s.addRecentItem);
+  const setCreateTaskDialogOpen = useAppStore((s) => s.setCreateTaskDialogOpen);
+  const setCreateProjectDialogOpen = useAppStore(
+    (s) => s.setCreateProjectDialogOpen,
+  );
+  const setShortcutsHelpOpen = useAppStore((s) => s.setShortcutsHelpOpen);
+  const columns = useAppStore((s) => s.columns);
+  const storeUsers = useAppStore((s) => s.users);
+
   const { t } = useTranslation();
   const { setTheme, resolvedTheme } = useTheme();
   const [query, setQuery] = useState("");
@@ -153,8 +163,6 @@ export function SearchDialog() {
     const q = query.toLowerCase();
     return [];
   }, [query, isQueryEmpty]);
-
-  const storeUsers = useAppStore((s) => s.users);
 
   const { statusIconMap, statusColorMap } = useMemo(() => {
     const cols = columns.length > 0 ? columns : DEFAULT_COLUMNS;

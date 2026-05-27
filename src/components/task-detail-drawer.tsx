@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
@@ -180,6 +180,7 @@ export function TaskDetailDrawer() {
     taskDetailOpen,
     setTaskDetailOpen,
     selectedTask,
+    setSelectedTask,
     updateTaskStatus,
     columns,
     currentUser,
@@ -197,6 +198,15 @@ export function TaskDetailDrawer() {
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
   const [editingSubtaskTitle, setEditingSubtaskTitle] = useState("");
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const mountedRef = useRef(true);
+
+  // Track mounted state for safe async operations
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // ─── API Data ──────────────────────────────────────────────────────────
   // useApiQuery auto-adds workspaceId when scoped=true (default)
@@ -221,19 +231,23 @@ export function TaskDetailDrawer() {
       return;
     }
 
+    const abortController = new AbortController();
     let cancelled = false;
 
     async function fetchTaskDetail() {
       setIsLoadingDetail(true);
       try {
-        const res = await fetch(`/api/tasks/${taskId}`);
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          signal: abortController.signal,
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
           setTaskDetail(data as TaskDetailResponse);
           setComments(data.comments || []);
         }
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (!cancelled) {
           // Fallback to the task data from the store if API fails
           setTaskDetail(selectedTask as unknown as TaskDetailResponse);
@@ -249,11 +263,13 @@ export function TaskDetailDrawer() {
       try {
         const res = await fetch(
           `/api/activity?targetId=${encodeURIComponent(taskId!)}&targetType=task`,
+          { signal: abortController.signal },
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) setActivityLogs(data as ActivityItem[]);
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         if (!cancelled) setActivityLogs([]);
       } finally {
         if (!cancelled) setIsLoadingActivity(false);
@@ -265,6 +281,7 @@ export function TaskDetailDrawer() {
 
     return () => {
       cancelled = true;
+      abortController.abort();
     };
   }, [taskDetailOpen, taskId, selectedTask]);
 
@@ -441,7 +458,8 @@ export function TaskDetailDrawer() {
       toast.success(t.taskDetail.taskDeleted);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["phases"] });
-      setTaskDetailOpen(false);
+      // Clear selectedTask to prevent stale references and 404 errors
+      setSelectedTask(null);
     } catch {
       toast.error(t.taskDetail.taskDeleteFailed || "Failed to delete task");
     }
@@ -564,10 +582,14 @@ export function TaskDetailDrawer() {
       // Rollback - refetch or restore
       toast.error("Failed to delete subtasks");
       // Re-fetch task detail to restore correct state
-      const res = await fetch(`/api/tasks/${task.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTaskDetail(data as TaskDetailResponse);
+      try {
+        const res = await fetch(`/api/tasks/${task.id}`);
+        if (res.ok && mountedRef.current) {
+          const data = await res.json();
+          setTaskDetail(data as TaskDetailResponse);
+        }
+      } catch {
+        // Silently ignore rollback fetch errors
       }
     }
   };
@@ -617,7 +639,12 @@ export function TaskDetailDrawer() {
   if (!task) return null;
 
   return (
-    <Sheet open={taskDetailOpen} onOpenChange={setTaskDetailOpen}>
+    <Sheet
+      open={taskDetailOpen}
+      onOpenChange={(open) => {
+        if (!open) setSelectedTask(null);
+      }}
+    >
       <SheetContent className="w-full sm:max-w-[480px] p-0 gap-0 overflow-y-auto [&>button]:hidden">
         {/* Always render a SheetTitle for screen reader accessibility */}
         <SheetTitle className="sr-only">
@@ -625,581 +652,579 @@ export function TaskDetailDrawer() {
         </SheetTitle>
         {/* Show content immediately using selectedTask data, enriched with API data when available */}
         <>
-            {/* Header */}
-            <SheetHeader className="px-6 pt-6 pb-4 border-b">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  {/* Priority Badge - Prominent */}
-                  <div className="flex items-center gap-2 mb-2.5 flex-wrap">
-                    <Badge
-                      className={cn(
-                        "text-xs px-2.5 py-1 gap-1.5 font-semibold border-0",
-                        priority.solidBg,
-                      )}
-                    >
-                      {priority.icon}
-                      {priority.label}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] px-2 py-0.5 cursor-pointer hover:bg-muted/50 transition-colors",
-                            status.bg,
-                            status.color,
-                          )}
-                        >
-                          {status.icon}
-                          <span className="ml-1">{statusLabel}</span>
-                        </Badge>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-44">
-                        {[...columns]
-                          .sort((a, b) => a.order - b.order)
-                          .map((col) => {
-                            const cfg = statusConfig[col.slug];
-                            if (!cfg) return null;
-                            return (
-                              <DropdownMenuItem
-                                key={col.slug}
-                                onClick={() => handleStatusChange(col.slug)}
-                                className={cn(
-                                  "gap-2",
-                                  task.status === col.slug && "bg-muted",
-                                )}
-                              >
-                                <span className={cfg.color}>{cfg.icon}</span>
-                                <span className="text-sm">{col.name}</span>
-                                {task.status === col.slug && (
-                                  <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
-                                )}
-                              </DropdownMenuItem>
-                            );
-                          })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <SheetTitle className="text-lg leading-tight">
-                    {task.title}
-                  </SheetTitle>
-                </div>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
+          {/* Header */}
+          <SheetHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                {/* Priority Badge - Prominent */}
+                <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                  <Badge
+                    className={cn(
+                      "text-xs px-2.5 py-1 gap-1.5 font-semibold border-0",
+                      priority.solidBg,
+                    )}
+                  >
+                    {priority.icon}
+                    {priority.label}
+                  </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 cursor-pointer hover:bg-muted/50 transition-colors",
+                          status.bg,
+                          status.color,
+                        )}
+                      >
+                        {status.icon}
+                        <span className="ml-1">{statusLabel}</span>
+                      </Badge>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem
-                        className="gap-2"
-                        onClick={() => {
-                          if (!taskDetail) return;
-                          useAppStore
-                            .getState()
-                            .setEditingTask(taskDetail as Task);
-                          useAppStore.getState().setTaskDetailOpen(false);
-                          useAppStore.getState().setCreateTaskDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="text-sm">{t.common.edit}</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        className="gap-2"
-                        onClick={handleDelete}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="text-sm">{t.common.delete}</span>
-                      </DropdownMenuItem>
+                    <DropdownMenuContent align="start" className="w-44">
+                      {[...columns]
+                        .sort((a, b) => a.order - b.order)
+                        .map((col) => {
+                          const cfg = statusConfig[col.slug];
+                          if (!cfg) return null;
+                          return (
+                            <DropdownMenuItem
+                              key={col.slug}
+                              onClick={() => handleStatusChange(col.slug)}
+                              className={cn(
+                                "gap-2",
+                                task.status === col.slug && "bg-muted",
+                              )}
+                            >
+                              <span className={cfg.color}>{cfg.icon}</span>
+                              <span className="text-sm">{col.name}</span>
+                              {task.status === col.slug && (
+                                <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+                              )}
+                            </DropdownMenuItem>
+                          );
+                        })}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setTaskDetailOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
+                <SheetTitle className="text-lg leading-tight">
+                  {task.title}
+                </SheetTitle>
               </div>
-            </SheetHeader>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => {
+                        if (!taskDetail) return;
+                        useAppStore
+                          .getState()
+                          .setEditingTask(taskDetail as Task);
+                        useAppStore.getState().setSelectedTask(null);
+                        useAppStore.getState().setCreateTaskDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      <span className="text-sm">{t.common.edit}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span className="text-sm">{t.common.delete}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSelectedTask(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </SheetHeader>
 
-            <div className="p-6 space-y-6">
-              {/* Description */}
+          <div className="p-6 space-y-6">
+            {/* Description */}
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                {t.taskDetail.description}
+              </h4>
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                {task.description}
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  {t.taskDetail.description}
+                  {t.taskDetail.assignee}
                 </h4>
-                <p className="text-sm text-foreground/80 leading-relaxed">
-                  {task.description}
-                </p>
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="text-[9px] bg-muted">
+                      {getUserInitials(
+                        users,
+                        taskDetail?.assignee?.id || task.assigneeId,
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm">
+                    {taskDetail?.assignee?.name ||
+                      getUserName(users, task.assigneeId)}
+                  </span>
+                </div>
               </div>
-
-              <Separator />
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {t.taskDetail.assignee}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback className="text-[9px] bg-muted">
-                        {getUserInitials(
-                          users,
-                          taskDetail?.assignee?.id || task.assigneeId,
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">
-                      {taskDetail?.assignee?.name ||
-                        getUserName(users, task.assigneeId)}
-                    </span>
-                  </div>
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {t.taskDetail.project}
+                </h4>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{
+                      backgroundColor: taskDetail?.projectRel
+                        ? (taskDetail.projectRel as Project).color
+                        : getProjectColor(projects, task.projectId),
+                    }}
+                  />
+                  <span className="text-sm">
+                    {taskDetail?.projectRel
+                      ? (taskDetail.projectRel as Project).name
+                      : getProjectName(projects, task.projectId)}
+                  </span>
                 </div>
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {t.taskDetail.project}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: taskDetail?.projectRel
-                          ? (taskDetail.projectRel as Project).color
-                          : getProjectColor(projects, task.projectId),
-                      }}
-                    />
-                    <span className="text-sm">
-                      {taskDetail?.projectRel
-                        ? (taskDetail.projectRel as Project).name
-                        : getProjectName(projects, task.projectId)}
-                    </span>
-                  </div>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {t.taskDetail.dueDate}
+                </h4>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  {task.dueDate
+                    ? new Date(task.dueDate).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "—"}
                 </div>
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {t.taskDetail.dueDate}
-                  </h4>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    {task.dueDate
-                      ? new Date(task.dueDate).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "—"}
-                  </div>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {t.taskDetail.created}
+                </h4>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  {task.createdAt
+                    ? new Date(task.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "—"}
                 </div>
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {t.taskDetail.created}
-                  </h4>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    {task.createdAt
-                      ? new Date(task.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "—"}
-                  </div>
-                </div>
-                {/* Phase */}
-                <div className="col-span-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    Phase
-                  </h4>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
+              </div>
+              {/* Phase */}
+              <div className="col-span-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Phase
+                </h4>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-md border transition-colors",
+                        "hover:bg-muted/50 cursor-pointer",
+                        task.phaseId
+                          ? "border-[oklch(0.55_0.15_160/0.3)] bg-[oklch(0.55_0.15_160/0.05)]"
+                          : "border-muted-foreground/20 bg-transparent",
+                      )}
+                    >
+                      <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span
                         className={cn(
-                          "flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-md border transition-colors",
-                          "hover:bg-muted/50 cursor-pointer",
                           task.phaseId
-                            ? "border-[oklch(0.55_0.15_160/0.3)] bg-[oklch(0.55_0.15_160/0.05)]"
-                            : "border-muted-foreground/20 bg-transparent",
+                            ? "text-foreground"
+                            : "text-muted-foreground",
                         )}
                       >
-                        <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span
-                          className={cn(
-                            task.phaseId
-                              ? "text-foreground"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          {currentPhaseName}
-                        </span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-52">
+                        {currentPhaseName}
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-52">
+                    <DropdownMenuItem
+                      onClick={() => handlePhaseChange("")}
+                      className={cn("gap-2", !task.phaseId && "bg-muted")}
+                    >
+                      <span className="text-muted-foreground">—</span>
+                      <span className="text-sm">Aucune phase</span>
+                      {!task.phaseId && (
+                        <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
+                      )}
+                    </DropdownMenuItem>
+                    {projectPhases.length > 0 && <DropdownMenuSeparator />}
+                    {projectPhases.map((phase) => (
                       <DropdownMenuItem
-                        onClick={() => handlePhaseChange("")}
-                        className={cn("gap-2", !task.phaseId && "bg-muted")}
+                        key={phase.id}
+                        onClick={() => handlePhaseChange(phase.id)}
+                        className={cn(
+                          "gap-2",
+                          task.phaseId === phase.id && "bg-muted",
+                        )}
                       >
-                        <span className="text-muted-foreground">—</span>
-                        <span className="text-sm">Aucune phase</span>
-                        {!task.phaseId && (
+                        <GitBranch className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
+                        <span className="text-sm">{phase.name}</span>
+                        {task.phaseId === phase.id && (
                           <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
                         )}
                       </DropdownMenuItem>
-                      {projectPhases.length > 0 && <DropdownMenuSeparator />}
-                      {projectPhases.map((phase) => (
-                        <DropdownMenuItem
-                          key={phase.id}
-                          onClick={() => handlePhaseChange(phase.id)}
-                          className={cn(
-                            "gap-2",
-                            task.phaseId === phase.id && "bg-muted",
-                          )}
-                        >
-                          <GitBranch className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
-                          <span className="text-sm">{phase.name}</span>
-                          {task.phaseId === phase.id && (
-                            <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />
-                          )}
-                        </DropdownMenuItem>
-                      ))}
-                      {projectPhases.length === 0 && (
-                        <div className="px-2 py-3 text-xs text-center text-muted-foreground">
-                          Aucune phase disponible pour ce projet
-                        </div>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tags */}
-              {Array.isArray(task.tags) && task.tags.length > 0 && (
-                <>
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      {t.taskDetail.tags}
-                    </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {task.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="text-xs px-2.5 py-0.5"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <Separator />
-                </>
-              )}
-
-              {/* Subtasks with animated progress bar */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t.taskDetail.subtasks}
-                    {subtaskTotal > 0 && (
-                      <span>
-                        {" "}
-                        ({subtaskDone}/{subtaskTotal})
-                      </span>
+                    ))}
+                    {projectPhases.length === 0 && (
+                      <div className="px-2 py-3 text-xs text-center text-muted-foreground">
+                        Aucune phase disponible pour ce projet
+                      </div>
                     )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Tags */}
+            {Array.isArray(task.tags) && task.tags.length > 0 && (
+              <>
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t.taskDetail.tags}
                   </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {task.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="text-xs px-2.5 py-0.5"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Subtasks with animated progress bar */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t.taskDetail.subtasks}
                   {subtaskTotal > 0 && (
-                    <span className="text-xs font-medium">
-                      {subtaskPercent}%
+                    <span>
+                      {" "}
+                      ({subtaskDone}/{subtaskTotal})
                     </span>
                   )}
-                </div>
-
-                {/* Animated Progress Bar - only when there are subtasks */}
+                </h4>
                 {subtaskTotal > 0 && (
-                  <div className="h-2 bg-muted rounded-full mb-3 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${subtaskPercent}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                      className={cn(
-                        "h-full rounded-full",
-                        subtaskPercent === 100
-                          ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                          : subtaskPercent >= 50
-                            ? "bg-gradient-to-r from-cyan-400 to-teal-500"
-                            : "bg-gradient-to-r from-amber-400 to-amber-500",
-                      )}
-                    />
-                  </div>
+                  <span className="text-xs font-medium">{subtaskPercent}%</span>
                 )}
+              </div>
 
-                {/* Subtask list */}
-                <div className="space-y-1.5 mb-3">
-                  {task.subtasks.map((subtask) => (
-                    <div
-                      key={subtask.id}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                    >
-                      <Checkbox
-                        checked={subtask.completed}
-                        onCheckedChange={() =>
-                          handleToggleSubtask(subtask.id, subtask.completed)
-                        }
-                        className="h-4 w-4 shrink-0"
-                      />
-
-                      {/* Inline editing or display */}
-                      {editingSubtaskId === subtask.id ? (
-                        <div className="flex-1 flex items-center gap-1.5">
-                          <Input
-                            value={editingSubtaskTitle}
-                            onChange={(e) =>
-                              setEditingSubtaskTitle(e.target.value)
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleSaveEditSubtask(subtask.id);
-                              } else if (e.key === "Escape") {
-                                handleCancelEditSubtask();
-                              }
-                            }}
-                            className="h-7 text-sm flex-1"
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            onClick={() => handleSaveEditSubtask(subtask.id)}
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            onClick={handleCancelEditSubtask}
-                          >
-                            <X className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <span
-                            className={cn(
-                              "text-sm flex-1 cursor-pointer truncate",
-                              subtask.completed &&
-                                "line-through text-muted-foreground",
-                            )}
-                            onClick={() =>
-                              handleStartEditSubtask(subtask.id, subtask.title)
-                            }
-                            title="Click to edit"
-                          >
-                            {subtask.title}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSubtask(subtask.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
-                            title="Delete subtasks"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ))}
+              {/* Animated Progress Bar - only when there are subtasks */}
+              {subtaskTotal > 0 && (
+                <div className="h-2 bg-muted rounded-full mb-3 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${subtaskPercent}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={cn(
+                      "h-full rounded-full",
+                      subtaskPercent === 100
+                        ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                        : subtaskPercent >= 50
+                          ? "bg-gradient-to-r from-cyan-400 to-teal-500"
+                          : "bg-gradient-to-r from-amber-400 to-amber-500",
+                    )}
+                  />
                 </div>
+              )}
 
-                {/* Add new subtask input */}
-                <div className="flex items-center gap-2">
+              {/* Subtask list */}
+              <div className="space-y-1.5 mb-3">
+                {task.subtasks.map((subtask) => (
+                  <div
+                    key={subtask.id}
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                  >
+                    <Checkbox
+                      checked={subtask.completed}
+                      onCheckedChange={() =>
+                        handleToggleSubtask(subtask.id, subtask.completed)
+                      }
+                      className="h-4 w-4 shrink-0"
+                    />
+
+                    {/* Inline editing or display */}
+                    {editingSubtaskId === subtask.id ? (
+                      <div className="flex-1 flex items-center gap-1.5">
+                        <Input
+                          value={editingSubtaskTitle}
+                          onChange={(e) =>
+                            setEditingSubtaskTitle(e.target.value)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleSaveEditSubtask(subtask.id);
+                            } else if (e.key === "Escape") {
+                              handleCancelEditSubtask();
+                            }
+                          }}
+                          className="h-7 text-sm flex-1"
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => handleSaveEditSubtask(subtask.id)}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={handleCancelEditSubtask}
+                        >
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <span
+                          className={cn(
+                            "text-sm flex-1 cursor-pointer truncate",
+                            subtask.completed &&
+                              "line-through text-muted-foreground",
+                          )}
+                          onClick={() =>
+                            handleStartEditSubtask(subtask.id, subtask.title)
+                          }
+                          title="Click to edit"
+                        >
+                          {subtask.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubtask(subtask.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                          title="Delete subtasks"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add new subtask input */}
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newSubtaskText}
+                  onChange={(e) => setNewSubtaskText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSubtask();
+                    }
+                  }}
+                  placeholder="Add a subtask..."
+                  className="h-9 text-sm"
+                  disabled={isAddingSubtask}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSubtask}
+                  disabled={!newSubtaskText.trim() || isAddingSubtask}
+                  className="h-9 px-3 shrink-0"
+                >
+                  {isAddingSubtask ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Add"
+                  )}
+                </Button>
+              </div>
+            </div>
+            <Separator />
+
+            {/* Activity Log */}
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                {t.taskDetail.activityLog}
+              </h4>
+              {isLoadingActivity ? (
+                <div className="flex items-center gap-2 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Loading activity...
+                  </span>
+                </div>
+              ) : activityLogs.length > 0 ? (
+                <div className="relative pl-5">
+                  {/* Timeline line */}
+                  <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
+                  <div className="space-y-3">
+                    {activityLogs.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="relative flex items-start gap-3"
+                      >
+                        <div className="absolute left-[-13px] top-1.5 w-3 h-3 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                          <div className="w-1 h-1 rounded-full bg-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            {getActivityIcon(entry.type)}
+                            <span className="text-xs">
+                              {getUserName(users, entry.userId)}{" "}
+                              {entry.description}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {formatRelativeTime(entry.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 py-2">
+                  No activity recorded yet for this task.
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Comments */}
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />{" "}
+                {t.taskDetail.comments}{" "}
+                {comments.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground/50 font-normal">
+                    ({comments.length})
+                  </span>
+                )}
+              </h4>
+
+              {/* Comment input */}
+              <div className="flex items-start gap-2 mb-4">
+                <Avatar className="h-7 w-7 mt-0.5">
+                  <AvatarFallback className="text-[9px] bg-teal-500 text-white">
+                    {currentUser
+                      ? currentUser.name
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .toUpperCase()
+                      : getUserInitials(
+                          users,
+                          users.length > 0 ? users[0].id : undefined,
+                        )}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 relative">
                   <Input
-                    value={newSubtaskText}
-                    onChange={(e) => setNewSubtaskText(e.target.value)}
+                    placeholder={t.taskDetail.addComment}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="h-9 pr-10"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleAddSubtask();
+                        handleAddComment();
                       }
                     }}
-                    placeholder="Add a subtask..."
-                    className="h-9 text-sm"
-                    disabled={isAddingSubtask}
                   />
                   <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddSubtask}
-                    disabled={!newSubtaskText.trim() || isAddingSubtask}
-                    className="h-9 px-3 shrink-0"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-teal-500 hover:text-teal-600"
+                    disabled={!commentText.trim()}
+                    onClick={handleAddComment}
                   >
-                    {isAddingSubtask ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Add"
-                    )}
+                    <Send className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
-              <Separator />
 
-              {/* Activity Log */}
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                  {t.taskDetail.activityLog}
-                </h4>
-                {isLoadingActivity ? (
-                  <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      Loading activity...
-                    </span>
-                  </div>
-                ) : activityLogs.length > 0 ? (
-                  <div className="relative pl-5">
-                    {/* Timeline line */}
-                    <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
-                    <div className="space-y-3">
-                      {activityLogs.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="relative flex items-start gap-3"
-                        >
-                          <div className="absolute left-[-13px] top-1.5 w-3 h-3 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-                            <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              {getActivityIcon(entry.type)}
-                              <span className="text-xs">
-                                {getUserName(users, entry.userId)}{" "}
-                                {entry.description}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-muted-foreground/60">
-                              {formatRelativeTime(entry.timestamp)}
-                            </span>
-                          </div>
+              {/* Comments list */}
+              <div className="space-y-3">
+                <AnimatePresence initial={false}>
+                  {comments.map((comment) => (
+                    <motion.div
+                      key={comment.id}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-start gap-2.5"
+                    >
+                      <Avatar className="h-7 w-7 mt-0.5">
+                        <AvatarFallback className="text-[9px] bg-muted">
+                          {getUserInitials(users, comment.userId)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold">
+                            {comment.user?.name ||
+                              getUserName(users, comment.userId)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatRelativeTime(comment.createdAt)}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
+                        <p className="text-sm text-foreground/80">
+                          {comment.content}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {comments.length === 0 && (
                   <p className="text-xs text-muted-foreground/60 py-2">
-                    No activity recorded yet for this task.
+                    No comments yet. Be the first to comment!
                   </p>
                 )}
               </div>
-
-              <Separator />
-
-              {/* Comments */}
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5" />{" "}
-                  {t.taskDetail.comments}{" "}
-                  {comments.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground/50 font-normal">
-                      ({comments.length})
-                    </span>
-                  )}
-                </h4>
-
-                {/* Comment input */}
-                <div className="flex items-start gap-2 mb-4">
-                  <Avatar className="h-7 w-7 mt-0.5">
-                    <AvatarFallback className="text-[9px] bg-teal-500 text-white">
-                      {currentUser
-                        ? currentUser.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()
-                        : getUserInitials(
-                            users,
-                            users.length > 0 ? users[0].id : undefined,
-                          )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 relative">
-                    <Input
-                      placeholder={t.taskDetail.addComment}
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      className="h-9 pr-10"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAddComment();
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-teal-500 hover:text-teal-600"
-                      disabled={!commentText.trim()}
-                      onClick={handleAddComment}
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Comments list */}
-                <div className="space-y-3">
-                  <AnimatePresence initial={false}>
-                    {comments.map((comment) => (
-                      <motion.div
-                        key={comment.id}
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex items-start gap-2.5"
-                      >
-                        <Avatar className="h-7 w-7 mt-0.5">
-                          <AvatarFallback className="text-[9px] bg-muted">
-                            {getUserInitials(users, comment.userId)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs font-semibold">
-                              {comment.user?.name ||
-                                getUserName(users, comment.userId)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {formatRelativeTime(comment.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground/80">
-                            {comment.content}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                  {comments.length === 0 && (
-                    <p className="text-xs text-muted-foreground/60 py-2">
-                      No comments yet. Be the first to comment!
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
-          </>
+          </div>
+        </>
       </SheetContent>
     </Sheet>
   );

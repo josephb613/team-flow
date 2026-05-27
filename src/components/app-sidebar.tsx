@@ -339,21 +339,23 @@ const managePageIds: Set<string> = new Set([
 const ventesPageIds: Set<string> = new Set(["opportunities"]);
 
 export function AppSidebar() {
-  const {
-    activePage,
-    setActivePage,
-    workspaces,
-    activeWorkspaceId,
-    setActiveWorkspace,
-    sidebarCollapsed,
-    favorites,
-    mobileSidebarOpen,
-    setMobileSidebarOpen,
-    recentItems,
-    setCreateTaskDialogOpen,
-    setCreateProjectDialogOpen,
-    setCreateChannelDialogOpen,
-  } = useAppStore();
+  const activePage = useAppStore((s) => s.activePage);
+  const setActivePage = useAppStore((s) => s.setActivePage);
+  const workspaces = useAppStore((s) => s.workspaces);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
+  const setActiveWorkspace = useAppStore((s) => s.setActiveWorkspace);
+  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const favorites = useAppStore((s) => s.favorites);
+  const mobileSidebarOpen = useAppStore((s) => s.mobileSidebarOpen);
+  const setMobileSidebarOpen = useAppStore((s) => s.setMobileSidebarOpen);
+  const recentItems = useAppStore((s) => s.recentItems);
+  const setCreateTaskDialogOpen = useAppStore((s) => s.setCreateTaskDialogOpen);
+  const setCreateProjectDialogOpen = useAppStore(
+    (s) => s.setCreateProjectDialogOpen,
+  );
+  const setCreateChannelDialogOpen = useAppStore(
+    (s) => s.setCreateChannelDialogOpen,
+  );
   const { t } = useTranslation();
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);

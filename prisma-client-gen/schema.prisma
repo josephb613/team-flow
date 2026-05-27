@@ -1,0 +1,446 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../prisma-client-gen"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model UserProfile {
+  neonAuthUserId String   @id
+  email          String   @unique
+  name           String
+  bio            String?
+  role           String   @default("member")
+  status         String   @default("offline")
+  avatar         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignedTasks            Task[]            @relation("AssignedTo")
+  createdTasks             Task[]            @relation("CreatedBy")
+  comments                 Comment[]
+  messages                 Message[]
+  uploadedFiles            FileItem[]
+  workspaceMembers         WorkspaceMember[]
+  teamMembers              TeamMember[]
+  wikiEdits                WikiPage[]
+  channelMemberships       ChannelMember[]
+  meetingMemberships       MeetingMember[]
+  sentInvitations          Invitation[]      @relation("SentInvitations")
+  createdOpportunities     Opportunity[]     @relation("CreatedOpportunities")
+  responsableOpportunities Opportunity[]     @relation("ResponsableOpportunities")
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  color       String   @default("#10b981")
+  icon        String   @default("🏢")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members           WorkspaceMember[]
+  projects          Project[]
+  channels          Channel[]
+  teams             Team[]
+  automations       Automation[]
+  files             FileItem[]
+  wikiPages         WikiPage[]
+  activityLogs      ActivityLog[]
+  invitations       Invitation[]
+  opportunities     Opportunity[]
+  columns           BoardColumn[]
+  trelloIntegration TrelloIntegration?
+}
+
+model BoardColumn {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  color       String   @default("#6366f1")
+  icon        String   @default("circle")
+  order       Int      @default(0)
+  isDefault   Boolean  @default(false)
+  boardType   String   @default("tasks") // "tasks" | "opportunities"
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, boardType, slug])
+  @@index([workspaceId, order])
+  @@index([workspaceId, boardType])
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        String   @default("member")
+  joinedAt    DateTime @default(now())
+
+  user      UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String
+  workspaceId String
+  invitedById String
+  role        String   @default("member")
+  token       String   @unique @default(cuid())
+  status      String   @default("pending") // pending | accepted | declined
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy UserProfile @relation("SentInvitations", fields: [invitedById], references: [neonAuthUserId], onDelete: Cascade)
+
+  @@unique([email, workspaceId])
+  @@index([workspaceId])
+  @@index([token])
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  sourceUrl   String?
+  color       String    @default("#10b981")
+  icon        String    @default("📋")
+  status      String    @default("active")
+  dueDate     DateTime?
+  workspaceId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  meetings  Meeting[]
+
+  @@index([workspaceId])
+}
+
+model Opportunity {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  organisation  String?
+  status        String    @default("nouveau")
+  dueDate       DateTime?
+  responsableId String?
+  workspaceId   String
+  creatorId     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     UserProfile? @relation("CreatedOpportunities", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
+  responsable UserProfile? @relation("ResponsableOpportunities", fields: [responsableId], references: [neonAuthUserId], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([creatorId])
+  @@index([responsableId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("todo")
+  priority    String    @default("medium")
+  tags        String    @default("")
+  dueDate     DateTime?
+  projectId   String
+  assigneeId  String?
+  creatorId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee UserProfile? @relation("AssignedTo", fields: [assigneeId], references: [neonAuthUserId], onDelete: SetNull)
+  creator  UserProfile? @relation("CreatedBy", fields: [creatorId], references: [neonAuthUserId], onDelete: SetNull)
+  subtasks Subtask[]
+  comments Comment[]
+
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+model Subtask {
+  id        String  @id @default(cuid())
+  title     String
+  completed Boolean @default(false)
+  taskId    String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  task Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Channel {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("team")
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages       Message[]
+  channelMembers ChannelMember[]
+
+  @@index([workspaceId])
+}
+
+model ChannelMember {
+  id        String @id @default(cuid())
+  channelId String
+  userId    String
+
+  channel Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  channelId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  channel Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([userId])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  duration    Int      @default(60)
+  status      String   @default("scheduled")
+  link        String?
+  projectId   String?
+  createdAt   DateTime @default(now())
+
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  meetingMembers MeetingMember[]
+
+  @@index([projectId])
+}
+
+model MeetingMember {
+  id        String @id @default(cuid())
+  meetingId String
+  userId    String
+
+  meeting Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    UserProfile @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  color       String   @default("#10b981")
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  teamMembers TeamMember[]
+  roles       TeamRole[]
+  scopes      Scope[]
+
+  @@index([workspaceId])
+}
+
+model TeamRole {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  color       String   @default("#6366f1")
+  icon        String   @default("👤")
+  createdAt   DateTime @default(now())
+
+  team    Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@unique([teamId, name])
+}
+
+model TeamMember {
+  id     String  @id @default(cuid())
+  teamId String
+  userId String
+  roleId String?
+
+  role   TeamRole?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  team   Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   UserProfile   @relation(fields: [userId], references: [neonAuthUserId], onDelete: Cascade)
+  scopes MemberScope[]
+
+  @@unique([teamId, userId])
+}
+
+model Scope {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  type        String   @default("functional")
+  icon        String   @default("🎯")
+  color       String   @default("#6366f1")
+  createdAt   DateTime @default(now())
+
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberScopes MemberScope[]
+
+  @@unique([teamId, name])
+}
+
+model MemberScope {
+  id         String @id @default(cuid())
+  memberId   String
+  scopeId    String
+  permission String @default("write")
+
+  member TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  scope  Scope      @relation(fields: [scopeId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, scopeId])
+}
+
+model Automation {
+  id          String    @id @default(cuid())
+  name        String
+  trigger     String
+  action      String
+  enabled     Boolean   @default(true)
+  lastRun     DateTime?
+  runCount    Int       @default(0)
+  workspaceId String
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model TrelloIntegration {
+  id            String    @id @default(cuid())
+  workspaceId   String    @unique
+  trelloApiKey  String
+  trelloToken   String
+  boardId       String
+  boardName     String    @default("")
+  listMapping   Json      @default("{}")
+  memberMapping Json      @default("{}")
+  enabled       Boolean   @default(true)
+  syncDirection String    @default("bidirectional")
+  lastSyncAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  syncLogs  TrelloSyncLog[]
+}
+
+model TrelloSyncLog {
+  id            String   @id @default(cuid())
+  integrationId String
+  direction     String
+  action        String
+  taskId        String?
+  trelloCardId  String?
+  status        String   @default("success")
+  details       String?
+  createdAt     DateTime @default(now())
+
+  integration TrelloIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([taskId])
+  @@index([createdAt])
+}
+
+model FileItem {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("other")
+  size        Int      @default(0)
+  url         String
+  projectId   String?
+  workspaceId String
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  uploader  UserProfile? @relation(fields: [uploadedBy], references: [neonAuthUserId], onDelete: SetNull)
+
+  @@index([workspaceId])
+}
+
+model WikiPage {
+  id           String   @id @default(cuid())
+  title        String
+  content      String   @default("")
+  icon         String   @default("📄")
+  parentId     String?
+  workspaceId  String
+  lastEditedBy String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  editor    UserProfile? @relation(fields: [lastEditedBy], references: [neonAuthUserId], onDelete: SetNull)
+
+  @@index([workspaceId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  type        String
+  userId      String
+  description String
+  targetId    String?
+  targetType  String?
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([userId])
+}

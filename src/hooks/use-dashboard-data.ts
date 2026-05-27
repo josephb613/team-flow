@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/query-utils";
@@ -46,7 +46,8 @@ export function useDashboardData(): DashboardData {
 
   const tasksQuery = useQuery({
     queryKey: ["tasks", activeWsId],
-    queryFn: () => fetchJson<DataRecord[]>(`/api/tasks?workspaceId=${activeWsId}`),
+    queryFn: () =>
+      fetchJson<DataRecord[]>(`/api/tasks?workspaceId=${activeWsId}`),
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     enabled: !!activeWsId,
@@ -56,7 +57,8 @@ export function useDashboardData(): DashboardData {
 
   const projectsQuery = useQuery({
     queryKey: ["projects", activeWsId],
-    queryFn: () => fetchJson<DataRecord[]>(`/api/projects?workspaceId=${activeWsId}`),
+    queryFn: () =>
+      fetchJson<DataRecord[]>(`/api/projects?workspaceId=${activeWsId}`),
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     enabled: !!activeWsId,
@@ -66,7 +68,8 @@ export function useDashboardData(): DashboardData {
 
   const usersQuery = useQuery({
     queryKey: ["users", activeWsId],
-    queryFn: () => fetchJson<DataRecord[]>(`/api/users?workspaceId=${activeWsId}`),
+    queryFn: () =>
+      fetchJson<DataRecord[]>(`/api/users?workspaceId=${activeWsId}`),
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     enabled: !!activeWsId,
@@ -83,13 +86,8 @@ export function useDashboardData(): DashboardData {
     const doneTasks = tasks.filter((t) => t.status === "done").length;
     const activeProjects = projects.filter((p) => p.status === "active").length;
     const inProgress = tasks.filter((t) => t.status === "in_progress").length;
-    const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-
-    setCounts({
-      taskCount: totalTasks,
-      projectCount: projects.length,
-      meetingCount: 0,
-    });
+    const completionRate =
+      totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
     return {
       totalTasks,
@@ -101,9 +99,20 @@ export function useDashboardData(): DashboardData {
       inProgressTrend: 0,
       completionTrend: 0,
     };
-  }, [tasks, projects, setCounts]);
+  }, [tasks, projects]);
 
-  const isLoading = tasksQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading;
+  // Sync counts to the global store for sidebar badges — must run after render,
+  // not during render (inside useMemo), to avoid cross-component state updates.
+  useEffect(() => {
+    setCounts({
+      taskCount: tasks.length,
+      projectCount: projects.length,
+      meetingCount: 0,
+    });
+  }, [tasks.length, projects.length, setCounts]);
+
+  const isLoading =
+    tasksQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading;
   const error = tasksQuery.error || projectsQuery.error || usersQuery.error;
 
   const refetch = () => {
@@ -120,7 +129,11 @@ export function useDashboardData(): DashboardData {
     ].filter(Boolean);
     if (timestamps.length === 0) return null;
     return new Date(Math.max(...timestamps));
-  }, [tasksQuery.dataUpdatedAt, projectsQuery.dataUpdatedAt, usersQuery.dataUpdatedAt]);
+  }, [
+    tasksQuery.dataUpdatedAt,
+    projectsQuery.dataUpdatedAt,
+    usersQuery.dataUpdatedAt,
+  ]);
 
   return {
     stats,
@@ -130,7 +143,11 @@ export function useDashboardData(): DashboardData {
     activities: [],
     meetings: [],
     isLoading,
-    error: error ? (error instanceof Error ? error.message : "Failed to fetch data") : null,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : "Failed to fetch data"
+      : null,
     refetch,
     lastUpdated,
   };
