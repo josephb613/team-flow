@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node .zscripts/auto-port-dev.js",
     "build": "next build && node -e \"require('fs').cpSync('.next/static','.next/standalone/.next/static',{recursive:true})\" && node -e \"require('fs').cpSync('public','.next/standalone/public',{recursive:true})\"",
-    "start": "node -e \"process.env.NODE_ENV='production';require('child_process').execSync('bun .next/standalone/server.js',{stdio:'inherit'})\"",
+    "start": "NODE_ENV=production bun .next/standalone/server.js",
     "start:win": "set NODE_ENV=production && bun .next/standalone/server.js",
     "lint": "eslint .",
     "db:push": "prisma db push",
