@@ -12,6 +12,7 @@ model UserProfile {
   neonAuthUserId String   @id
   email          String   @unique
   name           String
+  bio            String?
   role           String   @default("member")
   status         String   @default("offline")
   avatar         String?
