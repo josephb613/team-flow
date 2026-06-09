@@ -29,6 +29,7 @@ import { AuditView } from '@/components/views/audit-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
+import { CreateContentDialog } from '@/components/create-content-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
@@ -289,6 +290,9 @@ export function MainApp() {
 
       {/* Task Detail Drawer */}
       <TaskDetailDrawer />
+
+      {/* Create Content Dialog */}
+      <CreateContentDialog />
 
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog />

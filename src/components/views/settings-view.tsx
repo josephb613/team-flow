@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,7 @@ const sectionVariants = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function SettingsView() {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('general');
   const currentUser = useAppStore((s) => s.currentUser);
 
@@ -88,7 +90,6 @@ export function SettingsView() {
   };
 
   const [generalSettings, setGeneralSettings] = useState({
-    darkMode: false,
     compactSidebar: false,
   });
 
@@ -199,8 +200,8 @@ export function SettingsView() {
                         </div>
                       </div>
                       <Switch
-                        checked={generalSettings.darkMode}
-                        onCheckedChange={(v) => setGeneralSettings((p) => ({ ...p, darkMode: v }))}
+                        checked={theme === 'dark'}
+                        onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
                       />
                     </div>
                     <div className="flex items-center justify-between py-1">

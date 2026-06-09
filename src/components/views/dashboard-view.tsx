@@ -30,6 +30,12 @@ import {
   Shield,
   Mail,
   Bell,
+  CheckCircle,
+  XCircle,
+  ClipboardCheck,
+  Timer,
+  Gauge,
+  TrendingDown,
 } from 'lucide-react';
 import {
   mockNewsletters,
@@ -170,6 +176,30 @@ export function DashboardView() {
     () => true,
     () => false
   );
+
+  // ─── State for new sections ───────────────────────────────────────────────
+  const [performancePeriod, setPerformancePeriod] = useState<'7j' | '30j' | '90j'>('7j');
+
+  // ─── Approval Queue: content items with status 'review' ────────────────────
+  const [approvalItems, setApprovalItems] = useState(() =>
+    [...mockNewsletters, ...mockArticles, ...mockAnnouncements]
+      .filter((c) => c.status === 'review')
+      .slice(0, 5)
+  );
+
+  const handleApprove = (id: string) => {
+    setApprovalItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleReject = (id: string) => {
+    setApprovalItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // ─── Performance Metrics (simulated based on period) ───────────────────────
+  const perfMetrics = useMemo(() => {
+    const base = { '7j': { engagement: 42, avgPublishTime: 2.3, deliveryRate: 98.5 }, '30j': { engagement: 38, avgPublishTime: 2.8, deliveryRate: 97.2 }, '90j': { engagement: 35, avgPublishTime: 3.1, deliveryRate: 96.8 } };
+    return base[performancePeriod];
+  }, [performancePeriod]);
 
   // ─── Compute CMS stats from mock data, filtered by activeTenantId ──────
   const allContent = useMemo(() => {
@@ -319,8 +349,8 @@ export function DashboardView() {
     const tenantAnnouncements = mockAnnouncements.filter((a) => a.tenantId === activeTenantId);
     return [
       { name: t.dashboard.newsletters, value: tenantNewsletters.length, color: '#3b82f6' },
-      { name: t.dashboard.articles, value: tenantArticles.length, color: '#3b82f6' },
-      { name: t.dashboard.announcements, value: tenantAnnouncements.length, color: '#f59e0b' },
+      { name: t.dashboard.articles, value: tenantArticles.length, color: '#f59e0b' },
+      { name: t.dashboard.announcements, value: tenantAnnouncements.length, color: '#ef4444' },
     ].filter((d) => d.value > 0);
   }, [activeTenantId, t]);
 
@@ -816,6 +846,218 @@ export function DashboardView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* ─── Content Approval Queue + Performance Summary ──────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Content Approval Queue */}
+        <motion.div variants={item}>
+          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
+                    <ClipboardCheck className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-semibold">{t.dashboard.approvalQueue}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.dashboard.approvalQueueDesc}</p>
+                  </div>
+                </div>
+                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/15 text-xs">
+                  {approvalItems.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {approvalItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <div className="p-3 rounded-2xl bg-emerald-500/10">
+                    <CheckCircle className="h-8 w-8 text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{t.dashboard.allClear}</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.allClearDesc}</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {approvalItems.map((contentItem, idx) => {
+                    const typeIcon = contentItem.type === 'newsletter' ? Mail : contentItem.type === 'article' ? FileText : Megaphone;
+                    const typeColor = contentItem.type === 'newsletter' ? 'bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)]' : contentItem.type === 'article' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600';
+                    const priorityColor = contentItem.priority === 'urgent' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : contentItem.priority === 'high' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : contentItem.priority === 'medium' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20';
+                    const priorityLabel = contentItem.priority === 'urgent' ? 'Urgent' : contentItem.priority === 'high' ? 'High' : contentItem.priority === 'medium' ? 'Medium' : 'Low';
+                    const TypeIcon = typeIcon;
+                    return (
+                      <motion.div
+                        key={contentItem.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.06, duration: 0.3 }}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group"
+                      >
+                        <div className={`p-1.5 rounded-lg ${typeColor} flex-shrink-0`}>
+                          <TypeIcon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium truncate">{contentItem.title}</p>
+                            <Badge className={`${priorityColor} text-[10px] px-1.5 py-0 h-4 border flex-shrink-0`}>
+                              {priorityLabel}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Avatar className="h-4 w-4">
+                              <AvatarFallback className="text-[8px] bg-muted">
+                                {getUserInitials(contentItem.authorId)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-[11px] text-muted-foreground">{getUserName(contentItem.authorId)}</span>
+                            <span className="text-[11px] text-muted-foreground/60">·</span>
+                            <span className="text-[11px] text-muted-foreground/60">{getRelativeTime(contentItem.updatedAt)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.2)] hover:text-[oklch(0.55_0.18_250)]"
+                            onClick={() => handleApprove(contentItem.id)}
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            {t.dashboard.approve}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-rose-600 hover:bg-rose-500/10 hover:text-rose-600"
+                            onClick={() => handleReject(contentItem.id)}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            {t.dashboard.reject}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Performance Summary */}
+        <motion.div variants={item}>
+          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">{t.dashboard.performance}</CardTitle>
+                </div>
+                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+                  {(['7j', '30j', '90j'] as const).map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setPerformancePeriod(period)}
+                      className={`px-2 py-1 text-[11px] font-medium rounded-md transition-all ${
+                        performancePeriod === period
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="space-y-5">
+                {/* Engagement Rate */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10">
+                        <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">{t.dashboard.engagementRate}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold">{perfMetrics.engagement}%</span>
+                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
+                        <ArrowUpRight className="h-3 w-3" />
+                        +3.2%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${perfMetrics.engagement}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Avg Publish Time */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-amber-500/10">
+                        <Timer className="h-3.5 w-3.5 text-amber-600" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">{t.dashboard.avgPublishTime}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold">{perfMetrics.avgPublishTime}{locale === 'fr' ? 'j' : 'd'}</span>
+                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
+                        <ArrowDownRight className="h-3 w-3" />
+                        -0.4
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (perfMetrics.avgPublishTime / 7) * 100)}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.35 }}
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Delivery Rate */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250/0.1)]">
+                        <Gauge className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">{t.dashboard.deliveryRate}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold">{perfMetrics.deliveryRate}%</span>
+                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
+                        <ArrowUpRight className="h-3 w-3" />
+                        +0.8%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${perfMetrics.deliveryRate}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.5 }}
+                      className="h-full rounded-full bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.55_0.18_250/0.7)]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       {/* ─── Recent Activity + Upcoming ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

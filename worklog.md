@@ -1844,3 +1844,164 @@ Stage Summary:
 - Sidebar scrolling now works correctly — all navigation items accessible
 - Root cause: missing `min-h-0` on flex child + missing `overflow-hidden` on ScrollArea root
 - 0 lint errors, app running on port 3000
+
+---
+Task ID: 14-b
+Agent: Dashboard Enhancement Agent
+Task: Add Content Approval Queue and Performance Summary sections to Dashboard View
+
+Work Log:
+
+**Content Approval Queue Section:**
+- Added new section card with ClipboardCheck icon header, amber-500/10 icon container, amber accent border
+- Card header shows title "File d'approbation" / "Approval Queue" with subtitle and count badge
+- Filters content from mockNewsletters, mockArticles, mockAnnouncements where `status === 'review'`, limited to 5 items
+- Each item shows: type icon (Mail/FileText/Megaphone) with colored bg, title, priority badge (color-coded), author avatar + name, relative timestamp
+- Two action buttons per item: Approve (blue accent CheckCircle2) and Reject (rose XCircle), visible on hover
+- Approve/Reject handlers remove item from local state via setApprovalItems filter
+- Empty state: CheckCircle icon in emerald-500/10 rounded-2xl container, "Tout est à jour!" message
+- Subtle hover:bg-muted/30 transitions on approval items
+- Staggered entrance animations with Framer Motion (opacity + x-slide)
+
+**Performance Summary Section:**
+- Added new section card with Activity icon header, oklch(0.55_0.18_250) accent matching dashboard theme
+- Period selector (7j/30j/90j) in card header with pill-style toggle buttons
+- 3 metric rows:
+  1. Engagement Rate (TrendingUp icon, emerald): 42% with animated progress bar (emerald gradient), +3.2% trend
+  2. Avg. Publishing Time (Timer icon, amber): 2.3j with animated progress bar (amber gradient), -0.4 trend (improvement)
+  3. Delivery Rate (Gauge icon, oklch accent): 98.5% with animated progress bar (oklch gradient), +0.8% trend
+- Progress bars: 8px height (h-2), rounded-full, gradient fill, Framer Motion animated width transitions
+- Metrics vary by period selection via useMemo (7j=42%/2.3j/98.5%, 30j=38%/2.8j/97.2%, 90j=35%/3.1j/96.8%)
+- Trend indicators show ArrowUpRight/ArrowDownRight with emerald-600 color for positive trends
+
+**i18n Updates (`translations.ts`):**
+- Added 11 new keys to both `fr` and `en` dashboard sections:
+  - approvalQueue / approvalQueueDesc / approve / reject / allClear / allClearDesc
+  - performance / engagementRate / avgPublishTime / deliveryRate / days
+
+**Layout:**
+- New sections in `grid grid-cols-1 lg:grid-cols-2 gap-5` layout
+- Positioned AFTER Editorial Pipeline section, BEFORE Recent Activity + Upcoming grid
+- Approval Queue on left, Performance Summary on right
+
+**Code Changes:**
+- Added imports: CheckCircle, XCircle, ClipboardCheck, Timer, Gauge, TrendingDown from lucide-react
+- Added state: `performancePeriod` (useState), `approvalItems` (useState with initializer), `handleApprove/handleReject`, `perfMetrics` (useMemo)
+- Used existing `item` animation variant and `getRelativeTime` utility from the file
+
+Stage Summary:
+- Two new dashboard sections fully implemented with premium styling
+- Content Approval Queue with interactive approve/reject actions
+- Performance Summary with animated progress bars and period selector
+- Full i18n support (FR + EN) for all new text
+- 0 lint errors
+- App compiling and serving successfully on port 3000
+
+---
+Task ID: 14-a
+Agent: Create Content Dialog Agent
+Task: Create the Create Content Dialog for ContentFlow CMS
+
+Work Log:
+
+**Created `src/components/create-content-dialog.tsx`:**
+- Dialog controlled by `createContentDialogOpen` from Zustand store
+- **Content Type Selector**: 4 large clickable cards (newsletter, article, announcement, communique) with:
+  - Icons (Mail, FileText, Megaphone, ScrollText) from lucide-react
+  - French labels via i18n
+  - Color accents (newsletter=blue oklch, article=amber, announcement=rose, communique=violet)
+  - Selected state with border highlight, background tint, and animated check badge
+  - Framer Motion hover effects (scale, y-translate) and tap animations
+  - Animated layoutId indicator for smooth selection transitions
+- **Form Fields**:
+  - Title input (Titre) with oklch accent focus border
+  - Summary textarea (Résumé)
+  - Author select dropdown (Auteur) populated from mockUsers with avatar initials
+  - Tags input with animated tag chips (Badge) and remove (X) button, Enter to add, Backspace to delete last
+  - Scheduled date picker using shadcn Calendar + Popover with date-fns formatting and locale support (fr/en)
+  - Target channels multi-select using mockChannels with toggle buttons and check indicator
+- **Footer** with Cancel and Create buttons (Create disabled when title empty)
+- **Visual Polish**:
+  - Gradient header with icon matching selected type, color transitions on type change
+  - Animated entrance (scale + rotate for icon, fade for header background)
+  - Creating state with spinning loader animation
+  - Proper dark mode support throughout
+  - Scrollable dialog body (max-h-[90vh]) with sticky footer
+- **After creation**: Simulates 800ms delay, shows toast notification, closes dialog and resets form
+
+**Updated `src/lib/i18n/translations.ts`:**
+- Added new keys to FR `createContent`: selectType, communique, creating, success, titleLabel, titlePlaceholder, summaryLabel, summaryPlaceholder, authorLabel, tagsLabel, scheduleLabel, channelsLabel, typeNewsletter, typeArticle, typeAnnouncement, typeCommunique
+- Added matching EN keys to EN `createContent` section
+
+**Updated `src/components/main-app.tsx`:**
+- Imported `CreateContentDialog` from `@/components/create-content-dialog`
+- Rendered `<CreateContentDialog />` in the component tree alongside other dialogs
+
+Stage Summary:
+- Full-featured Create Content Dialog with 4 content types, form fields, animations, and i18n
+- 0 lint errors
+- App compiling and serving on port 3000
+
+---
+
+# Cron Review Round — 2025-06-09 20:00
+
+## Current Project Status
+
+ContentFlow is a fully-featured multi-tenant SaaS CMS application with French UI, built with Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion, Zustand, Prisma+SQLite, and recharts. The app includes 23+ views across 5 sidebar sections (Communication, Gestion de contenu, Diffusion, Analyse, Administration), plus login page, sidebar, top bar, search dialog, notification panel, workspace creation dialog, task detail drawer, AI chat widget, and real-time chat service.
+
+**Status**: Stable — 0 lint errors, dev server running on port 3000, chat service on port 3003
+
+## QA Testing Results
+
+Tested via agent-browser + VLM:
+- ✅ Login page renders correctly with French i18n
+- ✅ Dashboard renders with 6 stat cards, 3 charts, editorial pipeline, recent activity, upcoming section
+- ✅ Newsletters view renders properly with metrics and filters
+- ✅ Statistics view renders with charts and metric cards
+- ✅ Users view renders with user cards and filters
+- ✅ Settings view renders properly
+- ✅ Sidebar scrolling works (fixed in previous session)
+- ✅ No console errors on any view
+- ✅ Mobile responsive layout works
+
+## Bugs Found and Fixed
+
+1. **Dark Mode Toggle Not Working** (settings-view.tsx):
+   - Root cause: The dark mode toggle was only updating local React state (`generalSettings.darkMode`) instead of actually toggling the HTML class via next-themes
+   - Fix: Imported `useTheme` from `next-themes`, replaced local state with `theme`/`setTheme` from the hook
+   - Verified: Toggle now correctly switches between `light` and `dark` classes on `<html>`
+
+2. **Pie Chart All Same Color** (dashboard-view.tsx):
+   - Root cause: Content type distribution pie chart had newsletters and articles both using `#3b82f6` (blue)
+   - Fix: Changed articles to `#f59e0b` (amber) and announcements to `#ef4444` (rose) for visual distinction
+
+## New Features Added
+
+### Task 14-a: Create Content Dialog
+- **File**: `src/components/create-content-dialog.tsx` (NEW)
+- Full-featured modal with 4 animated content type cards (Newsletter=blue, Article=amber, Annonce=rose, Communiqué=violet)
+- Form fields: Title, Summary, Author select, Tags with chip badges, Scheduled date picker, Target channels multi-select
+- Gradient header transitions based on selected type
+- Simulated loading state with spinner, toast notification on creation
+- Integrated into main-app.tsx
+- 15+ new i18n keys added (FR + EN)
+
+### Task 14-b: Dashboard Enhancement
+- **Content Approval Queue** (left side): Shows items with `status === 'review'`, approve/reject buttons, empty state
+- **Performance Summary** (right side): 3 animated metrics (Engagement Rate 42%, Avg Publish Time 2.3j, Delivery Rate 98.5%) with progress bars and period selector
+- Both sections in responsive 2-column grid layout
+- 11 new i18n keys added (FR + EN)
+
+## Unresolved Issues / Risks
+1. **Runtime error on HMR**: Fast Refresh occasionally needs full reload during development — not a production issue
+2. **Settings language/date inputs**: Language still shows "English (US)" and timezone shows "UTC+1" regardless of locale — should be dynamic
+3. **Compact sidebar toggle**: The compact sidebar switch in Settings doesn't actually collapse the sidebar — needs wiring to store
+
+## Priority Recommendations for Next Phase
+1. **Wire Settings inputs to actual state** — Language selector should use i18n locale, timezone/date format should be persistent
+2. **Global search enhancement** — Search dialog should search CMS content (newsletters, articles, announcements)
+3. **Real-time notifications** via WebSocket — Push new notifications to clients
+4. **Content detail drawer** — Click on content items in lists to open detail view
+5. **Mobile responsive improvements** — Fine-tune all views for smaller screens
+6. **Data persistence** — Connect more views to the Prisma database instead of mock data
