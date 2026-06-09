@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -12,6 +11,9 @@ const nextConfig: NextConfig = {
     'http://21.0.14.224:3000',
     'http://21.0.14.224:81',
   ],
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
+  },
 };
 
 export default nextConfig;

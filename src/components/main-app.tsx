@@ -3,27 +3,6 @@
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { AppSidebar } from '@/components/app-sidebar';
-import { DashboardView } from '@/components/views/dashboard-view';
-import { TasksView } from '@/components/views/tasks-view';
-import { ProjectsView } from '@/components/views/projects-view';
-import { CalendarView } from '@/components/views/calendar-view';
-import { MessagesView } from '@/components/views/messages-view';
-import { MeetingsView } from '@/components/views/meetings-view';
-import { MembersView } from '@/components/views/members-view';
-import { TeamsView } from '@/components/views/teams-view';
-import { ReportsView } from '@/components/views/reports-view';
-import { StatisticsView } from '@/components/views/statistics-view';
-import { AutomationsView } from '@/components/views/automations-view';
-import { UsersView } from '@/components/views/users-view';
-import { RolesView } from '@/components/views/roles-view';
-import { AuditView } from '@/components/views/audit-view';
-import { SettingsView } from '@/components/views/settings-view';
-import { ActivityView } from '@/components/views/activity-view';
-import { SprintsView } from '@/components/views/sprints-view';
-import { PlanningView } from '@/components/views/planning-view';
-import { MilestonesView } from '@/components/views/milestones-view';
-import { TimeTrackingView } from '@/components/views/time-tracking-view';
-import { OrganizationsView } from '@/components/views/organizations-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
@@ -36,11 +15,35 @@ import { ConnectionStatus } from '@/components/connection-status';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
 
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ArrowUp, Plus, ListChecks, FolderKanban, Timer } from 'lucide-react';
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect, useSyncExternalStore, Suspense } from 'react';
 import { PageTransition } from '@/components/page-transition';
+
+// Dynamic imports to reduce initial compilation load and prevent ChunkLoadError
+const DashboardView = dynamic(() => import('@/components/views/dashboard-view').then(m => ({ default: m.DashboardView })), { ssr: false });
+const TasksView = dynamic(() => import('@/components/views/tasks-view').then(m => ({ default: m.TasksView })), { ssr: false });
+const ProjectsView = dynamic(() => import('@/components/views/projects-view').then(m => ({ default: m.ProjectsView })), { ssr: false });
+const CalendarView = dynamic(() => import('@/components/views/calendar-view').then(m => ({ default: m.CalendarView })), { ssr: false });
+const MessagesView = dynamic(() => import('@/components/views/messages-view').then(m => ({ default: m.MessagesView })), { ssr: false });
+const MeetingsView = dynamic(() => import('@/components/views/meetings-view').then(m => ({ default: m.MeetingsView })), { ssr: false });
+const MembersView = dynamic(() => import('@/components/views/members-view').then(m => ({ default: m.MembersView })), { ssr: false });
+const TeamsView = dynamic(() => import('@/components/views/teams-view').then(m => ({ default: m.TeamsView })), { ssr: false });
+const ReportsView = dynamic(() => import('@/components/views/reports-view').then(m => ({ default: m.ReportsView })), { ssr: false });
+const StatisticsView = dynamic(() => import('@/components/views/statistics-view').then(m => ({ default: m.StatisticsView })), { ssr: false });
+const AutomationsView = dynamic(() => import('@/components/views/automations-view').then(m => ({ default: m.AutomationsView })), { ssr: false });
+const UsersView = dynamic(() => import('@/components/views/users-view').then(m => ({ default: m.UsersView })), { ssr: false });
+const RolesView = dynamic(() => import('@/components/views/roles-view').then(m => ({ default: m.RolesView })), { ssr: false });
+const AuditView = dynamic(() => import('@/components/views/audit-view').then(m => ({ default: m.AuditView })), { ssr: false });
+const SettingsView = dynamic(() => import('@/components/views/settings-view').then(m => ({ default: m.SettingsView })), { ssr: false });
+const ActivityView = dynamic(() => import('@/components/views/activity-view').then(m => ({ default: m.ActivityView })), { ssr: false });
+const SprintsView = dynamic(() => import('@/components/views/sprints-view').then(m => ({ default: m.SprintsView })), { ssr: false });
+const PlanningView = dynamic(() => import('@/components/views/planning-view').then(m => ({ default: m.PlanningView })), { ssr: false });
+const MilestonesView = dynamic(() => import('@/components/views/milestones-view').then(m => ({ default: m.MilestonesView })), { ssr: false });
+const TimeTrackingView = dynamic(() => import('@/components/views/time-tracking-view').then(m => ({ default: m.TimeTrackingView })), { ssr: false });
+const OrganizationsView = dynamic(() => import('@/components/views/organizations-view').then(m => ({ default: m.OrganizationsView })), { ssr: false });
 
 const viewMap: Record<string, React.ComponentType> = {
   // Favoris
@@ -73,7 +76,16 @@ const viewMap: Record<string, React.ComponentType> = {
   activity: ActivityView,
 };
 
-
+function ViewLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 rounded-full border-2 border-[oklch(0.55_0.18_250)] border-t-transparent animate-spin" />
+        <span className="text-sm text-muted-foreground">Chargement...</span>
+      </div>
+    </div>
+  );
+}
 
 function AppFooter() {
   const { t } = useTranslation();
@@ -247,6 +259,7 @@ export function MainApp() {
   const activePage = useAppStore((s) => s.activePage);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const focusMode = useAppStore((s) => s.focusMode);
+  const createTaskDialogOpen = useAppStore((s) => s.createTaskDialogOpen);
 
   useKeyboardShortcuts();
 
@@ -276,7 +289,9 @@ export function MainApp() {
           {/* Subtle dot-pattern background overlay */}
           <div className="relative z-10">
             <PageTransition pageId={activePage}>
-              <ActiveView />
+              <Suspense fallback={<ViewLoader />}>
+                <ActiveView />
+              </Suspense>
             </PageTransition>
           </div>
         </main>
@@ -296,7 +311,7 @@ export function MainApp() {
       <TaskDetailDrawer />
 
       {/* Create Task Dialog */}
-      <CreateTaskDialog />
+      {createTaskDialogOpen && <CreateTaskDialog />}
 
       {/* Create Project Dialog */}
       <CreateProjectDialog />

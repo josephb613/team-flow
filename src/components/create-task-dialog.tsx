@@ -291,7 +291,7 @@ export function CreateTaskDialog() {
                         <SelectItem key={opt.value} value={opt.value}>
                           <span className="flex items-center gap-2">
                             <span className={cn('w-2 h-2 rounded-full', opt.color)} />
-                            {t.tasks[opt.labelKey]}
+                            {(t.tasks as Record<string, string>)?.[opt.labelKey] || opt.value}
                           </span>
                         </SelectItem>
                       ))}
@@ -313,7 +313,7 @@ export function CreateTaskDialog() {
                         <SelectItem key={opt.value} value={opt.value}>
                           <span className="flex items-center gap-2">
                             <span className={cn('w-2 h-2 rounded-full', opt.color)} />
-                            {t.tasks[opt.labelKey]}
+                            {(t.tasks as Record<string, string>)?.[opt.labelKey] || opt.value}
                           </span>
                         </SelectItem>
                       ))}

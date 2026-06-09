@@ -973,6 +973,7 @@ function MyTasksView() {
 export function TasksView() {
   const { taskViewMode, setTaskViewMode } = useAppStore();
   const { t } = useTranslation();
+  const tasks = (t.tasks || {}) as Record<string, string>;
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
 
