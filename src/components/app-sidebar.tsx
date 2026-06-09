@@ -354,7 +354,7 @@ export function AppSidebar() {
 
       {/* Quick Stats mini-section */}
       {!sidebarCollapsed && (
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 flex-shrink-0">
           <div className="flex items-center gap-2 p-2.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/20">
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <div className="p-1.5 rounded-md bg-amber-500/10">
@@ -381,7 +381,7 @@ export function AppSidebar() {
 
       {/* Search (in sidebar) */}
       {!sidebarCollapsed && (
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 flex-shrink-0">
           <button
             onClick={() => useAppStore.getState().setSearchOpen(true)}
             className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
@@ -396,7 +396,7 @@ export function AppSidebar() {
 
       {/* Quick Actions */}
       {!sidebarCollapsed && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 flex-shrink-0">
           <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
@@ -450,13 +450,13 @@ export function AppSidebar() {
         </div>
       )}
 
-      <Separator className="bg-sidebar-border/50" />
+      <Separator className="bg-sidebar-border/50 flex-shrink-0" />
 
       {/* Gradient separator line between sections */}
-      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250/0.2)] to-transparent" />
+      <div className="mx-3 h-px flex-shrink-0 bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250/0.2)] to-transparent" />
 
       {/* Scrollable Navigation */}
-      <ScrollArea className="flex-1 px-2 py-1">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden px-2 py-1">
         {/* Favorites */}
         {favoriteItems.length > 0 && (
           <>

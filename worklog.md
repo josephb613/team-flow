@@ -1821,3 +1821,26 @@ Stage Summary:
 - All 20+ views render correctly with new blue theme
 - Both light and dark modes updated
 - Login page, sidebar, topbar, dashboard, all views updated
+
+---
+Task ID: 13
+Agent: main
+Task: Fix sidebar scrolling issue — sidebar navigation was not scrollable
+
+Work Log:
+- User reported "la sidebar ne scroll pas" (sidebar doesn't scroll)
+- Diagnosed root cause: The Radix ScrollArea component in the sidebar needed proper height constraints
+- The `ScrollArea` with `flex-1` alone doesn't work because flexbox's default `min-height: auto` prevents shrinking below content height
+- Applied 3 fixes:
+  1. Added `min-h-0` to the ScrollArea in app-sidebar.tsx (allows flex item to shrink below content height)
+  2. Added `overflow-hidden` to the ScrollArea root component in scroll-area.tsx (properly clips overflow content)
+  3. Added `flex-shrink-0` to all non-scrollable sidebar sections (tenant switcher, quick stats, search, quick actions, separators) to prevent them from collapsing
+- Verified with agent-browser: ScrollArea viewport now shows scrollHeight=1373 vs clientHeight=237, confirming proper overflow
+- Scrolled to bottom programmatically and VLM confirmed all Administration section items (Users, Roles & Permissions, Tenants, Audit Log, Settings) are visible
+- Lint passes with 0 errors
+- Cron job created (ID: 194671) for 15-minute review cycle
+
+Stage Summary:
+- Sidebar scrolling now works correctly — all navigation items accessible
+- Root cause: missing `min-h-0` on flex child + missing `overflow-hidden` on ScrollArea root
+- 0 lint errors, app running on port 3000
