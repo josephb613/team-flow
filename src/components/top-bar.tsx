@@ -67,14 +67,14 @@ import { useState } from 'react';
 import type { PageId } from '@/lib/types';
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
-  assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
+  assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
   comment: <MessageSquare className="h-3.5 w-3.5 text-cyan-500" />,
   deadline: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />,
   mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
-  invitation: <Mail className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
+  invitation: <Mail className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
   system: <Globe className="h-3.5 w-3.5 text-muted-foreground" />,
-  validation_requested: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
-  content_approved: <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />,
+  validation_requested: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
+  content_approved: <CheckCircle className="h-3.5 w-3.5 text-blue-500" />,
   content_published: <Globe className="h-3.5 w-3.5 text-cyan-500" />,
   send_failed: <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />,
   new_assignment: <ListChecks className="h-3.5 w-3.5 text-amber-500" />,
@@ -134,9 +134,9 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-background/80 backdrop-blur-md relative">
       {/* Gradient border-bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[oklch(0.55_0.15_160/0.4)] via-[oklch(0.55_0.15_160/0.1)] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[oklch(0.55_0.18_250/0.4)] via-[oklch(0.55_0.18_250/0.1)] to-transparent" />
 
-      {/* Data loading indicator - thin teal bar at top */}
+      {/* Data loading indicator - thin blue bar at top */}
       <AnimatePresence>
         {(isApiLoading || searchFocused) && (
           <motion.div
@@ -144,7 +144,7 @@ export function TopBar() {
             animate={{ scaleX: 1, opacity: 1 }}
             exit={{ scaleX: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160)] to-transparent origin-left"
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250)] to-transparent origin-left"
           />
         )}
       </AnimatePresence>
@@ -193,7 +193,7 @@ export function TopBar() {
               >
                 <span onClick={() => setActivePage('dashboard')} className="flex items-center gap-1.5">
                   {activeTenant?.name || 'ContentFlow'}
-                  <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.15_160/0.12)] text-[oklch(0.55_0.15_160)] leading-none">
+                  <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)] leading-none">
                     {t.topbar.pro}
                   </span>
                 </span>
@@ -245,7 +245,7 @@ export function TopBar() {
                 size="icon"
                 className={cn(
                   'h-9 w-9 transition-all',
-                  focusMode ? 'bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.25)]' : 'hover:bg-muted'
+                  focusMode ? 'bg-[oklch(0.55_0.18_250/0.15)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.25)]' : 'hover:bg-muted'
                 )}
                 onClick={toggleFocusMode}
               >
@@ -273,7 +273,7 @@ export function TopBar() {
               'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
               'w-72 justify-start shadow-sm bg-muted/30',
               'transition-all duration-200',
-              searchFocused && 'ring-2 ring-[oklch(0.55_0.15_160/0.3)] border-[oklch(0.55_0.15_160/0.3)]'
+              searchFocused && 'ring-2 ring-[oklch(0.55_0.18_250/0.3)] border-[oklch(0.55_0.18_250/0.3)]'
             )}
             onClick={() => setSearchOpen(true)}
             onFocus={() => setSearchFocused(true)}
@@ -322,7 +322,7 @@ export function TopBar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 hover:ring-2 hover:ring-[oklch(0.55_0.15_160/0.3)] transition-all"
+                    className="h-9 w-9 hover:ring-2 hover:ring-[oklch(0.55_0.18_250/0.3)] transition-all"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -333,7 +333,7 @@ export function TopBar() {
           </TooltipProvider>
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
+              <Sparkles className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
               {t.topbar.quickCreate}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -341,7 +341,7 @@ export function TopBar() {
               className="cursor-pointer"
               onClick={() => setCreateContentDialogOpen(true)}
             >
-              <FileText className="h-4 w-4 mr-2 text-[oklch(0.55_0.15_160)]" />
+              <FileText className="h-4 w-4 mr-2 text-[oklch(0.55_0.18_250)]" />
               {t.topbar.newContent}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -360,7 +360,7 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="cursor-pointer text-[oklch(0.55_0.15_160)]"
+              className="cursor-pointer text-[oklch(0.55_0.18_250)]"
               onClick={() => setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -441,7 +441,7 @@ export function TopBar() {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 >
-                  <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] p-0 flex items-center justify-center text-[10px] bg-[oklch(0.55_0.15_160)] text-white border-2 border-background">
+                  <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] p-0 flex items-center justify-center text-[10px] bg-[oklch(0.55_0.18_250)] text-white border-2 border-background">
                     {unreadCount}
                   </Badge>
                 </motion.div>
@@ -457,7 +457,7 @@ export function TopBar() {
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold">{t.topbar.notifications}</h4>
                 {unreadCount > 0 && (
-                  <Badge className="h-5 px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white">
+                  <Badge className="h-5 px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white">
                     {unreadCount} {t.topbar.new}
                   </Badge>
                 )}
@@ -484,7 +484,7 @@ export function TopBar() {
                     </p>
                   </div>
                   {!n.read && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)] flex-shrink-0 mt-1.5" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)] flex-shrink-0 mt-1.5" />
                   )}
                 </div>
               ))}
@@ -493,7 +493,7 @@ export function TopBar() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-xs text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.55_0.15_160)]"
+                className="w-full text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.55_0.18_250)]"
                 onClick={() => {
                   setNotificationPanelOpen(true);
                 }}
@@ -510,12 +510,12 @@ export function TopBar() {
             <Button variant="ghost" className="h-9 gap-2 px-2 ml-1.5 pl-1.5 border-l border-border hidden sm:flex">
               <div className="relative">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
+                  <AvatarFallback className="bg-[oklch(0.55_0.18_250)] text-white text-xs">
                     {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                   </AvatarFallback>
                 </Avatar>
                 {/* Online status dot */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-background" />
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight max-w-[120px] truncate">
@@ -530,7 +530,7 @@ export function TopBar() {
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
+                <AvatarFallback className="bg-[oklch(0.55_0.18_250)] text-white text-sm">
                   {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>
@@ -564,7 +564,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9">
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
+                <AvatarFallback className="bg-[oklch(0.55_0.18_250)] text-white text-xs">
                   {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>
@@ -573,7 +573,7 @@ export function TopBar() {
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
+                <AvatarFallback className="bg-[oklch(0.55_0.18_250)] text-white text-sm">
                   {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>

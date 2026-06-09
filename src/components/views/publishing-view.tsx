@@ -137,7 +137,7 @@ export function PublishingView() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-[oklch(0.55_0.15_160)] text-[oklch(0.55_0.15_160)]"
+                className="gap-1.5 border-[oklch(0.55_0.18_250)] text-[oklch(0.55_0.18_250)]"
                 onClick={() => {
                   // Bulk publish simulation
                   setSelectedForBulk(new Set());
@@ -156,8 +156,8 @@ export function PublishingView() {
         <motion.div variants={item}>
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center py-12 gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle className="h-7 w-7 text-emerald-500" />
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                <CheckCircle className="h-7 w-7 text-blue-500" />
               </div>
               <p className="text-sm text-muted-foreground">Aucun contenu en attente de publication</p>
               <p className="text-xs text-muted-foreground">Les contenus approuvés apparaîtront ici</p>
@@ -183,21 +183,21 @@ export function PublishingView() {
                 >
                   <Card className={cn(
                     'overflow-hidden border hover:shadow-md transition-all duration-200 group',
-                    isSelected && 'ring-2 ring-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)]',
+                    isSelected && 'ring-2 ring-[oklch(0.55_0.18_250)] border-[oklch(0.55_0.18_250)]',
                   )}>
                     {/* Top accent bar */}
-                    <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                    <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
                     <CardContent className="p-4">
                       {/* Header row */}
                       <div className="flex items-start gap-3 mb-3">
                         <div
-                          className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] border border-[oklch(0.55_0.15_160/0.2)] flex items-center justify-center flex-shrink-0 cursor-pointer"
+                          className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250/0.15)] to-[oklch(0.55_0.18_250/0.05)] border border-[oklch(0.55_0.18_250/0.2)] flex items-center justify-center flex-shrink-0 cursor-pointer"
                           onClick={() => toggleBulkSelect(content.id)}
                         >
                           {isSelected ? (
-                            <CheckCircle className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                            <CheckCircle className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                           ) : (
-                            <TypeIcon className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                            <TypeIcon className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -234,7 +234,7 @@ export function PublishingView() {
                       <div className="flex items-center gap-2 pt-2 border-t border-border/50">
                         <Button
                           size="sm"
-                          className="flex-1 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] text-white h-8 text-xs"
+                          className="flex-1 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] text-white h-8 text-xs"
                           onClick={() => openConfirm(content, 'publish')}
                         >
                           <Send className="h-3.5 w-3.5" /> {t.publishing.publishNow}
@@ -267,15 +267,15 @@ export function PublishingView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                    <CheckCircle className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">Récemment publiés</CardTitle>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Derniers contenus publiés avec succès</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-blue-500/5">
                   Voir tout <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
@@ -293,8 +293,8 @@ export function PublishingView() {
                       transition={{ delay: idx * 0.05 }}
                       className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                        <TypeIcon className="h-4 w-4 text-emerald-600" />
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                        <TypeIcon className="h-4 w-4 text-blue-600" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{content.title}</p>
@@ -327,9 +327,9 @@ export function PublishingView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {confirmDialog.action === 'publish' ? (
-                <Send className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                <Send className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               ) : (
-                <CalendarClock className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                <CalendarClock className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               )}
               {t.publishing.confirmPublish}
             </DialogTitle>
@@ -369,7 +369,7 @@ export function PublishingView() {
               {t.publishing.cancel}
             </Button>
             <Button
-              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] text-white"
+              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] text-white"
               onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
             >
               {confirmDialog.action === 'publish' ? (

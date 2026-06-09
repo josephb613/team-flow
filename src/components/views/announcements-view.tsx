@@ -53,13 +53,13 @@ const urgencyConfig: Record<string, {
 }> = {
   info: {
     icon: Info,
-    bg: 'bg-teal-500/5',
-    text: 'text-teal-700',
-    border: 'border-teal-500/20',
-    strip: 'bg-teal-500',
-    badgeBg: 'bg-teal-500/10',
-    badgeText: 'text-teal-600',
-    badgeBorder: 'border-teal-500/20',
+    bg: 'bg-blue-500/5',
+    text: 'text-blue-700',
+    border: 'border-blue-500/20',
+    strip: 'bg-blue-500',
+    badgeBg: 'bg-blue-500/10',
+    badgeText: 'text-blue-600',
+    badgeBorder: 'border-blue-500/20',
   },
   warning: {
     icon: AlertTriangle,
@@ -166,19 +166,19 @@ export function AnnouncementsView() {
       title: t.announcements.title,
       value: totalAnnouncements,
       icon: Megaphone,
-      gradient: 'from-[oklch(0.55_0.15_160/0.1)] via-[oklch(0.55_0.15_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.15_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.15_160)]',
-      borderAccent: 'border-[oklch(0.55_0.15_160/0.2)]',
+      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_250)]',
+      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
     },
     {
       title: t.announcements.published,
       value: publishedCount,
       icon: CheckCircle2,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.announcements.acknowledged,
@@ -212,7 +212,7 @@ export function AnnouncementsView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <Plus className="h-4 w-4" />
           {t.announcements.newAnnouncement}
@@ -266,7 +266,7 @@ export function AnnouncementsView() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                   activeStatus === tab
-                    ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                    ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
@@ -283,13 +283,13 @@ export function AnnouncementsView() {
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                   activeUrgency === tab
-                    ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                    ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                     : tab === 'critical'
                     ? 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20'
                     : tab === 'warning'
                     ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
                     : tab === 'info'
-                    ? 'bg-teal-500/10 text-teal-600 hover:bg-teal-500/20'
+                    ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
@@ -346,7 +346,7 @@ export function AnnouncementsView() {
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <h3 className="text-sm font-semibold group-hover:text-[oklch(0.55_0.15_160)] transition-colors">
+                              <h3 className="text-sm font-semibold group-hover:text-[oklch(0.55_0.18_250)] transition-colors">
                                 {announcement.title}
                               </h3>
                               <Badge className={cn('text-[10px] px-2 py-0.5 font-medium border', urgency.badgeBg, urgency.badgeText, urgency.badgeBorder)}>
@@ -369,8 +369,8 @@ export function AnnouncementsView() {
                               {announcement.totalRecipients > 0 && (
                                 <div className="flex items-center gap-2 flex-1 max-w-xs">
                                   <div className="flex items-center gap-1.5 text-xs">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                    <span className="font-medium text-emerald-600">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                                    <span className="font-medium text-blue-600">
                                       {announcement.acknowledgedCount}/{announcement.totalRecipients}
                                     </span>
                                   </div>

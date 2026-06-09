@@ -61,7 +61,7 @@ function getNotificationIcon(type: Notification['type']) {
 function getNotificationBorderColor(type: Notification['type']) {
   switch (type) {
     case 'assignment':
-      return 'border-l-teal-500';
+      return 'border-l-blue-500';
     case 'comment':
       return 'border-l-cyan-500';
     case 'deadline':
@@ -69,7 +69,7 @@ function getNotificationBorderColor(type: Notification['type']) {
     case 'mention':
       return 'border-l-pink-500';
     case 'invitation':
-      return 'border-l-emerald-500';
+      return 'border-l-blue-500';
     case 'system':
       return 'border-l-slate-400';
     default:
@@ -80,7 +80,7 @@ function getNotificationBorderColor(type: Notification['type']) {
 function getNotificationIconBg(type: Notification['type']) {
   switch (type) {
     case 'assignment':
-      return 'bg-teal-500/12 text-teal-500';
+      return 'bg-blue-500/12 text-blue-500';
     case 'comment':
       return 'bg-cyan-500/12 text-cyan-500';
     case 'deadline':
@@ -88,7 +88,7 @@ function getNotificationIconBg(type: Notification['type']) {
     case 'mention':
       return 'bg-pink-500/12 text-pink-500';
     case 'invitation':
-      return 'bg-emerald-500/12 text-emerald-500';
+      return 'bg-blue-500/12 text-blue-500';
     case 'system':
       return 'bg-slate-400/12 text-slate-500';
     default:
@@ -160,7 +160,7 @@ function NotificationItem({
             {notification.title}
           </span>
           {!notification.read && (
-            <div className="w-2 h-2 rounded-full bg-teal-500 flex-shrink-0 mt-1.5" />
+            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
@@ -177,7 +177,7 @@ function NotificationItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 hover:bg-teal-500/10 hover:text-teal-500"
+            className="h-6 w-6 hover:bg-blue-500/10 hover:text-blue-500"
             onClick={(e) => {
               e.stopPropagation();
               onMarkRead(notification.id);
@@ -269,8 +269,8 @@ export function NotificationPanel() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-teal-500/12 p-2">
-                  <Bell className="h-4 w-4 text-teal-500" />
+                <div className="rounded-lg bg-blue-500/12 p-2">
+                  <Bell className="h-4 w-4 text-blue-500" />
                 </div>
                 <div>
                   <h2 className="text-base font-semibold">{t.notificationPanel.title}</h2>
@@ -286,7 +286,7 @@ export function NotificationPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs text-teal-500 hover:text-teal-500 hover:bg-teal-500/8"
+                    className="h-8 gap-1.5 text-xs text-blue-500 hover:text-blue-500 hover:bg-blue-500/8"
                     onClick={() => {
                       markAllNotificationsRead();
                       toast.success(t.notificationPanel.allMarkedRead);
@@ -317,7 +317,7 @@ export function NotificationPanel() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                       activeFilter === tab.key
-                        ? 'bg-teal-500/12 text-teal-600 dark:text-teal-400'
+                        ? 'bg-blue-500/12 text-blue-600 dark:text-blue-400'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     )}
                   >
@@ -326,7 +326,7 @@ export function NotificationPanel() {
                       className={cn(
                         'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
                         activeFilter === tab.key
-                          ? 'bg-teal-500/20 text-teal-600 dark:text-teal-400'
+                          ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
                           : 'bg-muted text-muted-foreground'
                       )}
                     >
@@ -347,10 +347,10 @@ export function NotificationPanel() {
                     className="flex flex-col items-center justify-center py-20 px-4"
                   >
                     <div className="relative mb-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
-                        <Bell className="h-8 w-8 text-teal-500" />
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <Bell className="h-8 w-8 text-blue-500" />
                       </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                         <Check className="h-2.5 w-2.5 text-white" />
                       </div>
                     </div>

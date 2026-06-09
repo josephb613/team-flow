@@ -107,19 +107,19 @@ export function NewslettersView() {
       title: t.newsletters.title,
       value: totalNewsletters,
       icon: Mail,
-      gradient: 'from-[oklch(0.55_0.15_160/0.1)] via-[oklch(0.55_0.15_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.15_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.15_160)]',
-      borderAccent: 'border-[oklch(0.55_0.15_160/0.2)]',
+      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_250)]',
+      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
     },
     {
       title: t.newsletters.published,
       value: publishedCount,
       icon: CheckCircle,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.newsletters.openRate,
@@ -162,7 +162,7 @@ export function NewslettersView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <Plus className="h-4 w-4" />
           {t.newsletters.newNewsletter}
@@ -215,7 +215,7 @@ export function NewslettersView() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
                 activeStatus === tab
-                  ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                  ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
@@ -260,12 +260,12 @@ export function NewslettersView() {
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         {/* Left: Icon + Info */}
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)] flex-shrink-0">
-                            <Mail className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)] flex-shrink-0">
+                            <Mail className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.15_160)] transition-colors">
+                              <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.18_250)] transition-colors">
                                 {newsletter.title}
                               </h3>
                               <Badge
@@ -293,7 +293,7 @@ export function NewslettersView() {
                           </div>
                           <div className="flex items-center gap-1.5" title={t.newsletters.openRate}>
                             <Eye className="h-3.5 w-3.5" />
-                            <span className={cn('font-medium', newsletter.openRate > 0 ? 'text-emerald-600' : 'text-muted-foreground')}>
+                            <span className={cn('font-medium', newsletter.openRate > 0 ? 'text-blue-600' : 'text-muted-foreground')}>
                               {newsletter.openRate > 0 ? `${newsletter.openRate}%` : '—'}
                             </span>
                           </div>
@@ -315,7 +315,7 @@ export function NewslettersView() {
                         <div className="flex items-center gap-2 sm:ml-4">
                           <div className="flex items-center gap-2">
                             <Avatar className="h-7 w-7">
-                              <AvatarFallback className="text-[10px] bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] font-medium">
+                              <AvatarFallback className="text-[10px] bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] font-medium">
                                 {authorInitials}
                               </AvatarFallback>
                             </Avatar>

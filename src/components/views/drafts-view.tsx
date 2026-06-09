@@ -73,8 +73,8 @@ function getContentTypeIcon(type: string) {
 
 function getContentTypeColor(type: string) {
   switch (type) {
-    case 'newsletter': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    case 'article': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    case 'newsletter': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'article': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     case 'announcement': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
     default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
   }
@@ -152,8 +152,8 @@ export function DraftsView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                <FilePen className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+              <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                <FilePen className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.drafts.title}
             </h1>
@@ -179,10 +179,10 @@ export function DraftsView() {
             {
               label: locale === 'fr' ? 'Mis à jour aujourd\'hui' : 'Updated today',
               value: updatedToday,
-              gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-              iconBg: 'bg-emerald-500/15',
-              iconColor: 'text-emerald-600',
-              borderAccent: 'border-emerald-500/20',
+              gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+              iconBg: 'bg-blue-500/15',
+              iconColor: 'text-blue-600',
+              borderAccent: 'border-blue-500/20',
             },
             {
               label: locale === 'fr' ? 'Âge moyen (jours)' : 'Avg age (days)',
@@ -215,7 +215,7 @@ export function DraftsView() {
                   placeholder={t.drafts.search}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.15_160/0.5)] focus:ring-[oklch(0.55_0.15_160/0.1)]"
+                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.18_250/0.5)] focus:ring-[oklch(0.55_0.18_250/0.1)]"
                 />
               </div>
               <Button
@@ -261,7 +261,7 @@ export function DraftsView() {
                 >
                   <Card className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-all">
                     {/* Left accent strip */}
-                    <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                    <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
@@ -279,7 +279,7 @@ export function DraftsView() {
                       {/* Meta */}
                       <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
                         <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.15_160/0.1)] flex items-center justify-center text-[10px] font-semibold text-[oklch(0.55_0.15_160)]">
+                          <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.18_250/0.1)] flex items-center justify-center text-[10px] font-semibold text-[oklch(0.55_0.18_250)]">
                             {getUserInitials(draft.authorId)}
                           </div>
                           <div>
@@ -295,7 +295,7 @@ export function DraftsView() {
                       {/* Actions */}
                       <div className="flex gap-2 mt-4">
                         <Button
-                          className="flex-1 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.9)] text-white text-xs h-8"
+                          className="flex-1 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.9)] text-white text-xs h-8"
                           size="sm"
                         >
                           <PenLine className="h-3.5 w-3.5 mr-1" />

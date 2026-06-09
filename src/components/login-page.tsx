@@ -39,7 +39,7 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
   }, [target]);
 
   return (
-    <span ref={ref} className="text-[oklch(0.65_0.16_160)] font-bold">
+    <span ref={ref} className="text-[oklch(0.65_0.18_250)] font-bold">
       {count.toLocaleString()}{suffix}
     </span>
   );
@@ -132,8 +132,8 @@ export function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[oklch(0.17_0.02_155)] via-[oklch(0.20_0.04_155)] to-[oklch(0.15_0.06_160)] items-center justify-center p-12">
         {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 -left-20 w-72 h-72 rounded-full bg-[oklch(0.55_0.15_160/0.1)] blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full bg-[oklch(0.55_0.15_160/0.07)] blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/4 -left-20 w-72 h-72 rounded-full bg-[oklch(0.55_0.18_250/0.1)] blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full bg-[oklch(0.55_0.18_250/0.07)] blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-[oklch(0.65_0.15_80/0.08)] blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
 
@@ -165,7 +165,7 @@ export function LoginPage() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
                   <path d="M2 17L12 22L22 17" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -176,7 +176,7 @@ export function LoginPage() {
             </div>
             <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
               {t.login.leftTitle1}<br />
-              <span className="text-[oklch(0.65_0.16_160)]">{t.login.leftTitle2}</span>
+              <span className="text-[oklch(0.65_0.18_250)]">{t.login.leftTitle2}</span>
             </h1>
             <p className="text-lg text-white/60 mb-8 leading-relaxed">
               {t.login.leftSubtitle}
@@ -243,7 +243,7 @@ export function LoginPage() {
                 </p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center text-white text-xs font-bold shadow-md">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center text-white text-xs font-bold shadow-md">
                       {t.login.testimonialName.split(' ').map((n: string) => n[0]).join('')}
                     </div>
                     <div>
@@ -295,7 +295,7 @@ export function LoginPage() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
                 <path d="M2 17L12 22L22 17" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -325,7 +325,7 @@ export function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t.login.password}</Label>
-                <button type="button" className="text-xs text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium">
+                <button type="button" className="text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
                   {t.login.forgotPassword}
                 </button>
               </div>
@@ -359,7 +359,7 @@ export function LoginPage() {
                 id="remember"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
-                className="data-[state=checked]:bg-[oklch(0.55_0.15_160)] data-[state=checked]:border-[oklch(0.55_0.15_160)]"
+                className="data-[state=checked]:bg-[oklch(0.55_0.18_250)] data-[state=checked]:border-[oklch(0.55_0.18_250)]"
               />
               <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer">
                 {t.login.rememberMe}
@@ -382,10 +382,10 @@ export function LoginPage() {
             {/* Sign In button with shimmer/glow animation */}
             <div className="relative group">
               {/* Glow effect behind button */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] via-[oklch(0.65_0.15_100)] to-[oklch(0.55_0.15_160)] rounded-lg opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-500" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] via-[oklch(0.65_0.15_100)] to-[oklch(0.55_0.18_250)] rounded-lg opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-500" />
               <Button
                 type="submit"
-                className="relative w-full h-11 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white font-medium overflow-hidden"
+                className="relative w-full h-11 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white font-medium overflow-hidden"
                 disabled={isLoading}
               >
                 {/* Shimmer overlay */}
@@ -415,7 +415,7 @@ export function LoginPage() {
 
           {/* Footer links below sign-in button */}
           <div className="mt-4 flex items-center justify-between text-xs">
-            <button type="button" className="text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium transition-colors">
+            <button type="button" className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors">
               {t.login.forgotPasswordLink}
             </button>
             <button type="button" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
@@ -437,7 +437,7 @@ export function LoginPage() {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="outline"
-                  className="h-10 w-full group transition-all duration-200 hover:border-[oklch(0.55_0.15_160)/40] hover:shadow-sm"
+                  className="h-10 w-full group transition-all duration-200 hover:border-[oklch(0.55_0.18_250)/40] hover:shadow-sm"
                   type="button"
                 >
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -452,7 +452,7 @@ export function LoginPage() {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="outline"
-                  className="h-10 w-full group transition-all duration-200 hover:border-[oklch(0.55_0.15_160)/40] hover:shadow-sm"
+                  className="h-10 w-full group transition-all duration-200 hover:border-[oklch(0.55_0.18_250)/40] hover:shadow-sm"
                   type="button"
                 >
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
@@ -466,7 +466,7 @@ export function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             {t.login.noAccount}{' '}
-            <button className="text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium">
+            <button className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
               {t.login.createOne}
             </button>
           </p>

@@ -50,13 +50,13 @@ import type { MemberRole } from '@/lib/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const avatarGradients = [
-  'from-emerald-400 to-teal-500',
+  'from-blue-400 to-blue-500',
   'from-amber-400 to-orange-500',
-  'from-cyan-400 to-teal-500',
+  'from-cyan-400 to-blue-500',
   'from-rose-400 to-pink-500',
   'from-pink-400 to-rose-500',
   'from-orange-400 to-amber-500',
-  'from-teal-400 to-cyan-500',
+  'from-blue-400 to-cyan-500',
   'from-violet-400 to-purple-500',
 ];
 
@@ -107,13 +107,13 @@ function getTeamPerformance(teamId: string) {
 
 // ─── Role Config ─────────────────────────────────────────────────────────────
 const roleConfig: Record<MemberRole, { color: string; bg: string; border: string; icon: React.ElementType }> = {
-  admin: { color: 'text-teal-700', bg: 'bg-teal-500/10', border: 'border-teal-500/20', icon: Crown },
-  member: { color: 'text-emerald-700', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Users },
+  admin: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Crown },
+  member: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Users },
   guest: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Activity },
 };
 
 const statusDot: Record<string, string> = {
-  online: 'bg-emerald-500',
+  online: 'bg-blue-500',
   away: 'bg-amber-500',
   busy: 'bg-rose-500',
   offline: 'bg-slate-400',
@@ -131,7 +131,7 @@ const item = {
 };
 
 // ─── Circular Progress ───────────────────────────────────────────────────────
-function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#10b981' }: { value: number; size?: number; strokeWidth?: number; color?: string }) {
+function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#3b82f6' }: { value: number; size?: number; strokeWidth?: number; color?: string }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (value / 100) * circumference;
@@ -205,8 +205,8 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30">
-            <div className="p-1.5 rounded-md bg-emerald-500/10">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            <div className="p-1.5 rounded-md bg-blue-500/10">
+              <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium">{t.teams.tasksThisWeek}</p>
@@ -214,8 +214,8 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30">
-            <div className="p-1.5 rounded-md bg-teal-500/10">
-              <TrendingUp className="h-3.5 w-3.5 text-teal-600" />
+            <div className="p-1.5 rounded-md bg-blue-500/10">
+              <TrendingUp className="h-3.5 w-3.5 text-blue-600" />
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium">{t.teams.avgVelocity}</p>
@@ -256,7 +256,7 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-medium">{user.name}</span>
                         {isLead && (
-                          <Badge className="h-4 px-1.5 text-[8px] font-bold bg-[oklch(0.55_0.15_160)]/10 text-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)]/20 border gap-0.5">
+                          <Badge className="h-4 px-1.5 text-[8px] font-bold bg-[oklch(0.55_0.18_250)]/10 text-[oklch(0.55_0.18_250)] border-[oklch(0.55_0.18_250)]/20 border gap-0.5">
                             <Crown className="h-2.5 w-2.5" /> {t.teams.lead}
                           </Badge>
                         )}
@@ -509,7 +509,7 @@ export function TeamsView() {
           </Tabs>
           <Button
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
           >
             <Plus className="h-4 w-4" /> {t.teams.createTeam}
           </Button>
@@ -522,7 +522,7 @@ export function TeamsView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t.teams.searchTeams}
-            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -551,10 +551,10 @@ export function TeamsView() {
               ))}
               {/* Create Team Card */}
               <motion.div variants={item}>
-                <Card className="border-dashed border-2 hover:border-[oklch(0.55_0.15_160/0.4)] transition-all duration-300 cursor-pointer group hover:shadow-md">
+                <Card className="border-dashed border-2 hover:border-[oklch(0.55_0.18_250/0.4)] transition-all duration-300 cursor-pointer group hover:shadow-md">
                   <CardContent className="p-5 flex flex-col items-center justify-center min-h-[200px]">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.15_160/0.1)] to-[oklch(0.55_0.15_160/0.05)] border border-[oklch(0.55_0.15_160/0.15)] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <Sparkles className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.18_250/0.1)] to-[oklch(0.55_0.18_250/0.05)] border border-[oklch(0.55_0.18_250/0.15)] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <Sparkles className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                     </div>
                     <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {t.teams.createNewTeam}

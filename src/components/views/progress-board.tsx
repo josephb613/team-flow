@@ -33,7 +33,7 @@ function CircularProgress({
   value,
   size = 80,
   strokeWidth = 6,
-  color = '#10b981',
+  color = '#3b82f6',
 }: {
   value: number;
   size?: number;
@@ -188,7 +188,7 @@ export function ProgressBoard() {
   }
 
   const statusVariantStyles = {
-    onTrack: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+    onTrack: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
     atRisk: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
     behind: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
     completed: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
@@ -200,7 +200,7 @@ export function ProgressBoard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-[oklch(0.55_0.15_160)]" />
+            <BarChart3 className="h-6 w-6 text-[oklch(0.55_0.18_250)]" />
             {t.progressBoard.title}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">{t.progressBoard.subtitle}</p>
@@ -214,17 +214,17 @@ export function ProgressBoard() {
             icon: <Target className="h-4 w-4" />,
             value: summaryStats.activeProjects,
             label: t.progressBoard.totalProjects,
-            color: 'text-[oklch(0.55_0.15_160)]',
-            bg: 'bg-[oklch(0.55_0.15_160/0.1)]',
-            border: 'border-[oklch(0.55_0.15_160/0.2)]',
+            color: 'text-[oklch(0.55_0.18_250)]',
+            bg: 'bg-[oklch(0.55_0.18_250/0.1)]',
+            border: 'border-[oklch(0.55_0.18_250/0.2)]',
           },
           {
             icon: <TrendingUp className="h-4 w-4" />,
             value: `${summaryStats.avgCompletion}%`,
             label: t.progressBoard.avgCompletion,
-            color: 'text-emerald-600 dark:text-emerald-400',
-            bg: 'bg-emerald-500/10',
-            border: 'border-emerald-500/20',
+            color: 'text-blue-600 dark:text-blue-400',
+            bg: 'bg-blue-500/10',
+            border: 'border-blue-500/20',
           },
           {
             icon: <CheckCircle2 className="h-4 w-4" />,
@@ -267,7 +267,7 @@ export function ProgressBoard() {
       {/* Project Progress Cards */}
       <div>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Target className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+          <Target className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
           {t.progressBoard.projectProgress}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -337,7 +337,7 @@ export function ProgressBoard() {
                           { label: t.progressBoard.todo, count: breakdown.todo, bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400' },
                           { label: t.progressBoard.inProgress, count: breakdown.in_progress, bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
                           { label: t.progressBoard.review, count: breakdown.review, bg: 'bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400' },
-                          { label: t.progressBoard.done, count: breakdown.done, bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
+                          { label: t.progressBoard.done, count: breakdown.done, bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400' },
                         ].map((pill) => (
                           <span
                             key={pill.label}
@@ -418,15 +418,15 @@ export function ProgressBoard() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.2)]">
-                    <BarChart3 className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                  <div className="p-2 rounded-lg bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.2)]">
+                    <BarChart3 className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold">{t.progressBoard.teamVelocity}</h3>
                     <p className="text-[10px] text-muted-foreground">{t.progressBoard.velocitySubtitle}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                   <TrendingUp className="h-2.5 w-2.5 mr-1" />
                   +12%
                 </Badge>
@@ -458,7 +458,7 @@ export function ProgressBoard() {
                     />
                     <Bar
                       dataKey="completed"
-                      fill="oklch(0.55 0.15 160)"
+                      fill="oklch(0.55 0.18 250)"
                       radius={[4, 4, 0, 0]}
                       name={t.progressBoard.tasksCompleted}
                     />
@@ -490,7 +490,7 @@ export function ProgressBoard() {
               {/* Horizontal timeline */}
               <div className="relative mt-4">
                 {/* Connecting line */}
-                <div className="absolute top-3 left-0 right-0 h-0.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] via-amber-500/50 to-muted" />
+                <div className="absolute top-3 left-0 right-0 h-0.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] via-amber-500/50 to-muted" />
 
                 <div className="flex justify-between relative">
                   {milestones.map((milestone, idx) => {
@@ -508,9 +508,9 @@ export function ProgressBoard() {
                         <div
                           className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                             isPast
-                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              ? 'bg-blue-500 border-blue-500 text-white'
                               : idx === 0
-                                ? 'bg-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)] text-white'
+                                ? 'bg-[oklch(0.55_0.18_250)] border-[oklch(0.55_0.18_250)] text-white'
                                 : 'bg-background border-muted-foreground/30 text-muted-foreground'
                           }`}
                         >
@@ -525,7 +525,7 @@ export function ProgressBoard() {
                           <p className="text-[11px] font-medium truncate max-w-[100px]">
                             {milestone.name}
                           </p>
-                          <p className={`text-[9px] ${isPast ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                          <p className={`text-[9px] ${isPast ? 'text-blue-500' : 'text-muted-foreground'}`}>
                             {isPast ? t.progressBoard.completed : `${daysUntil}d`}
                           </p>
                         </div>
@@ -552,10 +552,10 @@ export function ProgressBoard() {
                       <div
                         className={`w-2 h-2 rounded-full shrink-0 ${
                           isPast
-                            ? 'bg-emerald-500'
+                            ? 'bg-blue-500'
                             : isUrgent
                               ? 'bg-amber-500'
-                              : 'bg-[oklch(0.55_0.15_160)]'
+                              : 'bg-[oklch(0.55_0.18_250)]'
                         }`}
                       />
                       <div className="flex-1 min-w-0">
@@ -572,7 +572,7 @@ export function ProgressBoard() {
                           variant="outline"
                           className={`text-[9px] px-1.5 py-0 ${
                             isPast
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                              ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
                               : isUrgent
                                 ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
                                 : 'bg-muted text-muted-foreground border-border'

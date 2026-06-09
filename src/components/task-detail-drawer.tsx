@@ -52,14 +52,14 @@ const statusConfig: Record<TaskStatus, { label: string; color: string; icon: Rea
   todo: { label: 'To Do', color: 'text-slate-500', icon: <Circle className="h-4 w-4" />, bg: 'bg-slate-500/10' },
   in_progress: { label: 'In Progress', color: 'text-cyan-500', icon: <Clock className="h-4 w-4" />, bg: 'bg-cyan-500/10' },
   review: { label: 'In Review', color: 'text-amber-500', icon: <AlertCircle className="h-4 w-4" />, bg: 'bg-amber-500/10' },
-  done: { label: 'Done', color: 'text-emerald-500', icon: <CheckCircle2 className="h-4 w-4" />, bg: 'bg-emerald-500/10' },
+  done: { label: 'Done', color: 'text-blue-500', icon: <CheckCircle2 className="h-4 w-4" />, bg: 'bg-blue-500/10' },
 };
 
 const priorityConfig: Record<TaskPriority, { label: string; color: string; bg: string; icon: React.ReactNode; solidBg: string }> = {
   urgent: { label: 'Urgent', color: 'text-rose-600', bg: 'bg-rose-500/10 border-rose-200', icon: <Flame className="h-3.5 w-3.5" />, solidBg: 'bg-rose-500 text-white' },
   high: { label: 'High', color: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-200', icon: <ArrowUp className="h-3.5 w-3.5" />, solidBg: 'bg-amber-500 text-white' },
   medium: { label: 'Medium', color: 'text-cyan-600', bg: 'bg-cyan-500/10 border-cyan-200', icon: <ArrowRight className="h-3.5 w-3.5" />, solidBg: 'bg-cyan-500 text-white' },
-  low: { label: 'Low', color: 'text-emerald-600', bg: 'bg-emerald-500/10 border-emerald-200', icon: <ArrowDown className="h-3.5 w-3.5" />, solidBg: 'bg-emerald-500 text-white' },
+  low: { label: 'Low', color: 'text-blue-600', bg: 'bg-blue-500/10 border-blue-200', icon: <ArrowDown className="h-3.5 w-3.5" />, solidBg: 'bg-blue-500 text-white' },
 };
 
 function getUserInitials(id: string) {
@@ -76,7 +76,7 @@ function getProjectName(id: string) {
 }
 
 function getProjectColor(id: string) {
-  return mockProjects.find((p) => p.id === id)?.color || '#10b981';
+  return mockProjects.find((p) => p.id === id)?.color || '#3b82f6';
 }
 
 interface MockComment {
@@ -179,7 +179,7 @@ export function TaskDetailDrawer() {
                         >
                           <span className={cfg.color}>{cfg.icon}</span>
                           <span className="text-sm">{cfg.label}</span>
-                          {task.status === key && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-500" />}
+                          {task.status === key && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-blue-500" />}
                         </DropdownMenuItem>
                       );
                     })}
@@ -305,9 +305,9 @@ export function TaskDetailDrawer() {
                     className={cn(
                       'h-full rounded-full',
                       subtaskPercent === 100
-                        ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
+                        ? 'bg-gradient-to-r from-blue-400 to-blue-500'
                         : subtaskPercent >= 50
-                          ? 'bg-gradient-to-r from-cyan-400 to-teal-500'
+                          ? 'bg-gradient-to-r from-cyan-400 to-blue-500'
                           : 'bg-gradient-to-r from-amber-400 to-amber-500'
                     )}
                   />
@@ -365,7 +365,7 @@ export function TaskDetailDrawer() {
             {/* Comment input */}
             <div className="flex items-start gap-2 mb-4">
               <Avatar className="h-7 w-7 mt-0.5">
-                <AvatarFallback className="text-[9px] bg-teal-500 text-white">AT</AvatarFallback>
+                <AvatarFallback className="text-[9px] bg-blue-500 text-white">AT</AvatarFallback>
               </Avatar>
               <div className="flex-1 relative">
                 <Input
@@ -383,7 +383,7 @@ export function TaskDetailDrawer() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-teal-500 hover:text-teal-600"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-blue-500 hover:text-blue-600"
                   disabled={!commentText.trim()}
                   onClick={handleAddComment}
                 >

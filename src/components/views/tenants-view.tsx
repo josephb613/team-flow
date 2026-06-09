@@ -46,9 +46,9 @@ const item = {
 const tenantTypeConfig: Record<Tenant['type'], { label: string; color: string; bg: string; border: string }> = {
   country: {
     label: 'Pays',
-    color: 'text-teal-600',
-    bg: 'bg-teal-500/10',
-    border: 'border-teal-500/20',
+    color: 'text-blue-600',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
   },
   subsidiary: {
     label: 'Filiale',
@@ -58,9 +58,9 @@ const tenantTypeConfig: Record<Tenant['type'], { label: string; color: string; b
   },
   organization: {
     label: 'Organisation',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
+    color: 'text-blue-600',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
   },
   brand: {
     label: 'Marque',
@@ -131,19 +131,19 @@ export function TenantsView() {
       title: t.tenants.title,
       value: totalTenants,
       icon: Building2,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15 border-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.tenants.active,
       value: activeTenants,
       icon: ToggleLeft,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15 border-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.tenants.members,
@@ -179,7 +179,7 @@ export function TenantsView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <Plus className="h-4 w-4" /> {t.tenants.createTenant}
         </Button>
@@ -218,7 +218,7 @@ export function TenantsView() {
                 placeholder="Rechercher des entités..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]"
+                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]"
               />
             </div>
 
@@ -327,7 +327,7 @@ export function TenantsView() {
                         onCheckedChange={() => toggleTenantActive(tenant.id)}
                         className={cn(
                           'scale-90',
-                          isActive ? 'data-[state=checked]:bg-[oklch(0.55_0.15_160)]' : ''
+                          isActive ? 'data-[state=checked]:bg-[oklch(0.55_0.18_250)]' : ''
                         )}
                       />
                     </div>
@@ -335,8 +335,8 @@ export function TenantsView() {
                     {/* Stats row */}
                     <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/40">
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
-                        <div className="p-1 rounded-md bg-teal-500/10">
-                          <Users className="h-3 w-3 text-teal-600" />
+                        <div className="p-1 rounded-md bg-blue-500/10">
+                          <Users className="h-3 w-3 text-blue-600" />
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">{t.tenants.members}</p>
@@ -344,8 +344,8 @@ export function TenantsView() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
-                        <div className="p-1 rounded-md bg-emerald-500/10">
-                          <FileText className="h-3 w-3 text-emerald-600" />
+                        <div className="p-1 rounded-md bg-blue-500/10">
+                          <FileText className="h-3 w-3 text-blue-600" />
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">{t.tenants.content}</p>
@@ -361,14 +361,14 @@ export function TenantsView() {
                           className={cn(
                             'text-[9px] px-2 py-0 h-4 font-semibold border-0 gap-1',
                             isActive
-                              ? 'bg-emerald-500/10 text-emerald-600'
+                              ? 'bg-blue-500/10 text-blue-600'
                               : 'bg-slate-500/10 text-slate-500'
                           )}
                         >
                           <div
                             className={cn(
                               'w-1.5 h-1.5 rounded-full',
-                              isActive ? 'bg-emerald-500' : 'bg-slate-400'
+                              isActive ? 'bg-blue-500' : 'bg-slate-400'
                             )}
                           />
                           {isActive ? t.tenants.active : t.tenants.inactive}

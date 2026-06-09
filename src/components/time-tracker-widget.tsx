@@ -41,7 +41,7 @@ export function TimeTrackerWidget() {
   }, [timeTracker.isTracking, timeTracker.isPaused, tickTimer]);
 
   const handleStartDemo = () => {
-    startTracking('task-demo-1', 'Set up authentication flow', '#10b981');
+    startTracking('task-demo-1', 'Set up authentication flow', '#3b82f6');
   };
 
   const recentEntries = timeTracker.timeEntries.slice(0, 3);
@@ -54,7 +54,7 @@ export function TimeTrackerWidget() {
     >
       <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
         {/* Teal gradient header */}
-        <div className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] px-4 py-3 text-white">
+        <div className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] px-4 py-3 text-white">
           <div className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
             <h3 className="text-sm font-semibold">{t.timeTracker.title}</h3>
@@ -70,7 +70,7 @@ export function TimeTrackerWidget() {
                   <div className="flex items-center gap-2">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: timeTracker.activeProjectColor || '#10b981' }}
+                      style={{ backgroundColor: timeTracker.activeProjectColor || '#3b82f6' }}
                     />
                     <span className="text-sm font-medium truncate max-w-[200px]">
                       {timeTracker.activeTaskName}
@@ -79,7 +79,7 @@ export function TimeTrackerWidget() {
                   <div className="flex items-center gap-2 pl-4.5">
                     <span
                       className={`text-2xl font-mono font-bold tabular-nums ${
-                        timeTracker.isPaused ? 'text-amber-500' : 'text-[oklch(0.55_0.15_160)]'
+                        timeTracker.isPaused ? 'text-amber-500' : 'text-[oklch(0.55_0.18_250)]'
                       }`}
                     >
                       {formatTime(timeTracker.elapsedSeconds)}
@@ -90,7 +90,7 @@ export function TimeTrackerWidget() {
                       </span>
                     )}
                     {!timeTracker.isPaused && (
-                      <span className="text-[10px] font-medium text-[oklch(0.55_0.15_160)] bg-[oklch(0.55_0.15_160/0.1)] px-1.5 py-0.5 rounded-full">
+                      <span className="text-[10px] font-medium text-[oklch(0.55_0.18_250)] bg-[oklch(0.55_0.18_250/0.1)] px-1.5 py-0.5 rounded-full">
                         {t.timeTracker.tracking}
                       </span>
                     )}
@@ -104,7 +104,7 @@ export function TimeTrackerWidget() {
                   <Button
                     onClick={resumeTracking}
                     size="sm"
-                    className="h-8 gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs"
+                    className="h-8 gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs"
                   >
                     <Play className="h-3.5 w-3.5" />
                     {t.timeTracker.resume}
@@ -139,7 +139,7 @@ export function TimeTrackerWidget() {
               <Button
                 onClick={handleStartDemo}
                 size="sm"
-                className="h-8 gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs"
+                className="h-8 gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs"
               >
                 <Play className="h-3.5 w-3.5" />
                 {t.timeTracker.startTimer}
@@ -151,7 +151,7 @@ export function TimeTrackerWidget() {
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="space-y-0.5">
               <p className="text-[11px] text-muted-foreground">{t.timeTracker.todayTotal}</p>
-              <p className="text-sm font-semibold text-[oklch(0.55_0.15_160)]">
+              <p className="text-sm font-semibold text-[oklch(0.55_0.18_250)]">
                 {formatDuration(timeTracker.todayTotal)}
               </p>
             </div>

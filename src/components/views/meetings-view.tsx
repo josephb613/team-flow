@@ -160,11 +160,11 @@ const statusConfig: Record<
 > = {
   scheduled: {
     label: 'Scheduled',
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-500/10 border-teal-200 dark:border-teal-800',
-    borderGradient: 'from-teal-400 to-teal-600',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
+    borderGradient: 'from-blue-400 to-blue-600',
     icon: <CalendarClock className="h-3 w-3" />,
-    dotColor: 'bg-teal-500',
+    dotColor: 'bg-blue-500',
   },
   in_progress: {
     label: 'In Progress',
@@ -176,11 +176,11 @@ const statusConfig: Record<
   },
   completed: {
     label: 'Completed',
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
-    borderGradient: 'from-emerald-400 to-emerald-600',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
+    borderGradient: 'from-blue-400 to-blue-600',
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-emerald-500',
+    dotColor: 'bg-blue-500',
   },
   cancelled: {
     label: 'Cancelled',
@@ -267,7 +267,7 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                   </div>
                 )}
                 {meeting.link && (
-                  <div className="flex items-center gap-1.5 text-[oklch(0.55_0.15_160)]">
+                  <div className="flex items-center gap-1.5 text-[oklch(0.55_0.18_250)]">
                     <ExternalLink className="h-3 w-3" />
                     <span className="underline decoration-dotted">Meeting Link</span>
                   </div>
@@ -312,12 +312,12 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
                 <Button
                   size="sm"
                   className={cn(
-                    'h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm relative overflow-hidden'
+                    'h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-sm relative overflow-hidden'
                   )}
                 >
                   {/* Enhanced pulse animation with double ring */}
-                  <span className="absolute inset-0 rounded-md animate-ping bg-emerald-400/20" />
-                  <span className="absolute inset-0 rounded-md animate-pulse bg-emerald-400/10" />
+                  <span className="absolute inset-0 rounded-md animate-ping bg-blue-400/20" />
+                  <span className="absolute inset-0 rounded-md animate-pulse bg-blue-400/10" />
                   <Video className="h-3.5 w-3.5 mr-1.5 relative z-10" />
                   <span className="relative z-10">{t.meetings.joinNow}</span>
                 </Button>
@@ -325,7 +325,7 @@ function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof us
               {meeting.status === 'scheduled' && (
                 <Button
                   size="sm"
-                  className="h-9 text-xs bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
+                  className="h-9 text-xs bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white shadow-sm"
                 >
                   <Video className="h-3.5 w-3.5 mr-1.5" />
                   {t.meetings.join}
@@ -380,8 +380,8 @@ function TimelineItem({
             className={cn(
               'h-4 w-4 rounded-full border-3 border-background shrink-0 z-10 shadow-sm ring-2',
               meeting.status === 'in_progress' ? 'ring-amber-500/30' :
-              meeting.status === 'scheduled' ? 'ring-teal-500/30' :
-              meeting.status === 'completed' ? 'ring-emerald-500/30' :
+              meeting.status === 'scheduled' ? 'ring-blue-500/30' :
+              meeting.status === 'completed' ? 'ring-blue-500/30' :
               'ring-red-500/30',
               status.dotColor
             )}
@@ -438,17 +438,17 @@ function TimelineItem({
           {meeting.status === 'in_progress' ? (
             <Button
               size="sm"
-              className="h-8 text-[11px] shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white relative overflow-hidden"
+              className="h-8 text-[11px] shrink-0 bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden"
             >
-              <span className="absolute inset-0 rounded-md animate-ping bg-emerald-400/20" />
-              <span className="absolute inset-0 rounded-md animate-pulse bg-emerald-400/10" />
+              <span className="absolute inset-0 rounded-md animate-ping bg-blue-400/20" />
+              <span className="absolute inset-0 rounded-md animate-pulse bg-blue-400/10" />
               <Video className="h-3 w-3 mr-1 relative z-10" />
               <span className="relative z-10">{t.meetings.joinNow}</span>
             </Button>
           ) : meeting.status === 'scheduled' ? (
             <Button
               size="sm"
-              className="h-8 text-[11px] shrink-0 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
+              className="h-8 text-[11px] shrink-0 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white"
             >
               <Video className="h-3 w-3 mr-1" />
               {t.meetings.join}
@@ -485,7 +485,7 @@ function NextMeetingCountdown() {
         nextMeeting.status === 'in_progress'
           ? 'bg-amber-500/5 border-amber-500/15'
           : isStartingSoon
-          ? 'bg-emerald-500/5 border-emerald-500/15'
+          ? 'bg-blue-500/5 border-blue-500/15'
           : 'bg-muted/30 border-border',
       )}
     >
@@ -493,12 +493,12 @@ function NextMeetingCountdown() {
         'p-1.5 rounded-lg',
         nextMeeting.status === 'in_progress'
           ? 'bg-amber-500/15'
-          : 'bg-[oklch(0.55_0.15_160/0.1)]',
+          : 'bg-[oklch(0.55_0.18_250/0.1)]',
       )}>
         {nextMeeting.status === 'in_progress' ? (
           <Radio className="h-4 w-4 text-amber-500 animate-countdown-pulse" />
         ) : (
-          <Timer className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+          <Timer className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -514,7 +514,7 @@ function NextMeetingCountdown() {
           {nextMeeting.status === 'in_progress' ? 'In progress · ' : 'Starts in '}
           <span className={cn(
             'font-bold font-mono',
-            isStartingSoon && 'text-emerald-600 dark:text-emerald-400',
+            isStartingSoon && 'text-blue-600 dark:text-blue-400',
           )}>
             {timeLeft}
           </span>
@@ -523,9 +523,9 @@ function NextMeetingCountdown() {
       {nextMeeting.status === 'in_progress' ? (
         <Button
           size="sm"
-          className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white relative overflow-hidden shrink-0"
+          className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden shrink-0"
         >
-          <span className="absolute inset-0 rounded-md animate-ping bg-emerald-400/20" />
+          <span className="absolute inset-0 rounded-md animate-ping bg-blue-400/20" />
           <Video className="h-3 w-3 mr-1 relative z-10" />
           <span className="relative z-10">Quick Join</span>
         </Button>
@@ -533,7 +533,7 @@ function NextMeetingCountdown() {
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-[10px] shrink-0 hover:bg-[oklch(0.55_0.15_160/0.05)] hover:border-[oklch(0.55_0.15_160/0.3)]"
+          className="h-7 text-[10px] shrink-0 hover:bg-[oklch(0.55_0.18_250/0.05)] hover:border-[oklch(0.55_0.18_250/0.3)]"
         >
           <Clock className="h-3 w-3 mr-1" />
           {formatMeetingTime(nextMeeting.date)}
@@ -618,7 +618,7 @@ export function MeetingsView() {
           </Tabs>
           <Button
             size="sm"
-            className="h-8 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
+            className="h-8 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white shadow-sm"
           >
             <Plus className="h-3.5 w-3.5 mr-1" /> {t.meetings.scheduleMeeting}
           </Button>
@@ -631,7 +631,7 @@ export function MeetingsView() {
           <TabsTrigger value="upcoming" className="text-xs px-4">
             {t.meetings.upcoming}
             {upcomingCount > 0 && (
-              <Badge className="ml-1.5 h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
+              <Badge className="ml-1.5 h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.18_250)] text-white">
                 {upcomingCount}
               </Badge>
             )}

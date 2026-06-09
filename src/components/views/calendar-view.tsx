@@ -54,10 +54,10 @@ const eventTypeConfig: Record<CalendarEvent['type'], { color: string; bg: string
     icon: <Flag className="h-3.5 w-3.5" />,
   },
   meeting: {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
-    dotColor: 'bg-emerald-500',
-    borderClass: 'border-l-emerald-500',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
+    dotColor: 'bg-blue-500',
+    borderClass: 'border-l-blue-500',
     icon: <Users className="h-3.5 w-3.5" />,
   },
   milestone: {
@@ -147,15 +147,15 @@ function CalendarDayCell({
         'hover:bg-muted/50 focus:outline-none',
         !isCurrentMonth && 'opacity-25',
         isSelected && !isTodayDate && 'bg-primary/8 ring-2 ring-primary/30 shadow-sm',
-        isTodayDate && !isSelected && 'bg-emerald-500/5 ring-1 ring-emerald-500/20',
-        isTodayDate && isSelected && 'bg-emerald-500/10 ring-2 ring-emerald-500/40 shadow-sm',
-        isDragSelected && !isTodayDate && 'bg-emerald-500/10 ring-1 ring-emerald-500/30',
+        isTodayDate && !isSelected && 'bg-blue-500/5 ring-1 ring-blue-500/20',
+        isTodayDate && isSelected && 'bg-blue-500/10 ring-2 ring-blue-500/40 shadow-sm',
+        isDragSelected && !isTodayDate && 'bg-blue-500/10 ring-1 ring-blue-500/30',
       )}
     >
       <span
         className={cn(
           'text-xs sm:text-sm font-semibold flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200',
-          isTodayDate && 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25',
+          isTodayDate && 'bg-blue-500 text-white shadow-md shadow-blue-500/25',
           isSelected && !isTodayDate && 'bg-primary text-primary-foreground shadow-md shadow-primary/25',
           !isTodayDate && !isSelected && 'group-hover:bg-muted/80',
         )}
@@ -258,7 +258,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: projectColor || '#10b981' }}
+                  style={{ backgroundColor: projectColor || '#3b82f6' }}
                 />
                 <span className="text-[10px] text-muted-foreground">{projectName}</span>
               </div>
@@ -367,7 +367,7 @@ export function CalendarView() {
           <p className="text-sm text-muted-foreground">
             {monthEvents.length} {t.calendar.events}
             {isDragSelecting && dragSelectedRange.length > 1 && (
-              <span className="ml-2 text-emerald-600 font-medium">
+              <span className="ml-2 text-blue-600 font-medium">
                 · {dragSelectedRange.length} days selected
               </span>
             )}
@@ -414,7 +414,7 @@ export function CalendarView() {
           </div>
           <Button
             size="sm"
-            className="h-8 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
+            className="h-8 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
             {t.calendar.title}
@@ -494,7 +494,7 @@ export function CalendarView() {
                   : 'Select a day'}
               </CardTitle>
               {selectedDayEvents.length > 0 && (
-                <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white">
+                <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white">
                   {selectedDayEvents.length}
                 </Badge>
               )}
@@ -559,7 +559,7 @@ export function CalendarView() {
                         <span
                           className={cn(
                             'h-1.5 w-1.5 rounded-full shrink-0',
-                            isOverdue ? 'bg-rose-500' : isSoon ? 'bg-amber-500' : 'bg-emerald-500'
+                            isOverdue ? 'bg-rose-500' : isSoon ? 'bg-amber-500' : 'bg-blue-500'
                           )}
                         />
                         <span className="truncate flex-1 font-medium">{task.title}</span>
@@ -593,7 +593,7 @@ export function CalendarView() {
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={handleToday}
-            className="fixed bottom-20 right-8 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[oklch(0.55_0.15_160)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.48_0.15_160)] transition-shadow"
+            className="fixed bottom-20 right-8 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[oklch(0.55_0.18_250)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.48_0.18_250)] transition-shadow"
           >
             <Crosshair className="h-4 w-4" />
             <span className="text-sm font-semibold">{t.calendar.today}</span>

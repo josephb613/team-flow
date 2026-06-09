@@ -84,7 +84,7 @@ function formatShortTime(timestamp: string) {
 function OnlineStatusDot({ status, size = 'sm' }: { status: string; size?: 'sm' | 'md' }) {
   const sizeClasses = size === 'sm' ? 'h-2.5 w-2.5 border-2' : 'h-3.5 w-3.5 border-[2.5px]';
   const colors: Record<string, string> = {
-    online: 'bg-emerald-500 border-background',
+    online: 'bg-blue-500 border-background',
     away: 'bg-amber-500 border-background',
     busy: 'bg-red-500 border-background',
     offline: 'bg-slate-400 dark:bg-slate-500 border-background',
@@ -105,7 +105,7 @@ function TypingIndicator({ userName }: { userName: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2">
       <div className="flex items-center gap-1.5">
-        <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] flex items-center justify-center text-[8px] text-white font-bold shadow-sm">
+        <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center text-[8px] text-white font-bold shadow-sm">
           {userName.split(' ').map((n) => n[0]).join('')}
         </div>
         <div className="flex items-center gap-1 px-3 py-2 rounded-2xl bg-muted/60">
@@ -152,7 +152,7 @@ function ChannelListItem({
       className={cn(
         'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left',
         isActive
-          ? 'bg-[oklch(0.55_0.15_160)/0.12] text-foreground font-medium shadow-sm'
+          ? 'bg-[oklch(0.55_0.18_250)/0.12] text-foreground font-medium shadow-sm'
           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
       )}
     >
@@ -178,7 +178,7 @@ function ChannelListItem({
         {channel.name}
       </span>
       {channel.unread > 0 && (
-        <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
+        <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.48_0.18_250)] shadow-sm">
           {channel.unread}
         </Badge>
       )}
@@ -256,7 +256,7 @@ function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message
                 key={idx}
                 className={cn(
                   'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all duration-150',
-                  'hover:border-[oklch(0.55_0.15_160)/40] hover:bg-[oklch(0.55_0.15_160)/8] hover:shadow-sm'
+                  'hover:border-[oklch(0.55_0.18_250)/40] hover:bg-[oklch(0.55_0.18_250)/8] hover:shadow-sm'
                 )}
               >
                 <span className="text-xs">{reaction.emoji}</span>
@@ -359,7 +359,7 @@ export function MessagesView() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="flex items-center gap-1 text-[10px] text-emerald-500">
+                      <span className="flex items-center gap-1 text-[10px] text-blue-500">
                         <Wifi className="h-3 w-3" />
                       </span>
                     </TooltipTrigger>
@@ -379,7 +379,7 @@ export function MessagesView() {
                 </TooltipProvider>
               )}
               {totalUnread > 0 && (
-                <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.48_0.15_160)] shadow-sm">
+                <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.48_0.18_250)] shadow-sm">
                   {totalUnread}
                 </Badge>
               )}
@@ -505,7 +505,7 @@ export function MessagesView() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold truncate">{channel.name}</h3>
                     {channel.unread > 0 && (
-                      <Badge className="h-4 min-w-[16px] px-1 text-[8px] bg-[oklch(0.55_0.15_160)] text-white">
+                      <Badge className="h-4 min-w-[16px] px-1 text-[8px] bg-[oklch(0.55_0.18_250)] text-white">
                         {channel.unread} new
                       </Badge>
                     )}
@@ -575,13 +575,13 @@ export function MessagesView() {
                     {/* Channel intro */}
                     <div className="px-4 mb-6">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.15_160)/20] to-[oklch(0.55_0.15_160)/5] flex items-center justify-center shadow-sm">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.18_250)/20] to-[oklch(0.55_0.18_250)/5] flex items-center justify-center shadow-sm">
                           {channel.type === 'direct' ? (
-                            <MessageSquare className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
+                            <MessageSquare className="h-7 w-7 text-[oklch(0.55_0.18_250)]" />
                           ) : channel.type === 'project' ? (
-                            <Lock className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
+                            <Lock className="h-7 w-7 text-[oklch(0.55_0.18_250)]" />
                           ) : (
-                            <Hash className="h-7 w-7 text-[oklch(0.55_0.15_160)]" />
+                            <Hash className="h-7 w-7 text-[oklch(0.55_0.18_250)]" />
                           )}
                         </div>
                         <div>
@@ -646,25 +646,25 @@ export function MessagesView() {
                     >
                       <div className="relative h-28 w-28">
                         {/* Back bubble */}
-                        <div className="absolute top-2 right-0 h-18 w-20 rounded-2xl bg-[oklch(0.55_0.15_160)/0.08] border border-[oklch(0.55_0.15_160)/0.15] flex items-center justify-center">
+                        <div className="absolute top-2 right-0 h-18 w-20 rounded-2xl bg-[oklch(0.55_0.18_250)/0.08] border border-[oklch(0.55_0.18_250)/0.15] flex items-center justify-center">
                           <div className="space-y-1.5 p-2">
-                            <div className="h-1.5 w-12 rounded-full bg-[oklch(0.55_0.15_160)/0.2]" />
-                            <div className="h-1.5 w-8 rounded-full bg-[oklch(0.55_0.15_160)/0.15]" />
-                            <div className="h-1.5 w-10 rounded-full bg-[oklch(0.55_0.15_160)/0.12]" />
+                            <div className="h-1.5 w-12 rounded-full bg-[oklch(0.55_0.18_250)/0.2]" />
+                            <div className="h-1.5 w-8 rounded-full bg-[oklch(0.55_0.18_250)/0.15]" />
+                            <div className="h-1.5 w-10 rounded-full bg-[oklch(0.55_0.18_250)/0.12]" />
                           </div>
                         </div>
                         {/* Front bubble */}
-                        <div className="absolute bottom-0 left-0 h-18 w-22 rounded-2xl bg-[oklch(0.55_0.15_160)/0.12] border border-[oklch(0.55_0.15_160)/0.2] flex items-center justify-center shadow-md">
-                          <MessageSquare className="h-8 w-8 text-[oklch(0.55_0.15_160)/0.5]" />
+                        <div className="absolute bottom-0 left-0 h-18 w-22 rounded-2xl bg-[oklch(0.55_0.18_250)/0.12] border border-[oklch(0.55_0.18_250)/0.2] flex items-center justify-center shadow-md">
+                          <MessageSquare className="h-8 w-8 text-[oklch(0.55_0.18_250)/0.5]" />
                         </div>
                         {/* Floating dots */}
                         <motion.div
-                          className="absolute -top-1 left-8 h-2 w-2 rounded-full bg-[oklch(0.55_0.15_160)/0.3]"
+                          className="absolute -top-1 left-8 h-2 w-2 rounded-full bg-[oklch(0.55_0.18_250)/0.3]"
                           animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
                           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                         />
                         <motion.div
-                          className="absolute top-6 -left-1 h-1.5 w-1.5 rounded-full bg-emerald-400/40"
+                          className="absolute top-6 -left-1 h-1.5 w-1.5 rounded-full bg-blue-400/40"
                           animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.7, 0.4] }}
                           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
                         />
@@ -672,7 +672,7 @@ export function MessagesView() {
                     </motion.div>
 
                     {/* Gradient heading */}
-                    <h3 className="text-lg font-bold bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-emerald-500 bg-clip-text text-transparent mb-2">
+                    <h3 className="text-lg font-bold bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-blue-500 bg-clip-text text-transparent mb-2">
                       {t.messages.startConversation}
                     </h3>
                     <p className="text-xs text-muted-foreground/70 mb-5">{t.messages.noMessagesYet}</p>
@@ -689,7 +689,7 @@ export function MessagesView() {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.97 }}
                           onClick={() => setMessageInput(chip.text)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted/50 border border-border/50 hover:bg-[oklch(0.55_0.15_160)/10] hover:border-[oklch(0.55_0.15_160)/30] transition-all duration-200"
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted/50 border border-border/50 hover:bg-[oklch(0.55_0.18_250)/10] hover:border-[oklch(0.55_0.18_250)/30] transition-all duration-200"
                         >
                           {(t.messages as Record<string, string>)[chip.key] || chip.text}
                         </motion.button>
@@ -703,7 +703,7 @@ export function MessagesView() {
 
             {/* Message Input */}
             <div className="px-3 pb-3 pt-1 shrink-0">
-              <div className="flex flex-col rounded-xl border bg-background focus-within:border-[oklch(0.55_0.15_160)/40] focus-within:ring-2 focus-within:ring-[oklch(0.55_0.15_160)/15] transition-all shadow-sm">
+              <div className="flex flex-col rounded-xl border bg-background focus-within:border-[oklch(0.55_0.18_250)/40] focus-within:ring-2 focus-within:ring-[oklch(0.55_0.18_250)/15] transition-all shadow-sm">
                 {/* Formatting toolbar */}
                 <div className="flex items-center gap-0.5 px-2 pt-2 pb-1 border-b border-transparent">
                   <TooltipProvider>
@@ -780,7 +780,7 @@ export function MessagesView() {
                       className={cn(
                         'h-7 w-7 shrink-0 transition-all duration-200',
                         messageInput.trim()
-                          ? 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm'
+                          ? 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white shadow-sm'
                           : 'bg-muted text-muted-foreground'
                       )}
                       onClick={handleSendMessage}

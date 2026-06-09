@@ -29,12 +29,12 @@ const activityConfig: Record<string, {
   dotColor: string;
   borderColor: string;
 }> = {
-  task_completed: { icon: CheckSquare, color: 'text-teal-600', bg: 'bg-teal-500/15', dotColor: 'bg-teal-500', borderColor: 'border-teal-500/20' },
-  task_created: { icon: CheckSquare, color: 'text-teal-600', bg: 'bg-teal-500/15', dotColor: 'bg-teal-500', borderColor: 'border-teal-500/20' },
+  task_completed: { icon: CheckSquare, color: 'text-blue-600', bg: 'bg-blue-500/15', dotColor: 'bg-blue-500', borderColor: 'border-blue-500/20' },
+  task_created: { icon: CheckSquare, color: 'text-blue-600', bg: 'bg-blue-500/15', dotColor: 'bg-blue-500', borderColor: 'border-blue-500/20' },
   comment_added: { icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-500/15', dotColor: 'bg-cyan-500', borderColor: 'border-cyan-500/20' },
   file_uploaded: { icon: FileText, color: 'text-amber-600', bg: 'bg-amber-500/15', dotColor: 'bg-amber-500', borderColor: 'border-amber-500/20' },
-  project_updated: { icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-500/15', dotColor: 'bg-emerald-500', borderColor: 'border-emerald-500/20' },
-  meeting_scheduled: { icon: CalendarDays, color: 'text-emerald-600', bg: 'bg-emerald-500/15', dotColor: 'bg-emerald-500', borderColor: 'border-emerald-500/20' },
+  project_updated: { icon: FolderKanban, color: 'text-blue-600', bg: 'bg-blue-500/15', dotColor: 'bg-blue-500', borderColor: 'border-blue-500/20' },
+  meeting_scheduled: { icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-500/15', dotColor: 'bg-blue-500', borderColor: 'border-blue-500/20' },
   member_joined: { icon: Users, color: 'text-pink-600', bg: 'bg-pink-500/15', dotColor: 'bg-pink-500', borderColor: 'border-pink-500/20' },
 };
 
@@ -50,12 +50,12 @@ function getUserInitials(id: string) {
 
 function getUserColor(id: string) {
   const colors = [
-    'bg-emerald-500/20 text-emerald-700',
+    'bg-blue-500/20 text-blue-700',
     'bg-amber-500/20 text-amber-700',
     'bg-cyan-500/20 text-cyan-700',
     'bg-rose-500/20 text-rose-700',
     'bg-pink-500/20 text-pink-700',
-    'bg-teal-500/20 text-teal-700',
+    'bg-blue-500/20 text-blue-700',
     'bg-orange-500/20 text-orange-700',
     'bg-violet-500/20 text-violet-700',
   ];
@@ -192,7 +192,7 @@ export function ActivityView() {
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
                 isActive
-                  ? 'bg-[oklch(0.55_0.15_160)] text-white border-[oklch(0.55_0.15_160)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)]'
+                  ? 'bg-[oklch(0.55_0.18_250)] text-white border-[oklch(0.55_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)]'
                   : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
               )}
             >
@@ -221,7 +221,7 @@ export function ActivityView() {
               {/* Date Header */}
               <motion.div variants={dateHeader} className="flex items-center gap-3 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[oklch(0.55_0.15_160)] shadow-sm shadow-[oklch(0.55_0.15_160/0.3)]" />
+                  <div className="w-2 h-2 rounded-full bg-[oklch(0.55_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.3)]" />
                   <h3 className="text-sm font-semibold text-foreground whitespace-nowrap">
                     {getDateLabel(activities[0].timestamp)}
                   </h3>

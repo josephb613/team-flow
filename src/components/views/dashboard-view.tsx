@@ -267,11 +267,11 @@ export function DashboardView() {
   }, [activeTenantId]);
 
   const auditActionConfig: Record<string, { icon: React.ElementType; color: string; dotColor: string }> = {
-    create: { icon: Zap, color: 'text-emerald-500', dotColor: 'bg-emerald-500' },
+    create: { icon: Zap, color: 'text-blue-500', dotColor: 'bg-blue-500' },
     update: { icon: Edit3, color: 'text-amber-500', dotColor: 'bg-amber-500' },
     delete: { icon: Trash2, color: 'text-rose-500', dotColor: 'bg-rose-500' },
-    validate: { icon: CheckCircle2, color: 'text-teal-500', dotColor: 'bg-teal-500' },
-    publish: { icon: Send, color: 'text-[oklch(0.55_0.15_160)]', dotColor: 'bg-[oklch(0.55_0.15_160)]' },
+    validate: { icon: CheckCircle2, color: 'text-blue-500', dotColor: 'bg-blue-500' },
+    publish: { icon: Send, color: 'text-[oklch(0.55_0.18_250)]', dotColor: 'bg-[oklch(0.55_0.18_250)]' },
     login: { icon: LogIn, color: 'text-cyan-500', dotColor: 'bg-cyan-500' },
     logout: { icon: LogIn, color: 'text-slate-500', dotColor: 'bg-slate-500' },
     permission_change: { icon: Shield, color: 'text-violet-500', dotColor: 'bg-violet-500' },
@@ -318,8 +318,8 @@ export function DashboardView() {
     const tenantArticles = mockArticles.filter((a) => a.tenantId === activeTenantId);
     const tenantAnnouncements = mockAnnouncements.filter((a) => a.tenantId === activeTenantId);
     return [
-      { name: t.dashboard.newsletters, value: tenantNewsletters.length, color: '#14b8a6' },
-      { name: t.dashboard.articles, value: tenantArticles.length, color: '#10b981' },
+      { name: t.dashboard.newsletters, value: tenantNewsletters.length, color: '#3b82f6' },
+      { name: t.dashboard.articles, value: tenantArticles.length, color: '#3b82f6' },
       { name: t.dashboard.announcements, value: tenantAnnouncements.length, color: '#f59e0b' },
     ].filter((d) => d.value > 0);
   }, [activeTenantId, t]);
@@ -338,7 +338,7 @@ export function DashboardView() {
     review: { dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-600' },
     approved: { dot: 'bg-cyan-400', bg: 'bg-cyan-500/10', text: 'text-cyan-600' },
     scheduled: { dot: 'bg-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-600' },
-    published: { dot: 'bg-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
+    published: { dot: 'bg-blue-400', bg: 'bg-blue-500/10', text: 'text-blue-600' },
     archived: { dot: 'bg-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-500' },
   };
 
@@ -350,11 +350,11 @@ export function DashboardView() {
       change: '+12%',
       trend: 'up' as const,
       icon: FileText,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
-      glowColor: 'shadow-emerald-500/5',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
+      glowColor: 'shadow-blue-500/5',
     },
     {
       title: t.dashboard.activeProjects, // "Campagnes actives"
@@ -387,11 +387,11 @@ export function DashboardView() {
       change: '+3.2%',
       trend: 'up' as const,
       icon: Eye,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
-      glowColor: 'shadow-teal-500/5',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
+      glowColor: 'shadow-blue-500/5',
     },
     {
       title: t.dashboard.totalViews, // "Total des vues"
@@ -421,20 +421,20 @@ export function DashboardView() {
 
   // ─── Quick Actions ─────────────────────────────────────────────────────
   const quickActions = [
-    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateContentDialogOpen(true), color: 'text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/30' },
+    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateContentDialogOpen(true), color: 'text-blue-600 hover:bg-blue-500/10 hover:border-blue-500/30' },
     { icon: Megaphone, label: t.dashboard.quickActionNewProject, onClick: () => setActivePage('campaigns'), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
-    { icon: Send, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('scheduling'), color: 'text-teal-600 hover:bg-teal-500/10 hover:border-teal-500/30' },
+    { icon: Send, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('scheduling'), color: 'text-blue-600 hover:bg-blue-500/10 hover:border-blue-500/30' },
     { icon: UserPlus, label: t.dashboard.quickActionInviteMember, onClick: () => setActivePage('users'), color: 'text-cyan-600 hover:bg-cyan-500/10 hover:border-cyan-500/30' },
   ];
 
   // ─── User color helper ─────────────────────────────────────────────────
   const getUserColor = (id: string) => {
     const colors = [
-      'bg-emerald-500/20 text-emerald-700',
+      'bg-blue-500/20 text-blue-700',
       'bg-amber-500/20 text-amber-700',
       'bg-cyan-500/20 text-cyan-700',
       'bg-rose-500/20 text-rose-700',
-      'bg-teal-500/20 text-teal-700',
+      'bg-blue-500/20 text-blue-700',
       'bg-orange-500/20 text-orange-700',
     ];
     const idx = mockUsers.findIndex((u) => u.id === id);
@@ -467,7 +467,7 @@ export function DashboardView() {
               {mounted ? new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
             </span>
             <span className="text-muted-foreground/40">·</span>
-            <span className="text-sm text-[oklch(0.55_0.15_160)] font-medium">
+            <span className="text-sm text-[oklch(0.55_0.18_250)] font-medium">
               {t.dashboard.motivationalMessage}
             </span>
           </motion.div>
@@ -516,7 +516,7 @@ export function DashboardView() {
                     className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
                   />
                   {/* Decorative Circle */}
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#10b981' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('cyan') ? '#06b6d4' : stat.iconColor.includes('rose') ? '#f43f5e' : '#14b8a6' }} />
+                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('blue') ? '#3b82f6' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('cyan') ? '#06b6d4' : stat.iconColor.includes('rose') ? '#f43f5e' : '#3b82f6' }} />
 
                   <CardContent className="relative p-5">
                     <div className="flex items-start justify-between">
@@ -543,7 +543,7 @@ export function DashboardView() {
                       <motion.div
                         className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
                           stat.trend === 'up'
-                            ? 'bg-emerald-500/10 text-emerald-600'
+                            ? 'bg-blue-500/10 text-blue-600'
                             : 'bg-rose-500/10 text-rose-600'
                         }`}
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -575,8 +575,8 @@ export function DashboardView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
-                    <BarChart3 className="h-4 w-4 text-emerald-600" />
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                    <BarChart3 className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.weeklyActivity}</CardTitle>
@@ -585,7 +585,7 @@ export function DashboardView() {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-blue-500/5">
                   {t.dashboard.viewDetails}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
@@ -616,7 +616,7 @@ export function DashboardView() {
                       }}
                       cursor={{ fill: 'var(--muted)', radius: 4 }}
                     />
-                    <Bar dataKey="published" fill="oklch(0.55 0.15 160)" radius={[6, 6, 0, 0]} maxBarSize={28} name={locale === 'fr' ? 'Publiés' : 'Published'} />
+                    <Bar dataKey="published" fill="oklch(0.55 0.18 250)" radius={[6, 6, 0, 0]} maxBarSize={28} name={locale === 'fr' ? 'Publiés' : 'Published'} />
                     <Bar dataKey="scheduled" fill="oklch(0.65 0.15 80 / 0.5)" radius={[6, 6, 0, 0]} maxBarSize={28} name={locale === 'fr' ? 'Planifiés' : 'Scheduled'} />
                   </RechartsBarChart>
                 </ResponsiveContainer>
@@ -631,8 +631,8 @@ export function DashboardView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                    <Activity className="h-4 w-4 text-teal-600" />
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                    <Activity className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.sprintBurndown}</CardTitle>
@@ -641,7 +641,7 @@ export function DashboardView() {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-blue-500/5">
                   {t.dashboard.viewDetails}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
@@ -653,8 +653,8 @@ export function DashboardView() {
                   <AreaChart data={campaignProgressData}>
                     <defs>
                       <linearGradient id="campaignGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -680,7 +680,7 @@ export function DashboardView() {
                     <Area
                       type="monotone"
                       dataKey="target"
-                      stroke="oklch(0.55 0.15 160 / 0.4)"
+                      stroke="oklch(0.55 0.18 250 / 0.4)"
                       fill="none"
                       strokeDasharray="5 5"
                       strokeWidth={2}
@@ -689,7 +689,7 @@ export function DashboardView() {
                     <Area
                       type="monotone"
                       dataKey="actual"
-                      stroke="oklch(0.55 0.15 160)"
+                      stroke="oklch(0.55 0.18 250)"
                       fill="url(#campaignGradient)"
                       strokeWidth={2.5}
                       name={locale === 'fr' ? 'Réel' : 'Actual'}
@@ -707,8 +707,8 @@ export function DashboardView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                    <PieChartIcon className="h-4 w-4 text-teal-600" />
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                    <PieChartIcon className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.contentTypeBreakdown}</CardTitle>
@@ -776,8 +776,8 @@ export function DashboardView() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                  <Activity className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                  <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                 </div>
                 <CardTitle className="text-sm font-semibold">{t.dashboard.editorialPipeline}</CardTitle>
               </div>
@@ -825,15 +825,15 @@ export function DashboardView() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                   </div>
                   <CardTitle className="text-sm font-semibold">{t.dashboard.recentActivity}</CardTitle>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.15_160/0.05)]"
+                  className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]"
                   onClick={() => setActivePage('audit')}
                 >
                   {t.dashboard.seeAll}
@@ -935,13 +935,13 @@ export function DashboardView() {
                             transition={{ delay: 0.1 + idx * 0.05, duration: 0.25 }}
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
                           >
-                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[oklch(0.55_0.15_160/0.08)] border border-[oklch(0.55_0.15_160/0.12)] flex items-center justify-center">
+                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[oklch(0.55_0.18_250/0.08)] border border-[oklch(0.55_0.18_250/0.12)] flex items-center justify-center">
                               {content.type === 'newsletter' ? (
-                                <Mail className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                                <Mail className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                               ) : content.type === 'article' ? (
-                                <FileText className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                                <FileText className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                               ) : (
-                                <Bell className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                                <Bell className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -1114,8 +1114,8 @@ export function DashboardView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
-                  <Activity className="h-4 w-4 text-emerald-600" />
+                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                  <Activity className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">{t.dashboard.teamActivityHeatmap}</CardTitle>
@@ -1125,7 +1125,7 @@ export function DashboardView() {
                 <span>{t.dashboard.heatmapLess}</span>
                 <div className="flex gap-0.5">
                   {[0.1, 0.25, 0.5, 0.75, 1].map((opacity, i) => (
-                    <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: `oklch(0.55 0.15 160 / ${opacity})` }} />
+                    <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: `oklch(0.55 0.18 250 / ${opacity})` }} />
                   ))}
                 </div>
                 <span>{t.dashboard.heatmapMore}</span>
@@ -1145,7 +1145,7 @@ export function DashboardView() {
                     transition={{ delay: 0.02 * i, duration: 0.2 }}
                     whileHover={{ scale: 1.3, borderRadius: '4px' }}
                     className="aspect-square rounded-sm cursor-pointer transition-all"
-                    style={{ backgroundColor: `oklch(0.55 0.15 160 / ${opacity})` }}
+                    style={{ backgroundColor: `oklch(0.55 0.18 250 / ${opacity})` }}
                     title={`${Math.round(level * 10)} activities`}
                   />
                 );

@@ -102,7 +102,7 @@ export const useAppStore = create<AppState>((set) => ({
       name: 'Global Corp France',
       slug: 'global-corp-france',
       type: 'country',
-      color: '#10b981',
+      color: '#3b82f6',
       icon: '🇫🇷',
       country: 'France',
       memberCount: 24,

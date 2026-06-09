@@ -50,7 +50,7 @@ export const mockAnnouncements: Announcement[] = [
 
 // ─── Campaigns ──────────────────────────────────────────────────────────
 export const mockCampaigns: Campaign[] = [
-  { id: 'cp-1', name: 'Campagne Rentrée 2025', description: 'Communication de rentrée pour tous les collaborateurs', color: '#10b981', status: 'active', startDate: '2025-06-01', endDate: '2025-06-30', tenantId: 't-1', contentCount: 12, publishedCount: 8, totalReach: 2500, avgOpenRate: 65.2, avgClickRate: 22.1, channels: ['ch-1', 'ch-2', 'ch-3'], createdAt: '2025-05-20T10:00:00Z' },
+  { id: 'cp-1', name: 'Campagne Rentrée 2025', description: 'Communication de rentrée pour tous les collaborateurs', color: '#3b82f6', status: 'active', startDate: '2025-06-01', endDate: '2025-06-30', tenantId: 't-1', contentCount: 12, publishedCount: 8, totalReach: 2500, avgOpenRate: 65.2, avgClickRate: 22.1, channels: ['ch-1', 'ch-2', 'ch-3'], createdAt: '2025-05-20T10:00:00Z' },
   { id: 'cp-2', name: 'Lancement TechFlow Pro', description: 'Campagne de lancement du nouveau produit', color: '#f59e0b', status: 'active', startDate: '2025-06-10', endDate: '2025-07-10', tenantId: 't-3', contentCount: 8, publishedCount: 3, totalReach: 5000, avgOpenRate: 58.7, avgClickRate: 31.4, channels: ['ch-2', 'ch-4'], createdAt: '2025-06-01T08:00:00Z' },
   { id: 'cp-3', name: 'Engagement interne Q2', description: 'Renforcer l\'engagement des collaborateurs', color: '#06b6d4', status: 'draft', startDate: '2025-07-01', endDate: '2025-07-31', tenantId: 't-1', contentCount: 5, publishedCount: 0, totalReach: 0, avgOpenRate: 0, avgClickRate: 0, channels: ['ch-1'], createdAt: '2025-06-05T14:00:00Z' },
   { id: 'cp-4', name: 'Expansion RDC', description: 'Communication autour de l\'expansion en RDC', color: '#ef4444', status: 'paused', startDate: '2025-05-15', endDate: '2025-06-15', tenantId: 't-2', contentCount: 6, publishedCount: 4, totalReach: 800, avgOpenRate: 54.3, avgClickRate: 18.9, channels: ['ch-1', 'ch-3'], createdAt: '2025-05-10T09:00:00Z' },
@@ -112,12 +112,12 @@ export const mockAuditLogs: AuditLogEntry[] = [
 
 // ─── Calendar Events ────────────────────────────────────────────────────
 export const mockCalendarEvents: CalendarEvent[] = [
-  { id: 'ce-1', title: 'Publication Flash Info', date: '2025-06-09', type: 'publication', color: '#10b981', contentId: 'nl-2', tenantId: 't-1' },
+  { id: 'ce-1', title: 'Publication Flash Info', date: '2025-06-09', type: 'publication', color: '#3b82f6', contentId: 'nl-2', tenantId: 't-1' },
   { id: 'ce-2', title: 'Revue article Q2', date: '2025-06-10', type: 'review', color: '#f59e0b', contentId: 'ar-3', tenantId: 't-1' },
   { id: 'ce-3', title: 'Lancement TechFlow Pro', date: '2025-06-15', type: 'campaign', color: '#06b6d4', contentId: 'cp-2', tenantId: 't-3' },
   { id: 'ce-4', title: 'Deadline campagne rentrée', date: '2025-06-30', type: 'deadline', color: '#ef4444', contentId: 'cp-1', tenantId: 't-1' },
   { id: 'ce-5', title: 'Réunion éditoriale', date: '2025-06-12', type: 'meeting', color: '#8b5cf6', tenantId: 't-1' },
-  { id: 'ce-6', title: 'Publication article RGPD', date: '2025-06-20', type: 'publication', color: '#10b981', contentId: 'ar-4', tenantId: 't-1' },
+  { id: 'ce-6', title: 'Publication article RGPD', date: '2025-06-20', type: 'publication', color: '#3b82f6', contentId: 'ar-4', tenantId: 't-1' },
   { id: 'ce-7', title: 'Revue annuelle RDC', date: '2025-06-18', type: 'review', color: '#f59e0b', tenantId: 't-2' },
   { id: 'ce-8', title: 'Fin campagne expansion RDC', date: '2025-06-15', type: 'campaign', color: '#ef4444', contentId: 'cp-4', tenantId: 't-2' },
 ];
@@ -139,7 +139,7 @@ export const mockTasks = [
 ];
 
 export const mockProjects = [
-  { id: 'p-1', name: 'Communication Interne', color: '#10b981', status: 'active', progress: 72, memberCount: 4 },
+  { id: 'p-1', name: 'Communication Interne', color: '#3b82f6', status: 'active', progress: 72, memberCount: 4 },
   { id: 'p-2', name: 'Campagne Rentrée 2025', color: '#f59e0b', status: 'active', progress: 45, memberCount: 3 },
   { id: 'p-3', name: 'Conformité RGPD', color: '#06b6d4', status: 'active', progress: 30, memberCount: 2 },
   { id: 'p-4', name: 'Lancement TechFlow Pro', color: '#ef4444', status: 'on_hold', progress: 60, memberCount: 2 },
@@ -164,7 +164,7 @@ export const contentStatusColors: Record<string, { bg: string; text: string; bor
   review: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
   approved: { bg: 'bg-cyan-500/10', text: 'text-cyan-600', border: 'border-cyan-500/20' },
   scheduled: { bg: 'bg-violet-500/10', text: 'text-violet-600', border: 'border-violet-500/20' },
-  published: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
+  published: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20' },
   archived: { bg: 'bg-slate-500/10', text: 'text-slate-500', border: 'border-slate-500/20' },
 };
 
@@ -175,8 +175,8 @@ export const contentStatusLabels: Record<string, Record<string, string>> = {
 
 export const roleColors: Record<string, { bg: string; text: string; border: string }> = {
   super_admin: { bg: 'bg-rose-500/10', text: 'text-rose-600', border: 'border-rose-500/20' },
-  tenant_admin: { bg: 'bg-teal-500/10', text: 'text-teal-600', border: 'border-teal-500/20' },
-  editor: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
+  tenant_admin: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20' },
+  editor: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20' },
   contributor: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
   reader: { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/20' },
 };

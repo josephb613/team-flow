@@ -267,7 +267,7 @@ function ToolbarButton({
       className={cn(
         'h-7 w-7 p-0 transition-all duration-150',
         isActive
-          ? 'bg-[oklch(0.55_0.15_160)/0.15] text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/0.2]'
+          ? 'bg-[oklch(0.55_0.18_250)/0.15] text-[oklch(0.45_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/0.2]'
           : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
       )}
       onClick={onClick}
@@ -312,7 +312,7 @@ function WikiTreeItem({
             className={cn(
               'w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left group cursor-pointer',
               isSelected
-                ? 'bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold shadow-sm'
+                ? 'bg-[oklch(0.55_0.18_250)/0.12] text-[oklch(0.45_0.18_250)] font-semibold shadow-sm'
                 : 'hover:bg-muted/50 text-foreground'
             )}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -456,7 +456,7 @@ function renderContent(content: string, headingPrefix = '') {
     }
     if (line.startsWith('> ')) {
       return (
-        <blockquote key={i} className="border-l-3 border-[oklch(0.55_0.15_160)/50] pl-4 my-3 text-sm text-muted-foreground italic bg-[oklch(0.55_0.15_160)/0.03] py-2 rounded-r-lg">
+        <blockquote key={i} className="border-l-3 border-[oklch(0.55_0.18_250)/50] pl-4 my-3 text-sm text-muted-foreground italic bg-[oklch(0.55_0.18_250)/0.03] py-2 rounded-r-lg">
           {line.slice(2)}
         </blockquote>
       );
@@ -478,7 +478,7 @@ function renderContent(content: string, headingPrefix = '') {
     if (line.startsWith('`') && line.endsWith('`') && line.length > 2) {
       return (
         <p key={i} className="text-sm leading-relaxed">
-          <code className="px-1.5 py-0.5 rounded-md bg-muted/80 text-xs font-mono text-[oklch(0.55_0.15_160)] dark:text-[oklch(0.65_0.15_160)]">
+          <code className="px-1.5 py-0.5 rounded-md bg-muted/80 text-xs font-mono text-[oklch(0.55_0.18_250)] dark:text-[oklch(0.65_0.15_160)]">
             {line.slice(1, -1)}
           </code>
         </p>
@@ -492,7 +492,7 @@ function renderContent(content: string, headingPrefix = '') {
       .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/~~(.+?)~~/g, '<del class="opacity-60">$1</del>')
-      .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 rounded bg-muted/80 text-xs font-mono text-[oklch(0.55_0.15_160)]">$1</code>');
+      .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 rounded bg-muted/80 text-xs font-mono text-[oklch(0.55_0.18_250)]">$1</code>');
 
     return (
       <p key={i} className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: processedLine }} />
@@ -722,7 +722,7 @@ export function WikiView() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
+                className="h-7 w-7 p-0 text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/10]"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -733,7 +733,7 @@ export function WikiView() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder={t.wiki.searchPages}
-                className="pl-8 h-8 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)/40]"
+                className="pl-8 h-8 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250)/40]"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -752,7 +752,7 @@ export function WikiView() {
                         className={cn(
                           'w-full flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all duration-150 text-left',
                           selectedPageId === page.id
-                            ? 'bg-[oklch(0.55_0.15_160)/0.12] text-[oklch(0.45_0.15_160)] font-semibold'
+                            ? 'bg-[oklch(0.55_0.18_250)/0.12] text-[oklch(0.45_0.18_250)] font-semibold'
                             : 'hover:bg-muted/50'
                         )}
                       >
@@ -805,7 +805,7 @@ export function WikiView() {
                         const el = document.getElementById(`view-heading-${idx}`);
                         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
-                      className="w-full text-left text-[10px] text-muted-foreground hover:text-foreground pl-2 py-0.5 border-l-2 border-transparent hover:border-[oklch(0.55_0.15_160)/40] transition-colors truncate"
+                      className="w-full text-left text-[10px] text-muted-foreground hover:text-foreground pl-2 py-0.5 border-l-2 border-transparent hover:border-[oklch(0.55_0.18_250)/40] transition-colors truncate"
                     >
                       {heading.text}
                     </button>
@@ -815,7 +815,7 @@ export function WikiView() {
               </div>
             )}
 
-            <Button variant="ghost" size="sm" className="w-full h-8 text-xs justify-start text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]">
+            <Button variant="ghost" size="sm" className="w-full h-8 text-xs justify-start text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/10]">
               <Plus className="h-3.5 w-3.5 mr-1.5" /> {t.wiki.newPage}
             </Button>
           </CardContent>
@@ -877,7 +877,7 @@ export function WikiView() {
                               variant="outline"
                               size="sm"
                               onClick={enterEditMode}
-                              className="h-7 text-xs shadow-sm border-[oklch(0.55_0.15_160)/30] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
+                              className="h-7 text-xs shadow-sm border-[oklch(0.55_0.18_250)/30] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/10]"
                             >
                               <Edit3 className="h-3.5 w-3.5 mr-1" /> {t.wiki.edit}
                             </Button>
@@ -902,7 +902,7 @@ export function WikiView() {
                             <Button
                               size="sm"
                               onClick={handleSave}
-                              className="h-7 text-xs bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm"
+                              className="h-7 text-xs bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white shadow-sm"
                             >
                               <Save className="h-3.5 w-3.5 mr-1" /> {t.wiki.save}
                             </Button>
@@ -924,7 +924,7 @@ export function WikiView() {
                         transition={{ duration: 0.2 }}
                       >
                         <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                          <History className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                          <History className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                           {t.wiki.versionHistory}
                         </h3>
 
@@ -938,7 +938,7 @@ export function WikiView() {
                             >
                               <Card className={cn(
                                 'overflow-hidden transition-all duration-200 hover:shadow-md',
-                                version.isCurrent && 'ring-1 ring-[oklch(0.55_0.15_160)/30]'
+                                version.isCurrent && 'ring-1 ring-[oklch(0.55_0.18_250)/30]'
                               )}>
                                 <CardContent className="p-4">
                                   <div className="flex items-start justify-between">
@@ -948,7 +948,7 @@ export function WikiView() {
                                         <div className={cn(
                                           'h-3 w-3 rounded-full border-2 shrink-0',
                                           version.isCurrent
-                                            ? 'bg-[oklch(0.55_0.15_160)] border-[oklch(0.55_0.15_160)]'
+                                            ? 'bg-[oklch(0.55_0.18_250)] border-[oklch(0.55_0.18_250)]'
                                             : 'bg-muted border-muted-foreground/30'
                                         )} />
                                         {idx < versions.length - 1 && (
@@ -961,7 +961,7 @@ export function WikiView() {
                                             {t.wiki.version} {version.version}
                                           </span>
                                           {version.isCurrent && (
-                                            <Badge className="text-[9px] px-1.5 py-0.5 bg-[oklch(0.55_0.15_160)/15] text-[oklch(0.45_0.15_160)] border-0">
+                                            <Badge className="text-[9px] px-1.5 py-0.5 bg-[oklch(0.55_0.18_250)/15] text-[oklch(0.45_0.18_250)] border-0">
                                               {t.wiki.currentVersion}
                                             </Badge>
                                           )}
@@ -985,7 +985,7 @@ export function WikiView() {
                                     {/* Diff indicators */}
                                     <div className="flex items-center gap-2">
                                       {version.addedLines > 0 && (
-                                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
                                           +{version.addedLines} {t.wiki.addedLines}
                                         </span>
                                       )}
@@ -998,7 +998,7 @@ export function WikiView() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-6 text-[10px] border-[oklch(0.55_0.15_160)/30] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
+                                          className="h-6 text-[10px] border-[oklch(0.55_0.18_250)/30] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/10]"
                                           onClick={() => {
                                             setVersionToRestore(version);
                                             setShowRestoreDialog(true);
@@ -1203,7 +1203,7 @@ export function WikiView() {
                                   variant="outline"
                                   size="sm"
                                   onClick={handleCopyPageLink}
-                                  className="h-8 w-8 p-0 shadow-sm border-border/50 hover:border-[oklch(0.55_0.15_160)/30] hover:bg-[oklch(0.55_0.15_160)/10]"
+                                  className="h-8 w-8 p-0 shadow-sm border-border/50 hover:border-[oklch(0.55_0.18_250)/30] hover:bg-[oklch(0.55_0.18_250)/10]"
                                 >
                                   <Clipboard className="h-3.5 w-3.5" />
                                 </Button>
@@ -1215,7 +1215,7 @@ export function WikiView() {
                             variant="outline"
                             size="sm"
                             onClick={enterEditMode}
-                            className="h-8 text-xs shadow-sm border-[oklch(0.55_0.15_160)/30] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160)/10]"
+                            className="h-8 text-xs shadow-sm border-[oklch(0.55_0.18_250)/30] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250)/10]"
                           >
                             <Edit3 className="h-3.5 w-3.5 mr-1" /> {t.wiki.edit}
                           </Button>
@@ -1342,8 +1342,8 @@ export function WikiView() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.15_160)/10] flex items-center justify-center">
-                <GitCommit className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
+              <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.18_250)/10] flex items-center justify-center">
+                <GitCommit className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.wiki.restoreConfirm}
             </AlertDialogTitle>
@@ -1354,7 +1354,7 @@ export function WikiView() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
+              className="bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white"
               onClick={() => {
                 setShowRestoreDialog(false);
                 setVersionToRestore(null);

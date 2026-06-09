@@ -79,9 +79,9 @@ const automationTemplates = [
     icon: ArrowRightLeft,
     trigger: 'autoAssignByPriority' as const,
     action: 'actionAssignMember' as const,
-    color: 'text-teal-600',
-    bg: 'bg-teal-500/10',
-    border: 'border-teal-500/20',
+    color: 'text-blue-600',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
   },
   {
     id: 'tpl-2',
@@ -101,9 +101,9 @@ const automationTemplates = [
     icon: CheckCircle2,
     trigger: 'triggerStatusChanged' as const,
     action: 'actionMoveTask' as const,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
+    color: 'text-blue-600',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
   },
   {
     id: 'tpl-4',
@@ -179,8 +179,8 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.15_160)]/10 border border-[oklch(0.55_0.15_160)]/20">
-              <Zap className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+            <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250)]/10 border border-[oklch(0.55_0.18_250)]/20">
+              <Zap className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
             </div>
             {t.automations.createNewAutomation}
           </DialogTitle>
@@ -193,7 +193,7 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
               <Play className="h-3 w-3" /> {t.automations.trigger}
             </label>
             <Select value={trigger} onValueChange={setTrigger}>
-              <SelectTrigger className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]">
+              <SelectTrigger className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]">
                 <SelectValue placeholder={t.automations.selectTrigger} />
               </SelectTrigger>
               <SelectContent>
@@ -219,7 +219,7 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
               <Zap className="h-3 w-3" /> {t.automations.action}
             </label>
             <Select value={action} onValueChange={setAction}>
-              <SelectTrigger className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]">
+              <SelectTrigger className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]">
                 <SelectValue placeholder={t.automations.selectAction} />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +241,7 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
             </label>
             <Input
               placeholder={t.automations.addCondition}
-              className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]"
+              className="h-9 text-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]"
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
             />
@@ -252,7 +252,7 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
           <Button variant="outline" size="sm" onClick={onClose}>{t.common.cancel}</Button>
           <Button
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] text-white shadow-sm"
+            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] text-white shadow-sm"
             disabled={!trigger || !action}
           >
             <Sparkles className="h-3.5 w-3.5" /> {t.common.create}
@@ -285,19 +285,19 @@ export function AutomationsView() {
       title: t.automations.totalAutomations,
       value: automations.length,
       icon: Zap,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15 border-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.automations.active,
       value: enabledCount,
       icon: Play,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15 border-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.automations.runsThisWeek,
@@ -331,7 +331,7 @@ export function AutomationsView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
           onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="h-4 w-4" /> {t.automations.createAutomation}
@@ -364,7 +364,7 @@ export function AutomationsView() {
       {/* ─── Automation Cards ────────────────────────────────────────────── */}
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-          <Zap className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+          <Zap className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
           {t.automations.title}
         </h3>
         <AnimatePresence mode="popLayout">
@@ -386,7 +386,7 @@ export function AutomationsView() {
                   className={cn(
                     'absolute left-0 top-0 bottom-0 w-1 transition-colors duration-300',
                     automation.enabled
-                      ? 'bg-gradient-to-b from-[oklch(0.55_0.15_160)] to-[oklch(0.55_0.15_160)/0.5]'
+                      ? 'bg-gradient-to-b from-[oklch(0.55_0.18_250)] to-[oklch(0.55_0.18_250)/0.5]'
                       : 'bg-slate-300'
                   )}
                 />
@@ -399,14 +399,14 @@ export function AutomationsView() {
                         className={cn(
                           'p-2.5 rounded-xl flex-shrink-0 border transition-colors duration-300',
                           automation.enabled
-                            ? 'bg-[oklch(0.55_0.15_160/0.1)] border-[oklch(0.55_0.15_160/0.15)]'
+                            ? 'bg-[oklch(0.55_0.18_250/0.1)] border-[oklch(0.55_0.18_250/0.15)]'
                             : 'bg-muted border-border'
                         )}
                       >
                         <Zap
                           className={cn(
                             'h-5 w-5 transition-colors duration-300',
-                            automation.enabled ? 'text-[oklch(0.55_0.15_160)]' : 'text-muted-foreground'
+                            automation.enabled ? 'text-[oklch(0.55_0.18_250)]' : 'text-muted-foreground'
                           )}
                         />
                       </div>
@@ -419,13 +419,13 @@ export function AutomationsView() {
                             className={cn(
                               'text-[10px] px-2 py-0 h-4 font-semibold border-0 gap-1',
                               automation.enabled
-                                ? 'bg-emerald-500/10 text-emerald-700'
+                                ? 'bg-blue-500/10 text-blue-700'
                                 : 'bg-slate-500/10 text-slate-500'
                             )}
                           >
                             <div className={cn(
                               'w-1.5 h-1.5 rounded-full',
-                              automation.enabled ? 'bg-emerald-500' : 'bg-slate-400'
+                              automation.enabled ? 'bg-blue-500' : 'bg-slate-400'
                             )} />
                             {automation.enabled ? t.automations.activeLabel : t.automations.disabled}
                           </Badge>
@@ -478,7 +478,7 @@ export function AutomationsView() {
                         onCheckedChange={() => toggleAutomation(automation.id)}
                         className={cn(
                           automation.enabled
-                            ? 'data-[state=checked]:bg-[oklch(0.55_0.15_160)]'
+                            ? 'data-[state=checked]:bg-[oklch(0.55_0.18_250)]'
                             : ''
                         )}
                       />
@@ -516,7 +516,7 @@ export function AutomationsView() {
       {/* ─── Browse Templates ────────────────────────────────────────────── */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+          <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
           {t.automations.browseTemplates}
         </h3>
         <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -552,7 +552,7 @@ export function AutomationsView() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full h-7 text-[10px] gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
+                      className="w-full h-7 text-[10px] gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]"
                     >
                       <Sparkles className="h-3 w-3" /> {t.automations.useTemplate}
                     </Button>
@@ -567,7 +567,7 @@ export function AutomationsView() {
       {/* ─── Execution History ───────────────────────────────────────────── */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-          <Clock className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+          <Clock className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
           {t.automations.executionHistory}
         </h3>
         <Card className="border-border/60 overflow-hidden">
@@ -583,10 +583,10 @@ export function AutomationsView() {
                 {/* Status icon */}
                 <div className={cn(
                   'p-1 rounded-md shrink-0',
-                  entry.status === 'success' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+                  entry.status === 'success' ? 'bg-blue-500/10' : 'bg-rose-500/10'
                 )}>
                   {entry.status === 'success'
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    ? <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
                     : <XCircle className="h-3.5 w-3.5 text-rose-600" />
                   }
                 </div>
@@ -607,7 +607,7 @@ export function AutomationsView() {
                   className={cn(
                     'text-[9px] px-2 py-0 h-4 font-semibold border-0 gap-1 shrink-0',
                     entry.status === 'success'
-                      ? 'bg-emerald-500/10 text-emerald-700'
+                      ? 'bg-blue-500/10 text-blue-700'
                       : 'bg-rose-500/10 text-rose-700'
                   )}
                 >

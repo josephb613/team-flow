@@ -144,12 +144,12 @@ export function AiChatWidget() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             onClick={toggleAiChat}
-            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] text-white shadow-lg hover:shadow-xl hover:shadow-emerald-500/25 transition-shadow flex items-center justify-center group"
+            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] text-white shadow-lg hover:shadow-xl hover:shadow-blue-500/25 transition-shadow flex items-center justify-center group"
             aria-label="Open AI Chat"
           >
             <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform" />
             {/* Pulse ring */}
-            <span className="absolute inset-0 rounded-full animate-ping bg-[oklch(0.55_0.15_160)] opacity-20" />
+            <span className="absolute inset-0 rounded-full animate-ping bg-[oklch(0.55_0.18_250)] opacity-20" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -165,7 +165,7 @@ export function AiChatWidget() {
             className="fixed bottom-6 right-6 z-50 w-[480px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-3rem)] rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.15_160)] text-white shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] text-white shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
                   <Bot className="h-4 w-4" />
@@ -180,7 +180,7 @@ export function AiChatWidget() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-300 animate-pulse" />
                     <span className="text-[11px] text-white/80">{t.aiChat.online}</span>
                   </div>
                 </div>
@@ -209,14 +209,14 @@ export function AiChatWidget() {
                       msg.role === 'error'
                         ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                         : msg.role === 'ai'
-                          ? 'bg-[oklch(0.55_0.15_160/0.1)] text-foreground border border-[oklch(0.55_0.15_160/0.15)]'
+                          ? 'bg-[oklch(0.55_0.18_250/0.1)] text-foreground border border-[oklch(0.55_0.18_250/0.15)]'
                           : 'bg-muted text-foreground'
                     }`}
                   >
                     {msg.role === 'ai' && (
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
-                        <span className="text-[10px] font-medium text-[oklch(0.55_0.15_160)]">{t.aiChat.title}</span>
+                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
+                        <span className="text-[10px] font-medium text-[oklch(0.55_0.18_250)]">{t.aiChat.title}</span>
                       </div>
                     )}
                     {msg.role === 'error' && (
@@ -248,26 +248,26 @@ export function AiChatWidget() {
                     exit={{ opacity: 0, y: -8 }}
                     className="flex justify-start"
                   >
-                    <div className="bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)] rounded-2xl px-3.5 py-2.5">
+                    <div className="bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)] rounded-2xl px-3.5 py-2.5">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />
-                        <span className="text-[10px] font-medium text-[oklch(0.55_0.15_160)]">{t.aiChat.thinking}</span>
+                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
+                        <span className="text-[10px] font-medium text-[oklch(0.55_0.18_250)]">{t.aiChat.thinking}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <motion.span
                           animate={{ y: [0, -4, 0] }}
                           transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)]"
+                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
                         />
                         <motion.span
                           animate={{ y: [0, -4, 0] }}
                           transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)]"
+                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
                         />
                         <motion.span
                           animate={{ y: [0, -4, 0] }}
                           transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)]"
+                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
                         />
                       </div>
                     </div>
@@ -286,7 +286,7 @@ export function AiChatWidget() {
                     key={i}
                     onClick={() => handleQuickAction(action)}
                     disabled={isLoading}
-                    className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)] border border-[oklch(0.55_0.15_160/0.15)] hover:bg-[oklch(0.55_0.15_160/0.15)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[oklch(0.55_0.18_250/0.08)] text-[oklch(0.55_0.18_250)] border border-[oklch(0.55_0.18_250/0.15)] hover:bg-[oklch(0.55_0.18_250/0.15)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {action}
                   </button>
@@ -296,7 +296,7 @@ export function AiChatWidget() {
 
             {/* Input Area */}
             <div className="px-4 pb-4 pt-1 shrink-0">
-              <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 py-2 focus-within:border-[oklch(0.55_0.15_160/0.4)] focus-within:ring-1 focus-within:ring-[oklch(0.55_0.15_160/0.2)] transition-all">
+              <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 py-2 focus-within:border-[oklch(0.55_0.18_250/0.4)] focus-within:ring-1 focus-within:ring-[oklch(0.55_0.18_250/0.2)] transition-all">
                 <button
                   className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Attach file"
@@ -327,7 +327,7 @@ export function AiChatWidget() {
                 <button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
-                  className="p-1.5 rounded-lg bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.55_0.15_160/0.9)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.55_0.18_250/0.9)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   aria-label="Send message"
                 >
                   <Send className="h-3.5 w-3.5" />

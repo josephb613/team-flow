@@ -52,9 +52,9 @@ const eventTypeConfig: Record<string, {
   },
   publication: {
     label: 'publication',
-    color: '#10b981',
-    bgColor: 'bg-emerald-500/10',
-    borderColor: 'border-emerald-500/20',
+    color: '#3b82f6',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/20',
     icon: FileText,
   },
   review: {
@@ -212,7 +212,7 @@ export function EditorialCalendarView() {
           size="sm"
           variant="outline"
           onClick={goToToday}
-          className="gap-1.5 border-[oklch(0.55_0.15_160/0.3)] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.05)]"
+          className="gap-1.5 border-[oklch(0.55_0.18_250/0.3)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.05)]"
         >
           <CalendarDays className="h-4 w-4" />
           {t.editorialCalendar.jumpToToday}
@@ -230,7 +230,7 @@ export function EditorialCalendarView() {
                   variant="ghost"
                   size="sm"
                   onClick={goToPreviousMonth}
-                  className="h-8 w-8 p-0 hover:bg-[oklch(0.55_0.15_160/0.05)]"
+                  className="h-8 w-8 p-0 hover:bg-[oklch(0.55_0.18_250/0.05)]"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -239,7 +239,7 @@ export function EditorialCalendarView() {
                   variant="ghost"
                   size="sm"
                   onClick={goToNextMonth}
-                  className="h-8 w-8 p-0 hover:bg-[oklch(0.55_0.15_160/0.05)]"
+                  className="h-8 w-8 p-0 hover:bg-[oklch(0.55_0.18_250/0.05)]"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -277,9 +277,9 @@ export function EditorialCalendarView() {
                       className={cn(
                         'aspect-square rounded-lg flex flex-col items-center justify-center text-xs relative transition-all duration-200 border',
                         isSelected
-                          ? 'bg-[oklch(0.55_0.15_160)] text-white border-[oklch(0.55_0.15_160)] shadow-md'
+                          ? 'bg-[oklch(0.55_0.18_250)] text-white border-[oklch(0.55_0.18_250)] shadow-md'
                           : todayHighlight
-                          ? 'bg-[oklch(0.55_0.15_160/0.1)] border-[oklch(0.55_0.15_160/0.3)] text-[oklch(0.55_0.15_160)] font-bold'
+                          ? 'bg-[oklch(0.55_0.18_250/0.1)] border-[oklch(0.55_0.18_250/0.3)] text-[oklch(0.55_0.18_250)] font-bold'
                           : 'border-transparent hover:bg-muted/50 hover:border-border'
                       )}
                     >

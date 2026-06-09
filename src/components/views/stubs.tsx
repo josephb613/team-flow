@@ -19,15 +19,15 @@ function StubView({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
         className="w-full max-w-md"
       >
         <Card className="border-border/50 shadow-lg overflow-hidden">
-          <div className="h-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+          <div className="h-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
           <CardContent className="flex flex-col items-center gap-4 py-12 px-6">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
-              className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] border border-[oklch(0.55_0.15_160/0.2)]"
+              className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[oklch(0.55_0.18_250/0.15)] to-[oklch(0.55_0.18_250/0.05)] border border-[oklch(0.55_0.18_250/0.2)]"
             >
-              <Icon className="h-8 w-8 text-[oklch(0.55_0.15_160)]" />
+              <Icon className="h-8 w-8 text-[oklch(0.55_0.18_250)]" />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -44,11 +44,11 @@ function StubView({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.2 }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] text-xs font-medium border border-[oklch(0.55_0.15_160/0.15)]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] text-xs font-medium border border-[oklch(0.55_0.18_250/0.15)]"
             >
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[oklch(0.55_0.15_160)] opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[oklch(0.55_0.15_160)]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[oklch(0.55_0.18_250)] opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[oklch(0.55_0.18_250)]" />
               </span>
               Coming soon
             </motion.div>

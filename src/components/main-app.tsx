@@ -93,7 +93,7 @@ function AppFooter() {
   return (
     <footer className="relative bg-background/50 backdrop-blur-sm px-4 md:px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
       {/* Gradient top border */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250/0.2)] to-transparent" />
       <div className="flex items-center gap-3">
         <span className="font-medium text-foreground/60">ContentFlow</span>
         <span className="text-muted-foreground/40">{t.footer.version}</span>
@@ -112,7 +112,7 @@ function AppFooter() {
           <span className="flex items-center gap-1.5">
             <span className={cn(
               'h-2 w-2 rounded-full',
-              isOnline ? 'bg-emerald-500' : 'bg-amber-500'
+              isOnline ? 'bg-blue-500' : 'bg-amber-500'
             )} />
             <span className="text-muted-foreground/60">{isOnline ? t.footer.online : 'Offline'}</span>
           </span>
@@ -163,7 +163,7 @@ function BackToTopButton() {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.2 }}
           onClick={scrollToTop}
-          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-[oklch(0.55_0.15_160)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.55_0.15_160/0.9)] transition-shadow flex items-center justify-center"
+          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-[oklch(0.55_0.18_250)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.55_0.18_250/0.9)] transition-shadow flex items-center justify-center"
           aria-label="Back to top"
         >
           <ArrowUp className="h-4 w-4" />
@@ -195,7 +195,7 @@ function MobileFAB() {
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <FileText className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+              <FileText className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
               <span>{t.topbar.newContent}</span>
             </button>
             <button
@@ -229,7 +229,7 @@ function MobileFAB() {
           'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
           open
             ? 'bg-rose-500 text-white rotate-45'
-            : 'bg-[oklch(0.55_0.15_160)] text-white'
+            : 'bg-[oklch(0.55_0.18_250)] text-white'
         )}
       >
         <Plus className="h-6 w-6" />

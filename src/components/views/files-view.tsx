@@ -72,20 +72,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 
-// File type config with teal-variant colors (no blue/indigo primary)
+// File type config with blue-variant colors
 const fileTypeConfig: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string; extBg: string }> = {
   document: {
     icon: <FileText className="h-5 w-5" />,
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-500/10',
-    extBg: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10',
+    extBg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
     label: 'Document',
   },
   spreadsheet: {
     icon: <FileSpreadsheet className="h-5 w-5" />,
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    extBg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10',
+    extBg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
     label: 'Spreadsheet',
   },
   presentation: {
@@ -233,7 +233,7 @@ function FileGridCard({
     <motion.div variants={item}>
       <Card className={cn(
         'group hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden relative',
-        isSelected && 'ring-2 ring-[oklch(0.55_0.15_160)] ring-offset-2'
+        isSelected && 'ring-2 ring-[oklch(0.55_0.18_250)] ring-offset-2'
       )}>
         <CardContent className="p-4">
           {/* Top row: checkbox + type icon + badge + star */}
@@ -342,7 +342,7 @@ function FileListRow({
       variants={item}
       className={cn(
         'grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3 items-center transition-colors cursor-pointer group',
-        isSelected ? 'bg-[oklch(0.55_0.15_160)/0.06]' : 'hover:bg-muted/30'
+        isSelected ? 'bg-[oklch(0.55_0.18_250)/0.06]' : 'hover:bg-muted/30'
       )}
       onClick={() => onPreview(file)}
     >
@@ -593,7 +593,7 @@ export function FilesView() {
   // Sort icon helper (render inline, not a component, to avoid static-components lint)
   const renderSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
-    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-[oklch(0.55_0.15_160)]" /> : <ArrowDown className="h-3 w-3 text-[oklch(0.55_0.15_160)]" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-[oklch(0.55_0.18_250)]" /> : <ArrowDown className="h-3 w-3 text-[oklch(0.55_0.18_250)]" />;
   };
 
   const handleSortClick = (field: SortField) => {
@@ -631,12 +631,12 @@ export function FilesView() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-2 border-dashed border-[oklch(0.55_0.15_160)] rounded-2xl p-16 text-center animate-pulse"
+              className="border-2 border-dashed border-[oklch(0.55_0.18_250)] rounded-2xl p-16 text-center animate-pulse"
             >
-              <div className="h-20 w-20 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-[oklch(0.55_0.15_160)/10]">
-                <CloudUpload className="h-10 w-10 text-[oklch(0.55_0.15_160)]" />
+              <div className="h-20 w-20 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-[oklch(0.55_0.18_250)/10]">
+                <CloudUpload className="h-10 w-10 text-[oklch(0.55_0.18_250)]" />
               </div>
-              <p className="text-lg font-semibold text-[oklch(0.55_0.15_160)]">{t.files.dropHere}</p>
+              <p className="text-lg font-semibold text-[oklch(0.55_0.18_250)]">{t.files.dropHere}</p>
               <p className="text-sm text-muted-foreground mt-2">{t.files.orClick}</p>
             </motion.div>
           </motion.div>
@@ -657,7 +657,7 @@ export function FilesView() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder={t.common.search}
-              className="pl-8 h-8 text-xs w-40 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)/40]"
+              className="pl-8 h-8 text-xs w-40 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250)/40]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -669,7 +669,7 @@ export function FilesView() {
             size="sm"
             className={cn(
               'h-8 text-xs',
-              multiSelectMode && 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white'
+              multiSelectMode && 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white'
             )}
             onClick={() => {
               setMultiSelectMode(!multiSelectMode);
@@ -691,7 +691,7 @@ export function FilesView() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button size="sm" className="h-8 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white shadow-sm">
+          <Button size="sm" className="h-8 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white shadow-sm">
             <Upload className="h-3.5 w-3.5 mr-1" /> {t.files.upload}
           </Button>
         </div>
@@ -706,9 +706,9 @@ export function FilesView() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <Card className="border-[oklch(0.55_0.15_160)/30] bg-[oklch(0.55_0.15_160)/0.04]">
+            <Card className="border-[oklch(0.55_0.18_250)/30] bg-[oklch(0.55_0.18_250)/0.04]">
               <CardContent className="px-4 py-2.5 flex items-center gap-3">
-                <span className="text-sm font-semibold text-[oklch(0.45_0.15_160)]">
+                <span className="text-sm font-semibold text-[oklch(0.45_0.18_250)]">
                   {selectedFiles.size} {t.files.selected}
                 </span>
                 <div className="h-4 w-px bg-border" />
@@ -744,8 +744,8 @@ export function FilesView() {
       <Card className="overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10">
-              <HardDrive className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-500/10">
+              <HardDrive className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1.5">
@@ -757,11 +757,11 @@ export function FilesView() {
                   initial={{ width: 0 }}
                   animate={{ width: `${storagePercent}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 shadow-sm"
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-500 shadow-sm"
                 />
               </div>
             </div>
-            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{storagePercent}%</span>
+            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{storagePercent}%</span>
           </div>
         </CardContent>
       </Card>
@@ -779,12 +779,12 @@ export function FilesView() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <CloudUpload className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                    <CloudUpload className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                     <span className="text-sm font-semibold">
                       {uploadingCount > 0 ? t.files.uploading : t.files.uploadComplete}
                     </span>
                     {uploadingCount > 0 && (
-                      <Badge className="text-[9px] px-1.5 py-0.5 bg-[oklch(0.55_0.15_160)/15] text-[oklch(0.45_0.15_160)] border-0">
+                      <Badge className="text-[9px] px-1.5 py-0.5 bg-[oklch(0.55_0.18_250)/15] text-[oklch(0.45_0.18_250)] border-0">
                         {uploadingCount} {t.files.uploadingFiles}
                       </Badge>
                     )}
@@ -809,7 +809,7 @@ export function FilesView() {
                           <span className="text-xs font-medium truncate">{upload.name}</span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-[10px] text-muted-foreground">{formatFileSize(upload.size)}</span>
-                            {upload.status === 'complete' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                            {upload.status === 'complete' && <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />}
                             {upload.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-rose-500" />}
                           </div>
                         </div>
@@ -820,7 +820,7 @@ export function FilesView() {
                             transition={{ duration: 0.3 }}
                             className={cn(
                               'absolute inset-y-0 left-0 rounded-full transition-colors',
-                              upload.status === 'complete' ? 'bg-emerald-500' : upload.status === 'error' ? 'bg-rose-500' : 'bg-[oklch(0.55_0.15_160)]'
+                              upload.status === 'complete' ? 'bg-blue-500' : upload.status === 'error' ? 'bg-rose-500' : 'bg-[oklch(0.55_0.18_250)]'
                             )}
                           />
                         </div>
@@ -841,7 +841,7 @@ export function FilesView() {
       <motion.div
         className={cn(
           'border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer',
-          'border-muted-foreground/20 hover:border-[oklch(0.55_0.15_160)/40] hover:bg-muted/30'
+          'border-muted-foreground/20 hover:border-[oklch(0.55_0.18_250)/40] hover:bg-muted/30'
         )}
         onClick={() => {
           const input = document.createElement('input');
@@ -856,7 +856,7 @@ export function FilesView() {
         </div>
         <p className="text-sm font-semibold">{t.files.dropFilesHere}</p>
         <p className="text-xs text-muted-foreground mt-1">{t.files.orClick}</p>
-        <Button variant="outline" size="sm" className="mt-3 h-8 text-xs border-[oklch(0.55_0.15_160)/30] text-[oklch(0.55_0.15_160)]">
+        <Button variant="outline" size="sm" className="mt-3 h-8 text-xs border-[oklch(0.55_0.18_250)/30] text-[oklch(0.55_0.18_250)]">
           <Upload className="h-3.5 w-3.5 mr-1" /> {t.files.upload}
         </Button>
       </motion.div>
@@ -870,7 +870,7 @@ export function FilesView() {
             size="sm"
             className={cn(
               'h-7 text-xs',
-              typeFilter === opt.value && 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white'
+              typeFilter === opt.value && 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white'
             )}
             onClick={() => setTypeFilter(opt.value)}
           >
@@ -1084,7 +1084,7 @@ export function FilesView() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="h-8 text-xs bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white">
+                    <Button size="sm" className="h-8 text-xs bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white">
                       <Download className="h-3.5 w-3.5 mr-1" /> {t.files.download}
                     </Button>
                     <Button variant="outline" size="sm" className="h-8 text-xs">
@@ -1107,7 +1107,7 @@ export function FilesView() {
                   {/* Version history */}
                   <div>
                     <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <History className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                      <History className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                       {t.files.versionHistory}
                     </h4>
                     <div className="space-y-2">
@@ -1116,20 +1116,20 @@ export function FilesView() {
                           key={version.id}
                           className={cn(
                             'flex items-center justify-between p-2.5 rounded-lg transition-colors',
-                            version.isCurrent ? 'bg-[oklch(0.55_0.15_160)/0.06] border border-[oklch(0.55_0.15_160)/20]' : 'bg-muted/30'
+                            version.isCurrent ? 'bg-[oklch(0.55_0.18_250)/0.06] border border-[oklch(0.55_0.18_250)/20]' : 'bg-muted/30'
                           )}
                         >
                           <div className="flex items-center gap-2">
                             <div className={cn(
                               'h-2 w-2 rounded-full shrink-0',
-                              version.isCurrent ? 'bg-[oklch(0.55_0.15_160)]' : 'bg-muted-foreground/30'
+                              version.isCurrent ? 'bg-[oklch(0.55_0.18_250)]' : 'bg-muted-foreground/30'
                             )} />
                             <div>
                               <span className="text-xs font-medium">
                                 {t.files.version} {version.version}
                               </span>
                               {version.isCurrent && (
-                                <Badge className="ml-1.5 text-[8px] px-1 py-0 bg-[oklch(0.55_0.15_160)/15] text-[oklch(0.45_0.15_160)] border-0">
+                                <Badge className="ml-1.5 text-[8px] px-1 py-0 bg-[oklch(0.55_0.18_250)/15] text-[oklch(0.45_0.18_250)] border-0">
                                   {t.files.current}
                                 </Badge>
                               )}

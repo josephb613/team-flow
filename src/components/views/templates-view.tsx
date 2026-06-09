@@ -42,8 +42,8 @@ function getTemplateTypeIcon(type: string) {
 
 function getTemplateTypeColor(type: string) {
   switch (type) {
-    case 'newsletter': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    case 'article': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    case 'newsletter': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'article': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     case 'announcement': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
     case 'communique': return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
     default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
@@ -80,8 +80,8 @@ export function TemplatesView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                <LayoutTemplate className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+              <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                <LayoutTemplate className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.templates.title}
             </h1>
@@ -103,7 +103,7 @@ export function TemplatesView() {
                   placeholder={t.templates.search}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.15_160/0.5)] focus:ring-[oklch(0.55_0.15_160/0.1)]"
+                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.18_250/0.5)] focus:ring-[oklch(0.55_0.18_250/0.1)]"
                 />
               </div>
 
@@ -117,7 +117,7 @@ export function TemplatesView() {
                     onClick={() => setTypeFilter(type)}
                     className={
                       typeFilter === type
-                        ? 'bg-[oklch(0.55_0.15_160)] text-white hover:bg-[oklch(0.55_0.15_160/0.9)]'
+                        ? 'bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.55_0.18_250/0.9)]'
                         : 'border-border/50'
                     }
                   >
@@ -160,19 +160,19 @@ export function TemplatesView() {
                 >
                   <Card className={`overflow-hidden border shadow-sm hover:shadow-md transition-all ${
                     template.isPremium
-                      ? 'border-[oklch(0.55_0.15_160/0.3)] ring-1 ring-[oklch(0.55_0.15_160/0.1)]'
+                      ? 'border-[oklch(0.55_0.18_250/0.3)] ring-1 ring-[oklch(0.55_0.18_250/0.1)]'
                       : 'border-border/50'
                   }`}>
                     {/* Premium top strip */}
                     {template.isPremium && (
-                      <div className="h-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                      <div className="h-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
                     )}
 
                     <CardContent className="p-5">
                       <div className="flex items-start gap-3">
                         {/* Emoji thumbnail */}
                         <div className={`text-3xl p-3 rounded-2xl bg-muted/30 border border-border/30 flex-shrink-0 ${
-                          template.isPremium ? 'bg-[oklch(0.55_0.15_160/0.08)] border-[oklch(0.55_0.15_160/0.15)]' : ''
+                          template.isPremium ? 'bg-[oklch(0.55_0.18_250/0.08)] border-[oklch(0.55_0.18_250/0.15)]' : ''
                         }`}>
                           {template.thumbnail}
                         </div>
@@ -180,7 +180,7 @@ export function TemplatesView() {
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-sm truncate">{template.name}</h3>
                             {template.isPremium && (
-                              <Badge className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)] text-white text-[10px] px-1.5 py-0 h-5 border-0">
+                              <Badge className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)] text-white text-[10px] px-1.5 py-0 h-5 border-0">
                                 <Sparkles className="h-2.5 w-2.5 mr-0.5" />
                                 {t.templates.premium}
                               </Badge>
@@ -206,8 +206,8 @@ export function TemplatesView() {
                       <Button
                         className={`w-full mt-4 ${
                           template.isPremium
-                            ? 'bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)] text-white shadow-md hover:shadow-lg'
-                            : 'bg-muted/50 hover:bg-[oklch(0.55_0.15_160/0.1)] hover:text-[oklch(0.55_0.15_160)] text-foreground border border-border/50'
+                            ? 'bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)] text-white shadow-md hover:shadow-lg'
+                            : 'bg-muted/50 hover:bg-[oklch(0.55_0.18_250/0.1)] hover:text-[oklch(0.55_0.18_250)] text-foreground border border-border/50'
                         }`}
                         variant={template.isPremium ? 'default' : 'outline'}
                       >

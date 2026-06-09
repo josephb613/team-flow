@@ -90,7 +90,7 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
       className={cn(
         'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group relative overflow-hidden min-h-[44px]',
         active
-          ? 'bg-gradient-to-r from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] text-[oklch(0.65_0.16_160)] font-medium'
+          ? 'bg-gradient-to-r from-[oklch(0.55_0.18_250/0.15)] to-[oklch(0.55_0.18_250/0.05)] text-[oklch(0.65_0.18_250)] font-medium'
           : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       )}
     >
@@ -102,7 +102,7 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
       {active && (
         <motion.div
           layoutId="sidebar-active"
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[oklch(0.55_0.15_160)] rounded-r-full"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[oklch(0.55_0.18_250)] rounded-r-full"
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       )}
@@ -113,12 +113,12 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
           animate={{ scaleY: 1 }}
           exit={{ scaleY: 0 }}
           transition={{ duration: 0.15 }}
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[oklch(0.55_0.15_160/0.4)] rounded-r-full"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[oklch(0.55_0.18_250/0.4)] rounded-r-full"
         />
       )}
       <span className={cn(
         'flex-shrink-0 transition-transform duration-150 group-hover:scale-110',
-        active ? 'text-[oklch(0.55_0.15_160)]' : ''
+        active ? 'text-[oklch(0.55_0.18_250)]' : ''
       )}>{icon}</span>
       {!collapsed && (
         <>
@@ -281,8 +281,8 @@ export function AppSidebar() {
                   sidebarCollapsed && 'ring-2 ring-offset-1 ring-offset-sidebar'
                 )}
                 style={{
-                  backgroundColor: activeTenant?.color || '#10b981',
-                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeTenant?.color || '#10b981'}40` } : {}),
+                  backgroundColor: activeTenant?.color || '#3b82f6',
+                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeTenant?.color || '#3b82f6'}40` } : {}),
                 }}
               >
                 {activeTenant?.icon || '🏢'}
@@ -294,7 +294,7 @@ export function AppSidebar() {
                       <span className="text-sm font-semibold truncate">
                         {activeTenant?.name || 'Tenant'}
                       </span>
-                      <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)]">
+                      <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.18_250/0.15)] text-[oklch(0.55_0.18_250)]">
                         {t.topbar.pro}
                       </span>
                     </div>
@@ -329,19 +329,19 @@ export function AppSidebar() {
                   <span className="text-[10px] text-muted-foreground">{tenant.country}</span>
                 </div>
                 {tenant.id === activeTenantId && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]" />
                 )}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-[oklch(0.55_0.15_160)] cursor-pointer"
+              className="text-[oklch(0.55_0.18_250)] cursor-pointer"
               onClick={() => useAppStore.getState().setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               {t.sidebar.createTenant}
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-[oklch(0.55_0.15_160)]">
+            <DropdownMenuItem className="text-[oklch(0.55_0.18_250)]">
               <LogOut className="h-4 w-4 mr-2" />
               {t.sidebar.createTenant}
             </DropdownMenuItem>
@@ -350,7 +350,7 @@ export function AppSidebar() {
       </div>
 
       {/* Gradient border under tenant switcher */}
-      <div className="bg-gradient-to-r from-[oklch(0.55_0.15_160/0.3)] via-[oklch(0.55_0.15_160/0.1)] to-transparent h-px" />
+      <div className="bg-gradient-to-r from-[oklch(0.55_0.18_250/0.3)] via-[oklch(0.55_0.18_250/0.1)] to-transparent h-px" />
 
       {/* Quick Stats mini-section */}
       {!sidebarCollapsed && (
@@ -404,7 +404,7 @@ export function AppSidebar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] border border-sidebar-border/20"
+                    className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.1)] border border-sidebar-border/20"
                     onClick={() => useAppStore.getState().setCreateContentDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
@@ -453,7 +453,7 @@ export function AppSidebar() {
       <Separator className="bg-sidebar-border/50" />
 
       {/* Gradient separator line between sections */}
-      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
+      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250/0.2)] to-transparent" />
 
       {/* Scrollable Navigation */}
       <ScrollArea className="flex-1 px-2 py-1">
@@ -496,7 +496,7 @@ export function AppSidebar() {
                   className={cn(
                     'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 min-h-[36px]',
                     activePage === item.pageId
-                      ? 'bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)]'
+                      ? 'bg-[oklch(0.55_0.18_250/0.08)] text-[oklch(0.55_0.18_250)]'
                       : 'text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                   )}
                 >

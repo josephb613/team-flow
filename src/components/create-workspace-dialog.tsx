@@ -25,7 +25,7 @@ const EMOJI_OPTIONS = [
 ];
 
 const COLOR_OPTIONS = [
-  '#10b981', '#14b8a6', '#059669', '#0d9488',
+  '#3b82f6', '#3b82f6', '#2563eb', '#2563eb',
   '#f59e0b', '#d97706', '#ef4444', '#dc2626',
   '#8b5cf6', '#7c3aed', '#ec4899', '#db2777',
   '#06b6d4', '#0891b2', '#84cc16', '#65a30d',
@@ -39,7 +39,7 @@ export function CreateWorkspaceDialog() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🏢');
-  const [selectedColor, setSelectedColor] = useState('#10b981');
+  const [selectedColor, setSelectedColor] = useState('#3b82f6');
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -63,7 +63,7 @@ export function CreateWorkspaceDialog() {
     setName('');
     setDescription('');
     setSelectedEmoji('🏢');
-    setSelectedColor('#10b981');
+    setSelectedColor('#3b82f6');
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -130,7 +130,7 @@ export function CreateWorkspaceDialog() {
                   className={cn(
                     'h-9 w-9 rounded-lg flex items-center justify-center text-base transition-all',
                     selectedEmoji === emoji
-                      ? 'bg-[oklch(0.55_0.15_160/0.15)] ring-2 ring-[oklch(0.55_0.15_160)] scale-110'
+                      ? 'bg-[oklch(0.55_0.18_250/0.15)] ring-2 ring-[oklch(0.55_0.18_250)] scale-110'
                       : 'hover:bg-muted/50'
                   )}
                   onClick={() => setSelectedEmoji(emoji)}
@@ -208,7 +208,7 @@ export function CreateWorkspaceDialog() {
           <Button
             onClick={handleCreate}
             disabled={!name.trim()}
-            className="flex-1 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.50_0.15_160)] text-white"
+            className="flex-1 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.50_0.15_160)] text-white"
           >
             {t.createWorkspace.create}
           </Button>

@@ -45,11 +45,11 @@ const item = {
 
 // ─── Action type colors ──────────────────────────────────────────────────────
 const actionColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  create: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
+  create: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20', dot: 'bg-blue-500' },
   update: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20', dot: 'bg-amber-500' },
   delete: { bg: 'bg-rose-500/10', text: 'text-rose-600', border: 'border-rose-500/20', dot: 'bg-rose-500' },
   validate: { bg: 'bg-cyan-500/10', text: 'text-cyan-600', border: 'border-cyan-500/20', dot: 'bg-cyan-500' },
-  publish: { bg: 'bg-teal-500/10', text: 'text-teal-600', border: 'border-teal-500/20', dot: 'bg-teal-500' },
+  publish: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20', dot: 'bg-blue-500' },
   login: { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/20', dot: 'bg-slate-500' },
   permission_change: { bg: 'bg-violet-500/10', text: 'text-violet-600', border: 'border-violet-500/20', dot: 'bg-violet-500' },
   logout: { bg: 'bg-slate-500/10', text: 'text-slate-500', border: 'border-slate-500/20', dot: 'bg-slate-400' },
@@ -81,14 +81,14 @@ const entityTypeLabels: Record<string, string> = {
 
 // ─── Avatar gradient colors ──────────────────────────────────────────────────
 const avatarGradients = [
-  'from-teal-500 to-emerald-600',
-  'from-emerald-500 to-teal-600',
-  'from-cyan-500 to-teal-600',
-  'from-amber-500 to-teal-600',
-  'from-rose-500 to-teal-600',
-  'from-violet-500 to-emerald-600',
-  'from-emerald-400 to-cyan-500',
-  'from-teal-400 to-emerald-500',
+  'from-blue-500 to-blue-600',
+  'from-blue-500 to-blue-600',
+  'from-cyan-500 to-blue-600',
+  'from-amber-500 to-blue-600',
+  'from-rose-500 to-blue-600',
+  'from-violet-500 to-blue-600',
+  'from-blue-400 to-cyan-500',
+  'from-blue-400 to-blue-500',
 ];
 
 function formatTimestamp(ts: string): { date: string; time: string; relative: string } {
@@ -201,19 +201,19 @@ export function AuditView() {
       title: "Actions aujourd'hui",
       value: todayActions,
       icon: Zap,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15 border-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: 'Utilisateur le plus actif',
       value: mostActiveUser.split(' ')[0],
       icon: User,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15 border-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
       isText: true,
     },
     {
@@ -241,7 +241,7 @@ export function AuditView() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
+          className="gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]"
         >
           <Download className="h-4 w-4" /> {t.audit.exportLog}
         </Button>
@@ -282,7 +282,7 @@ export function AuditView() {
                 placeholder="Rechercher dans le journal..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]"
+                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]"
               />
             </div>
 

@@ -163,7 +163,7 @@ export function SchedulingView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <Plus className="h-4 w-4" />
           Planifier un envoi
@@ -185,17 +185,17 @@ export function SchedulingView() {
             label: 'Cette semaine',
             value: scheduledThisWeek,
             icon: CalendarIcon,
-            color: 'text-teal-600',
-            bg: 'bg-teal-500/10',
-            border: 'border-teal-500/20',
+            color: 'text-blue-600',
+            bg: 'bg-blue-500/10',
+            border: 'border-blue-500/20',
           },
           {
             label: 'Prochain envoi',
             value: nextScheduled ? new Date(nextScheduled.scheduledAt!).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—',
             icon: Timer,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-500/10',
-            border: 'border-emerald-500/20',
+            color: 'text-blue-600',
+            bg: 'bg-blue-500/10',
+            border: 'border-blue-500/20',
           },
         ].map((stat, i) => {
           const Icon = stat.icon;
@@ -264,8 +264,8 @@ export function SchedulingView() {
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             {/* Type Icon */}
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160/0.15)] to-[oklch(0.55_0.15_160/0.05)] border border-[oklch(0.55_0.15_160/0.2)] flex items-center justify-center flex-shrink-0">
-                              <TypeIcon className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250/0.15)] to-[oklch(0.55_0.18_250/0.05)] border border-[oklch(0.55_0.18_250/0.2)] flex items-center justify-center flex-shrink-0">
+                              <TypeIcon className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                             </div>
 
                             {/* Content Info */}
@@ -363,13 +363,13 @@ export function SchedulingView() {
                         className={cn(
                           'min-h-[72px] p-1.5 rounded-lg border text-xs transition-colors',
                           day.isCurrentMonth ? 'bg-background border-border/50' : 'bg-muted/20 border-transparent',
-                          isToday && 'border-[oklch(0.55_0.15_160)] ring-1 ring-[oklch(0.55_0.15_160/0.2)]',
-                          day.items.length > 0 && day.isCurrentMonth && 'bg-[oklch(0.55_0.15_160/0.02)]',
+                          isToday && 'border-[oklch(0.55_0.18_250)] ring-1 ring-[oklch(0.55_0.18_250/0.2)]',
+                          day.items.length > 0 && day.isCurrentMonth && 'bg-[oklch(0.55_0.18_250/0.02)]',
                         )}
                       >
                         <div className={cn(
                           'flex items-center justify-center w-6 h-6 rounded-full text-[11px] mb-0.5',
-                          isToday ? 'bg-[oklch(0.55_0.15_160)] text-white font-bold' : 'text-muted-foreground font-medium',
+                          isToday ? 'bg-[oklch(0.55_0.18_250)] text-white font-bold' : 'text-muted-foreground font-medium',
                         )}>
                           {day.date}
                         </div>
@@ -379,7 +379,7 @@ export function SchedulingView() {
                             return (
                               <div
                                 key={content.id}
-                                className="flex items-center gap-1 px-1 py-0.5 rounded bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] truncate"
+                                className="flex items-center gap-1 px-1 py-0.5 rounded bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] truncate"
                               >
                                 <TypeIcon className="h-2.5 w-2.5 flex-shrink-0" />
                                 <span className="truncate text-[10px] font-medium">{content.title}</span>

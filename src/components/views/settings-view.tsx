@@ -120,14 +120,14 @@ export function SettingsView() {
                     className={cn(
                       'relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap transition-all duration-200 w-full text-left font-medium',
                       isActive
-                        ? 'bg-[oklch(0.55_0.15_160/0.08)] text-[oklch(0.55_0.15_160)] shadow-sm'
+                        ? 'bg-[oklch(0.55_0.18_250/0.08)] text-[oklch(0.55_0.18_250)] shadow-sm'
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     )}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="settings-active-indicator"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-[oklch(0.55_0.15_160)]"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-[oklch(0.55_0.18_250)]"
                         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                       />
                     )}
@@ -156,8 +156,8 @@ export function SettingsView() {
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                        <Globe className="h-4 w-4 text-teal-600" />
+                      <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                        <Globe className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{t.settings.general}</CardTitle>
@@ -170,21 +170,21 @@ export function SettingsView() {
                       <Label className="text-sm font-medium">{t.settings.language}</Label>
                       <Input
                         defaultValue="English (US)"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.timezone}</Label>
                       <Input
                         defaultValue="UTC+1 (West Africa Time)"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.dateFormat}</Label>
                       <Input
                         defaultValue="MM/DD/YYYY"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
                       />
                     </div>
                     <Separator />
@@ -220,7 +220,7 @@ export function SettingsView() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white hover:shadow-[oklch(0.55_0.15_160/0.4)] transition-shadow"
+                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white hover:shadow-[oklch(0.55_0.18_250/0.4)] transition-shadow"
                       >
                         <Save className="h-4 w-4" /> {t.settings.saveChanges}
                       </Button>
@@ -237,8 +237,8 @@ export function SettingsView() {
                 <Card className="border shadow-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
-                        <User className="h-4 w-4 text-emerald-600" />
+                      <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                        <User className="h-4 w-4 text-blue-600" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{t.settings.profileSettings}</CardTitle>
@@ -249,17 +249,17 @@ export function SettingsView() {
                   <CardContent className="space-y-5">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-[oklch(0.55_0.15_160/0.2)]">
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-[oklch(0.55_0.18_250/0.2)]">
                           {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
                         </div>
-                        <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[oklch(0.55_0.15_160)] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                        <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[oklch(0.55_0.18_250)] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                           <Camera className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div>
                         <p className="font-semibold">{currentUser?.name || 'Alex Thompson'}</p>
                         <p className="text-sm text-muted-foreground">{currentUser?.email || 'alex@acmecorp.com'}</p>
-                        <Badge className="mt-1 text-[10px] bg-teal-500/10 text-teal-700 border-0">
+                        <Badge className="mt-1 text-[10px] bg-blue-500/10 text-blue-700 border-0">
                           Admin
                         </Badge>
                       </div>
@@ -268,16 +268,16 @@ export function SettingsView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.firstName}</Label>
-                        <Input defaultValue="Alex" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input defaultValue="Alex" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.lastName}</Label>
-                        <Input defaultValue="Thompson" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input defaultValue="Thompson" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.email}</Label>
-                      <Input defaultValue={currentUser?.email || 'alex@acmecorp.com'} type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Input defaultValue={currentUser?.email || 'alex@acmecorp.com'} type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.role}</Label>
@@ -285,11 +285,11 @@ export function SettingsView() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.bio}</Label>
-                      <Input defaultValue="Product Manager at Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Input defaultValue="Product Manager at Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white hover:shadow-[oklch(0.55_0.15_160/0.4)] transition-shadow"
+                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white hover:shadow-[oklch(0.55_0.18_250/0.4)] transition-shadow"
                       >
                         <Save className="h-4 w-4" /> {t.settings.saveChanges}
                       </Button>
@@ -328,14 +328,14 @@ export function SettingsView() {
                           <Label className="text-sm font-medium">{t.settings.emailNotif}</Label>
                           <p className="text-xs text-muted-foreground">{t.settings.emailNotifDesc}</p>
                         </div>
-                        <Switch checked={notifications.email} onCheckedChange={() => toggleNotification('email')} className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]" />
+                        <Switch checked={notifications.email} onCheckedChange={() => toggleNotification('email')} className="data-[state=checked]:bg-[oklch(0.55_0.18_250)]" />
                       </div>
                       <div className="flex items-center justify-between py-1">
                         <div>
                           <Label className="text-sm font-medium">{t.settings.pushNotif}</Label>
                           <p className="text-xs text-muted-foreground">{t.settings.pushNotifDesc}</p>
                         </div>
-                        <Switch checked={notifications.push} onCheckedChange={() => toggleNotification('push')} className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]" />
+                        <Switch checked={notifications.push} onCheckedChange={() => toggleNotification('push')} className="data-[state=checked]:bg-[oklch(0.55_0.18_250)]" />
                       </div>
                     </div>
                     <Separator />
@@ -365,7 +365,7 @@ export function SettingsView() {
                           <Switch
                             checked={notifications[ntf.key]}
                             onCheckedChange={() => toggleNotification(ntf.key)}
-                            className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]"
+                            className="data-[state=checked]:bg-[oklch(0.55_0.18_250)]"
                           />
                         </div>
                       ))}
@@ -400,7 +400,7 @@ export function SettingsView() {
                           className={cn(
                             'flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:shadow-sm',
                             integration.connected
-                              ? 'border-emerald-500/20 bg-emerald-500/[0.03]'
+                              ? 'border-blue-500/20 bg-blue-500/[0.03]'
                               : 'border-border hover:border-border/80'
                           )}
                         >
@@ -415,7 +415,7 @@ export function SettingsView() {
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-semibold">{integration.name}</p>
                                 {integration.connected && (
-                                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-700 border-0 font-medium">
+                                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-700 border-0 font-medium">
                                     <Check className="h-2.5 w-2.5 mr-0.5" />
                                     {t.settings.connected}
                                   </Badge>
@@ -429,7 +429,7 @@ export function SettingsView() {
                             size="sm"
                             className={cn(
                               'gap-1.5 text-xs',
-                              !integration.connected && 'bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] text-white shadow-sm'
+                              !integration.connected && 'bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] text-white shadow-sm'
                             )}
                           >
                             {integration.connected ? (
@@ -467,18 +467,18 @@ export function SettingsView() {
                     <CardContent className="space-y-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceName}</Label>
-                        <Input defaultValue="Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input defaultValue="Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceUrl}</Label>
-                        <Input defaultValue="acme-corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input defaultValue="acme-corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.description}</Label>
-                        <Input defaultValue="Main workspace for Acme Corporation" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                        <Input defaultValue="Main workspace for Acme Corporation" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                       </div>
                       <Button
-                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+                        className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
                       >
                         <Save className="h-4 w-4" /> {t.settings.saveChanges}
                       </Button>
@@ -530,13 +530,13 @@ export function SettingsView() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     {/* Current Plan */}
-                    <div className="p-5 rounded-xl border-2 border-[oklch(0.55_0.15_160/0.3)] bg-gradient-to-br from-[oklch(0.55_0.15_160/0.05)] to-transparent relative overflow-hidden">
-                      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-[oklch(0.55_0.15_160/0.05)]" />
+                    <div className="p-5 rounded-xl border-2 border-[oklch(0.55_0.18_250/0.3)] bg-gradient-to-br from-[oklch(0.55_0.18_250/0.05)] to-transparent relative overflow-hidden">
+                      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-[oklch(0.55_0.18_250/0.05)]" />
                       <div className="relative flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2">
                             <h4 className="text-sm font-bold">{t.settings.proPlan}</h4>
-                            <Badge className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] text-white text-[10px] border-0 shadow-sm">
+                            <Badge className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] text-white text-[10px] border-0 shadow-sm">
                               <Sparkles className="h-3 w-3 mr-0.5" />
                               {t.settings.currentPlan}
                             </Badge>
@@ -551,7 +551,7 @@ export function SettingsView() {
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.billingEmail}</Label>
-                      <Input defaultValue="billing@acmecorp.com" type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all" />
+                      <Input defaultValue="billing@acmecorp.com" type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
                     </div>
 
                     <div className="space-y-2">

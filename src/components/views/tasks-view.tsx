@@ -104,12 +104,12 @@ const statusConfig: Record<TaskStatus, { color: string; icon: React.ReactNode; b
     dotColor: 'bg-amber-500',
   },
   done: {
-    color: 'text-emerald-600 dark:text-emerald-400',
+    color: 'text-blue-600 dark:text-blue-400',
     icon: <CheckCircle2 className="h-4 w-4" />,
-    bg: 'bg-emerald-500/10',
-    gradient: 'from-emerald-50/80 to-emerald-100/30 dark:from-emerald-950/40 dark:to-emerald-900/20',
-    headerBg: 'bg-emerald-100 dark:bg-emerald-900/40',
-    dotColor: 'bg-emerald-500',
+    bg: 'bg-blue-500/10',
+    gradient: 'from-blue-50/80 to-blue-100/30 dark:from-blue-950/40 dark:to-blue-900/20',
+    headerBg: 'bg-blue-100 dark:bg-blue-900/40',
+    dotColor: 'bg-blue-500',
   },
 };
 
@@ -139,12 +139,12 @@ const priorityConfig: Record<TaskPriority, { color: string; bg: string; strip: s
     gradientFrom: 'from-cyan-500',
   },
   low: {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
-    strip: 'border-l-emerald-500',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
+    strip: 'border-l-blue-500',
     icon: <ArrowDownRight className="h-3 w-3" />,
-    dotColor: 'bg-emerald-500',
-    gradientFrom: 'from-emerald-500',
+    dotColor: 'bg-blue-500',
+    gradientFrom: 'from-blue-500',
   },
 };
 
@@ -168,7 +168,7 @@ function getProjectName(id: string) {
 }
 
 function getProjectColor(id: string) {
-  return mockProjects.find((p) => p.id === id)?.color || '#10b981';
+  return mockProjects.find((p) => p.id === id)?.color || '#3b82f6';
 }
 
 function isOverdue(dueDate: string, status: TaskStatus) {
@@ -267,8 +267,8 @@ function TaskCardContent({ task, onClick }: { task: Task; onClick?: () => void }
                 className={cn(
                   'h-full rounded-full bg-gradient-to-r transition-all',
                   subtaskDone === subtaskTotal
-                    ? 'from-emerald-400 to-emerald-500'
-                    : 'from-[oklch(0.6_0.15_160)] to-[oklch(0.5_0.12_170)]'
+                    ? 'from-blue-400 to-blue-500'
+                    : 'from-[oklch(0.60_0.18_250)] to-[oklch(0.5_0.12_170)]'
                 )}
                 style={{ width: `${(subtaskDone / subtaskTotal) * 100}%` }}
               />
@@ -292,7 +292,7 @@ function TaskCardContent({ task, onClick }: { task: Task; onClick?: () => void }
                     <span
                       className={cn(
                         'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-1 ring-background',
-                        assigneeStatus === 'online' ? 'bg-emerald-500' :
+                        assigneeStatus === 'online' ? 'bg-blue-500' :
                         assigneeStatus === 'away' ? 'bg-amber-400' :
                         assigneeStatus === 'busy' ? 'bg-rose-500' :
                         'bg-slate-300 dark:bg-slate-600'
@@ -385,7 +385,7 @@ function DroppableKanbanColumn({
       ref={setNodeRef}
       className={cn(
         'flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200',
-        isOver && 'ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl'
+        isOver && 'ring-2 ring-[oklch(0.55_0.18_250)]/40 ring-offset-2 ring-offset-background rounded-2xl'
       )}
     >
       {/* Column header */}
@@ -414,7 +414,7 @@ function DroppableKanbanColumn({
         className={cn(
           'space-y-2.5 min-h-[200px] p-2 rounded-xl bg-gradient-to-b transition-colors duration-200',
           config.gradient,
-          isOver && 'bg-[oklch(0.55_0.15_160)]/5'
+          isOver && 'bg-[oklch(0.55_0.18_250)]/5'
         )}
       >
         {children}
@@ -541,7 +541,7 @@ function KanbanView() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.15_160)]/40 hover:bg-[oklch(0.55_0.15_160)]/5 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium"
+                className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.18_250)]/40 hover:bg-[oklch(0.55_0.18_250)]/5 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t.tasks.addTask}
@@ -648,7 +648,7 @@ function ListView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t.tasks.searchTasks}
-            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)]/30"
+            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250)]/30"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -659,7 +659,7 @@ function ListView() {
             size="sm"
             className={cn(
               'h-8 text-xs gap-1.5',
-              filterPriority !== 'all' && 'bg-[oklch(0.55_0.15_160)]/10 border-[oklch(0.55_0.15_160)]/30 text-[oklch(0.55_0.15_160)]'
+              filterPriority !== 'all' && 'bg-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)]'
             )}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -675,7 +675,7 @@ function ListView() {
                 className={cn(
                   'h-7 text-[10px] px-2 rounded-md',
                   filterPriority === p
-                    ? 'bg-[oklch(0.55_0.15_160)]/10 text-[oklch(0.55_0.15_160)] font-semibold'
+                    ? 'bg-[oklch(0.55_0.18_250)]/10 text-[oklch(0.55_0.18_250)] font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -810,23 +810,23 @@ function MyTasksView() {
   return (
     <div className="space-y-4">
       {/* Progress summary */}
-      <Card className="bg-gradient-to-r from-[oklch(0.55_0.15_160)]/5 to-[oklch(0.55_0.15_160)]/10 border-[oklch(0.55_0.15_160)]/20">
+      <Card className="bg-gradient-to-r from-[oklch(0.55_0.18_250)]/5 to-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/20">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+              <Target className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
               <span className="text-sm font-semibold">{t.tasks.assignedToYou}</span>
             </div>
-            <span className="text-xs font-bold text-[oklch(0.55_0.15_160)]">
+            <span className="text-xs font-bold text-[oklch(0.55_0.18_250)]">
               {doneTasks}/{totalTasks} {t.tasks.tasksCompleted}
             </span>
           </div>
-          <div className="h-2 w-full bg-[oklch(0.55_0.15_160)]/10 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-[oklch(0.55_0.18_250)]/10 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="h-full rounded-full bg-gradient-to-r from-[oklch(0.6_0.15_160)] to-[oklch(0.5_0.15_160)]"
+              className="h-full rounded-full bg-gradient-to-r from-[oklch(0.60_0.18_250)] to-[oklch(0.50_0.18_250)]"
             />
           </div>
           <div className="flex items-center justify-between mt-2">
@@ -918,7 +918,7 @@ function MyTasksView() {
                               checked={isDone}
                               className={cn(
                                 'h-4 w-4',
-                                isDone && 'data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500'
+                                isDone && 'data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500'
                               )}
                             />
                             <div
@@ -983,7 +983,7 @@ export function TasksView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.tasks.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{mockTasks.length}</span> {t.dashboard.tasks} · <span className="font-semibold text-emerald-600 dark:text-emerald-400">{mockTasks.filter((task) => task.status === 'done').length}</span> {t.tasks.tasksCompleted}
+            <span className="font-semibold text-foreground">{mockTasks.length}</span> {t.dashboard.tasks} · <span className="font-semibold text-blue-600 dark:text-blue-400">{mockTasks.filter((task) => task.status === 'done').length}</span> {t.tasks.tasksCompleted}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -1018,7 +1018,7 @@ export function TasksView() {
             onClick={() => setFilterOpen(!filterOpen)}
             className={cn(
               'h-8 text-xs gap-1.5',
-              filterOpen && 'bg-[oklch(0.55_0.15_160)]/10 border-[oklch(0.55_0.15_160)]/30 text-[oklch(0.55_0.15_160)]'
+              filterOpen && 'bg-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)]'
             )}
           >
             <Filter className="h-3.5 w-3.5" />
@@ -1027,7 +1027,7 @@ export function TasksView() {
 
           <Button
             size="sm"
-            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm shadow-[oklch(0.55_0.15_160)]/20"
+            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
           >
             <Plus className="h-3.5 w-3.5" /> {t.tasks.newTask}
           </Button>

@@ -1792,3 +1792,32 @@ Stage Summary:
 - All 20+ views render correctly with no errors
 - ContentFlow CMS app is fully functional
 - 0 lint errors, 0 runtime errors
+
+---
+Task ID: 15
+Agent: main
+Task: Change color scheme from teal/emerald/green to blue across entire site
+
+Work Log:
+- Analyzed the scope: ~300+ oklch color references, ~200+ teal Tailwind classes, ~200+ emerald Tailwind classes across 40+ files
+- Stage 1: Replaced oklch primary color from hue 160 (teal) to hue 250 (blue) — `oklch(0.55_0.15_160)` → `oklch(0.55_0.18_250)`
+- Stage 2: Replaced all Tailwind teal-* classes with blue-* classes (teal-50→blue-50 through teal-950→blue-950)
+- Stage 3: Replaced all Tailwind emerald-* classes with blue-* classes (emerald-50→blue-50 through emerald-950→blue-950)
+- Stage 4: Replaced hardcoded hex colors: #10b981→#3b82f6, #059669→#2563eb, #34d399→#60a5fa, #14b8a6→#3b82f6, #0d9488→#2563eb
+- Stage 5: Replaced CSS custom properties: --color-teal→--color-blue, --color-teal-light→--color-blue-light, --color-teal-dark→--color-blue-dark
+- Stage 6: Replaced all remaining oklch variants with opacity values (oklch(0.55_0.15_160/0.1)→oklch(0.55_0.18_250/0.1), etc.)
+- Stage 7: Updated comments and string references (teal→blue, emerald→blue in style matching logic)
+- Updated globals.css CSS variables: all hue 155/160 values changed to 250
+- Updated both light and dark mode color schemes
+- Ran lint: 0 errors
+- QA tested with agent-browser: Dashboard, Newsletters, Campaigns, Statistics, Settings all render correctly with blue theme
+- Verified no console errors on any view
+- Verified dark mode works with blue theme
+- Verified mobile responsive layout works with blue theme
+
+Stage Summary:
+- Complete color scheme migration from green (teal/emerald) to blue across entire site
+- 0 lint errors, 0 runtime errors
+- All 20+ views render correctly with new blue theme
+- Both light and dark modes updated
+- Login page, sidebar, topbar, dashboard, all views updated

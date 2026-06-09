@@ -22,7 +22,7 @@ export async function POST() {
       create: {
         name: 'Acme Corp',
         slug: 'acme-corp',
-        color: '#10b981',
+        color: '#3b82f6',
         icon: '🏢',
       },
     });
@@ -38,7 +38,7 @@ export async function POST() {
 
     // Create projects
     const projects = await Promise.all([
-      db.project.create({ data: { name: 'Website Redesign', description: 'Complete redesign of the company website', color: '#10b981', icon: '🌐', status: 'active', workspaceId: workspace.id } }),
+      db.project.create({ data: { name: 'Website Redesign', description: 'Complete redesign of the company website', color: '#3b82f6', icon: '🌐', status: 'active', workspaceId: workspace.id } }),
       db.project.create({ data: { name: 'Mobile App V2', description: 'Second version of our mobile application', color: '#f59e0b', icon: '📱', status: 'active', workspaceId: workspace.id } }),
       db.project.create({ data: { name: 'API Integration', description: 'Third-party API integrations', color: '#ef4444', icon: '⚡', status: 'active', workspaceId: workspace.id } }),
       db.project.create({ data: { name: 'Marketing Campaign', description: 'Q1 2025 marketing campaign', color: '#8b5cf6', icon: '📢', status: 'on_hold', workspaceId: workspace.id } }),
@@ -79,7 +79,7 @@ export async function POST() {
 
     // Create teams
     await Promise.all([
-      db.team.create({ data: { name: 'Engineering', description: 'Core engineering team', color: '#10b981', workspaceId: workspace.id } }),
+      db.team.create({ data: { name: 'Engineering', description: 'Core engineering team', color: '#3b82f6', workspaceId: workspace.id } }),
       db.team.create({ data: { name: 'Design', description: 'UI/UX design and brand', color: '#f59e0b', workspaceId: workspace.id } }),
     ]);
 

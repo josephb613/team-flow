@@ -58,8 +58,8 @@ function getContentTypeIcon(type: string) {
 
 function getContentTypeColor(type: string) {
   switch (type) {
-    case 'newsletter': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    case 'article': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    case 'newsletter': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'article': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     case 'announcement': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
     default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
   }
@@ -113,8 +113,8 @@ export function ArchiveView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                <Archive className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+              <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                <Archive className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.archive.title}
             </h1>
@@ -136,7 +136,7 @@ export function ArchiveView() {
                   placeholder={t.archive.search}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.15_160/0.5)] focus:ring-[oklch(0.55_0.15_160/0.1)]"
+                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.18_250/0.5)] focus:ring-[oklch(0.55_0.18_250/0.1)]"
                 />
               </div>
 
@@ -226,7 +226,7 @@ export function ArchiveView() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs gap-1.5 border-[oklch(0.55_0.15_160/0.3)] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] hover:text-[oklch(0.55_0.15_160)]"
+                            className="h-8 text-xs gap-1.5 border-[oklch(0.55_0.18_250/0.3)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.1)] hover:text-[oklch(0.55_0.18_250)]"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">{t.archive.restore}</span>

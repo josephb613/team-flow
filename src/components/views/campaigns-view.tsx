@@ -52,7 +52,7 @@ const campaignStatusConfig: Record<string, {
   icon: React.ElementType;
 }> = {
   draft: { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/20', dot: 'bg-slate-400', icon: FileEdit },
-  active: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20', dot: 'bg-emerald-500', icon: Radio },
+  active: { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20', dot: 'bg-blue-500', icon: Radio },
   paused: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20', dot: 'bg-amber-500', icon: Pause },
   completed: { bg: 'bg-cyan-500/10', text: 'text-cyan-600', border: 'border-cyan-500/20', dot: 'bg-cyan-500', icon: CheckCircle2 },
 };
@@ -137,19 +137,19 @@ export function CampaignsView() {
       title: t.campaigns.title,
       value: totalCampaigns,
       icon: Target,
-      gradient: 'from-[oklch(0.55_0.15_160/0.1)] via-[oklch(0.55_0.15_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.15_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.15_160)]',
-      borderAccent: 'border-[oklch(0.55_0.15_160/0.2)]',
+      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_250)]',
+      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
     },
     {
       title: t.campaigns.active,
       value: activeCampaigns,
       icon: Radio,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.campaigns.reach,
@@ -183,7 +183,7 @@ export function CampaignsView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <Plus className="h-4 w-4" />
           {t.campaigns.newCampaign}
@@ -236,7 +236,7 @@ export function CampaignsView() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200',
                 activeStatus === tab
-                  ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                  ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
@@ -291,7 +291,7 @@ export function CampaignsView() {
                               <Target className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.15_160)] transition-colors">
+                              <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.18_250)] transition-colors">
                                 {campaign.name}
                               </h3>
                               <p className="text-xs text-muted-foreground line-clamp-1">{campaign.description}</p>

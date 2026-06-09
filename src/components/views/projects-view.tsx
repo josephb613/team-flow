@@ -48,12 +48,12 @@ import { cn } from '@/lib/utils';
 
 const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: React.ReactNode; dotColor: string; solidBg: string; solidText: string }> = {
   active: {
-    color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-200 dark:border-emerald-800',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-emerald-500',
-    solidBg: 'bg-emerald-100 dark:bg-emerald-900/50',
-    solidText: 'text-emerald-700 dark:text-emerald-300',
+    dotColor: 'bg-blue-500',
+    solidBg: 'bg-blue-100 dark:bg-blue-900/50',
+    solidText: 'text-blue-700 dark:text-blue-300',
   },
   on_hold: {
     color: 'text-amber-600 dark:text-amber-400',
@@ -64,12 +64,12 @@ const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: Rea
     solidText: 'text-amber-700 dark:text-amber-300',
   },
   completed: {
-    color: 'text-teal-600 dark:text-teal-400',
-    bg: 'bg-teal-500/10 border-teal-200 dark:border-teal-800',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-200 dark:border-blue-800',
     icon: <CheckCircle2 className="h-3 w-3" />,
-    dotColor: 'bg-teal-500',
-    solidBg: 'bg-teal-100 dark:bg-teal-900/50',
-    solidText: 'text-teal-700 dark:text-teal-300',
+    dotColor: 'bg-blue-500',
+    solidBg: 'bg-blue-100 dark:bg-blue-900/50',
+    solidText: 'text-blue-700 dark:text-blue-300',
   },
   archived: {
     color: 'text-slate-500 dark:text-slate-400',
@@ -230,7 +230,7 @@ function ProjectGridCard({ project }: { project: Project }) {
           {/* Stats row */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+              <CheckCircle2 className="h-3 w-3 text-blue-500" />
               <span className="font-medium">{project.completedTasks}/{project.taskCount}</span>
             </div>
             {remainingTasks > 0 && (
@@ -240,7 +240,7 @@ function ProjectGridCard({ project }: { project: Project }) {
               </div>
             )}
             {project.progress >= 80 && project.status === 'active' && (
-              <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+              <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
                 <TrendingUp className="h-3 w-3" />
                 On track
               </div>
@@ -377,7 +377,7 @@ function StatusFilterTabs({
             className={cn(
               'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold',
               statusFilter === tab.value
-                ? 'bg-[oklch(0.55_0.15_160)]/10 text-[oklch(0.55_0.15_160)]'
+                ? 'bg-[oklch(0.55_0.18_250)]/10 text-[oklch(0.55_0.18_250)]'
                 : 'bg-muted text-muted-foreground'
             )}
           >
@@ -387,7 +387,7 @@ function StatusFilterTabs({
       ))}
       {/* Animated underline */}
       <motion.div
-        className="absolute bottom-0 h-0.5 bg-[oklch(0.55_0.15_160)] rounded-full"
+        className="absolute bottom-0 h-0.5 bg-[oklch(0.55_0.18_250)] rounded-full"
         layoutId="statusUnderline"
         style={{ display: 'none' }} // Hidden since using pill style
       />
@@ -428,7 +428,7 @@ export function ProjectsView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.projects.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{totalCount}</span> {t.projects.title} · <span className="font-semibold text-emerald-600 dark:text-emerald-400">{activeCount}</span> {t.projects.active}
+            <span className="font-semibold text-foreground">{totalCount}</span> {t.projects.title} · <span className="font-semibold text-blue-600 dark:text-blue-400">{activeCount}</span> {t.projects.active}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -451,7 +451,7 @@ export function ProjectsView() {
 
           <Button
             size="sm"
-            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm shadow-[oklch(0.55_0.15_160)]/20"
+            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
           >
             <Sparkles className="h-3.5 w-3.5" /> {t.projects.newProject}
           </Button>
@@ -469,7 +469,7 @@ export function ProjectsView() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t.projects.search}
-              className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)]/30"
+              className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250)]/30"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

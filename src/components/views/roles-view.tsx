@@ -54,7 +54,7 @@ const permissionCategories: PermissionCategory[] = [
     key: 'content',
     label: 'Contenu',
     icon: PenTool,
-    color: 'text-teal-600 bg-teal-500/10 border-teal-500/15',
+    color: 'text-blue-600 bg-blue-500/10 border-blue-500/15',
     permissions: [
       { key: 'content_create', label: 'Créer' },
       { key: 'content_edit', label: 'Modifier' },
@@ -86,7 +86,7 @@ const permissionCategories: PermissionCategory[] = [
     key: 'settings',
     label: 'Paramètres',
     icon: Shield,
-    color: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/15',
+    color: 'text-blue-600 bg-blue-500/10 border-blue-500/15',
     permissions: [
       { key: 'settings_view', label: 'Voir' },
       { key: 'settings_edit', label: 'Modifier' },
@@ -137,7 +137,7 @@ const roleDefinitions: RoleDef[] = [
     nameKey: 'tenantAdmin',
     description: 'Administration complète de son entité. Gestion des utilisateurs et paramètres locaux.',
     icon: UserCog,
-    gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+    gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
     userCount: 0,
     defaultPermissions: {
       content_create: true, content_edit: true, content_delete: true, content_publish: true,
@@ -152,7 +152,7 @@ const roleDefinitions: RoleDef[] = [
     nameKey: 'editor',
     description: 'Création et gestion de contenu. Peut publier et gérer les campagnes.',
     icon: PenTool,
-    gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+    gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
     userCount: 0,
     defaultPermissions: {
       content_create: true, content_edit: true, content_delete: false, content_publish: true,
@@ -247,13 +247,13 @@ export function RolesView() {
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
+            className="gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]"
           >
             <Save className="h-4 w-4" /> {t.roles.save}
           </Button>
           <Button
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
           >
             <Plus className="h-4 w-4" /> {t.roles.createRole}
           </Button>
@@ -272,7 +272,7 @@ export function RolesView() {
             <motion.div key={role.key} variants={item}>
               <Card className="overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-all duration-300">
                 {/* Gradient top strip */}
-                <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
 
                 <CardContent className="p-0">
                   {/* Role header */}
@@ -343,7 +343,7 @@ export function RolesView() {
                                     className={cn(
                                       'scale-75 origin-right',
                                       permissions[role.key]?.[perm.key]
-                                        ? 'data-[state=checked]:bg-[oklch(0.55_0.15_160)]'
+                                        ? 'data-[state=checked]:bg-[oklch(0.55_0.18_250)]'
                                         : ''
                                     )}
                                   />

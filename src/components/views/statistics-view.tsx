@@ -57,17 +57,17 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-// ─── Chart Colors (teal/emerald only) ────────────────────────────────────────
+// ─── Chart Colors (blue only) ────────────────────────────────────────
 const COLORS = [
-  'oklch(0.55 0.15 160)',
-  'oklch(0.65 0.15 160)',
-  'oklch(0.45 0.15 160)',
-  'oklch(0.55 0.12 150)',
+  'oklch(0.55 0.18 250)',
+  'oklch(0.65 0.15 250)',
+  'oklch(0.45 0.15 250)',
+  'oklch(0.55 0.18 250)',
   'oklch(0.60 0.10 170)',
 ];
 
 const PIE_COLORS = [
-  'oklch(0.55 0.15 160)',
+  'oklch(0.55 0.18 250)',
   'oklch(0.60 0.12 80)',
   'oklch(0.55 0.18 25)',
   'oklch(0.50 0.15 300)',
@@ -173,10 +173,10 @@ export function StatisticsView() {
       change: '+12%',
       trend: 'up' as const,
       icon: FileText,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.statistics.newslettersSent,
@@ -184,10 +184,10 @@ export function StatisticsView() {
       change: '+8%',
       trend: 'up' as const,
       icon: Mail,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.statistics.openRate,
@@ -228,10 +228,10 @@ export function StatisticsView() {
       change: '+2.4%',
       trend: 'up' as const,
       icon: Activity,
-      gradient: 'from-[oklch(0.55_0.15_160/0.1)] via-[oklch(0.55_0.15_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.15_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.15_160)]',
-      borderAccent: 'border-[oklch(0.55_0.15_160/0.2)]',
+      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_250)]',
+      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
     },
   ];
 
@@ -263,7 +263,7 @@ export function StatisticsView() {
               size="sm"
               className={cn(
                 'h-7 text-xs px-3',
-                period === p.key && 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.50_0.15_165)] text-white shadow-sm',
+                period === p.key && 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.50_0.18_250)] text-white shadow-sm',
               )}
               onClick={() => setPeriod(p.key)}
             >
@@ -290,7 +290,7 @@ export function StatisticsView() {
                   <p className="text-lg font-extrabold tracking-tight">{stat.value}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{stat.title}</p>
                   <div className="flex items-center gap-1 mt-1.5">
-                    <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${stat.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                    <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${stat.trend === 'up' ? 'bg-blue-500/10 text-blue-600' : 'bg-rose-500/10 text-rose-600'}`}>
                       {stat.trend === 'up' ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
                       {stat.change}
                     </div>
@@ -310,15 +310,15 @@ export function StatisticsView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.statistics.contentPublished}</CardTitle>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Contenus publiés vs planifiés</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.15_160/0.05)]">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
                   Détails <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
@@ -329,20 +329,20 @@ export function StatisticsView() {
                   <AreaChart data={weeklyData}>
                     <defs>
                       <linearGradient id="statsPublishedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="statsScheduledGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.65 0.15 160)" stopOpacity={0.1} />
-                        <stop offset="100%" stopColor="oklch(0.65 0.15 160)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Area type="monotone" dataKey="published" stroke="oklch(0.55 0.15 160)" fill="url(#statsPublishedGrad)" strokeWidth={2.5} name="Publiés" />
-                    <Area type="monotone" dataKey="scheduled" stroke="oklch(0.65 0.15 160 / 0.7)" fill="url(#statsScheduledGrad)" strokeWidth={2} strokeDasharray="5 5" name="Planifiés" />
+                    <Area type="monotone" dataKey="published" stroke="oklch(0.55 0.18 250)" fill="url(#statsPublishedGrad)" strokeWidth={2.5} name="Publiés" />
+                    <Area type="monotone" dataKey="scheduled" stroke="oklch(0.65 0.18 250 / 0.7)" fill="url(#statsScheduledGrad)" strokeWidth={2} strokeDasharray="5 5" name="Planifiés" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -374,8 +374,8 @@ export function StatisticsView() {
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Bar dataKey="engagement" fill="oklch(0.55 0.15 160)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Engagement %" />
-                    <Bar dataKey="clicks" fill="oklch(0.55 0.15 160 / 0.3)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Clics" />
+                    <Bar dataKey="engagement" fill="oklch(0.55 0.18 250)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Engagement %" />
+                    <Bar dataKey="clicks" fill="oklch(0.55 0.18 250 / 0.3)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Clics" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -392,8 +392,8 @@ export function StatisticsView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                    <PieChartIcon className="h-4 w-4 text-teal-600" />
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                    <PieChartIcon className="h-4 w-4 text-blue-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.statistics.audience}</CardTitle>
@@ -436,8 +436,8 @@ export function StatisticsView() {
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                  <Sparkles className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                  <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">Insights rapides</CardTitle>
@@ -452,8 +452,8 @@ export function StatisticsView() {
                     title: 'Meilleur créneau d\'envoi',
                     value: 'Mardi 9h-10h',
                     description: 'Vos newsletters ont le taux d\'ouverture le plus élevé le mardi matin',
-                    color: 'text-emerald-600',
-                    bg: 'bg-emerald-500/10',
+                    color: 'text-blue-600',
+                    bg: 'bg-blue-500/10',
                   },
                   {
                     title: 'Type le plus engageant',
@@ -466,15 +466,15 @@ export function StatisticsView() {
                     title: 'Tendance d\'audience',
                     value: '+15% ce mois',
                     description: 'Votre audience croît régulièrement depuis 3 semaines',
-                    color: 'text-teal-600',
-                    bg: 'bg-teal-500/10',
+                    color: 'text-blue-600',
+                    bg: 'bg-blue-500/10',
                   },
                   {
                     title: 'Optimisation suggérée',
                     value: 'Objets plus courts',
                     description: 'Les objets de moins de 40 caractères ont 23% plus d\'ouvertures',
-                    color: 'text-[oklch(0.55_0.15_160)]',
-                    bg: 'bg-[oklch(0.55_0.15_160/0.1)]',
+                    color: 'text-[oklch(0.55_0.18_250)]',
+                    bg: 'bg-[oklch(0.55_0.18_250/0.1)]',
                   },
                 ].map((insight, idx) => (
                   <motion.div

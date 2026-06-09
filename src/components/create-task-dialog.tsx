@@ -51,14 +51,14 @@ const statusOptions = [
   { value: 'todo', labelKey: 'todo' as const, color: 'bg-slate-400' },
   { value: 'in_progress', labelKey: 'inProgress' as const, color: 'bg-amber-500' },
   { value: 'review', labelKey: 'inReview' as const, color: 'bg-cyan-500' },
-  { value: 'done', labelKey: 'done' as const, color: 'bg-emerald-500' },
+  { value: 'done', labelKey: 'done' as const, color: 'bg-blue-500' },
 ];
 
 const priorityOptions = [
   { value: 'urgent', labelKey: 'urgent' as const, color: 'bg-rose-500', border: 'border-l-rose-500' },
   { value: 'high', labelKey: 'high' as const, color: 'bg-amber-500', border: 'border-l-amber-500' },
   { value: 'medium', labelKey: 'medium' as const, color: 'bg-cyan-500', border: 'border-l-cyan-500' },
-  { value: 'low', labelKey: 'low' as const, color: 'bg-emerald-500', border: 'border-l-emerald-500' },
+  { value: 'low', labelKey: 'low' as const, color: 'bg-blue-500', border: 'border-l-blue-500' },
 ];
 
 interface Subtask {
@@ -190,17 +190,17 @@ export function CreateTaskDialog() {
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
           {/* Gradient Header */}
-          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.15_160/0.08)] via-[oklch(0.55_0.15_160/0.04)] to-transparent border-b">
+          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.18_250/0.08)] via-[oklch(0.55_0.18_250/0.04)] to-transparent border-b">
             {/* Decorative sparkle */}
-            <div className="absolute top-3 right-4 text-[oklch(0.55_0.15_160/0.15)]">
+            <div className="absolute top-3 right-4 text-[oklch(0.55_0.18_250/0.15)]">
               <Sparkles className="h-5 w-5" />
             </div>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2.5 text-lg">
-                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white shadow-sm">
+                <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white shadow-sm">
                   <CheckSquare className="h-4 w-4" />
                 </div>
-                <span className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.12_160)] bg-clip-text text-transparent font-bold">
+                <span className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.15_250)] bg-clip-text text-transparent font-bold">
                   {t.createTask.title}
                 </span>
               </DialogTitle>
@@ -237,7 +237,7 @@ export function CreateTaskDialog() {
                       'h-10 pr-16',
                       titleError
                         ? 'border-destructive focus-visible:ring-destructive/30'
-                        : 'focus-visible:ring-[oklch(0.55_0.15_160/0.3)]'
+                        : 'focus-visible:ring-[oklch(0.55_0.18_250/0.3)]'
                     )}
                     autoFocus
                   />
@@ -271,7 +271,7 @@ export function CreateTaskDialog() {
                   placeholder={t.createTask.descriptionPlaceholder}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[80px] resize-none focus-visible:ring-[oklch(0.55_0.15_160/0.3)]"
+                  className="min-h-[80px] resize-none focus-visible:ring-[oklch(0.55_0.18_250/0.3)]"
                 />
               </div>
 
@@ -283,7 +283,7 @@ export function CreateTaskDialog() {
                     {t.createTask.status} <span className="text-destructive text-xs">*</span>
                   </Label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,7 +305,7 @@ export function CreateTaskDialog() {
                     {t.createTask.priority}
                   </Label>
                   <Select value={priority} onValueChange={setPriority}>
-                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -330,7 +330,7 @@ export function CreateTaskDialog() {
                     {t.createTask.project}
                   </Label>
                   <Select value={projectId} onValueChange={setProjectId}>
-                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
                       <SelectValue placeholder={t.createTask.selectProject}>
                         {selectedProject ? (
                           <span className="flex items-center gap-2">
@@ -365,11 +365,11 @@ export function CreateTaskDialog() {
                     {t.createTask.assignee}
                   </Label>
                   <Select value={assigneeId} onValueChange={setAssigneeId}>
-                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.15_160/0.3)]">
+                    <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
                       <SelectValue placeholder={t.createTask.unassigned}>
                         {selectedAssignee ? (
                           <span className="flex items-center gap-2">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white text-[10px] font-medium shrink-0">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white text-[10px] font-medium shrink-0">
                               {selectedAssignee.name.split(' ').map((n) => n[0]).join('')}
                             </span>
                             <span className="truncate">{selectedAssignee.name}</span>
@@ -381,13 +381,13 @@ export function CreateTaskDialog() {
                       {mockUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           <span className="flex items-center gap-2">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white text-[10px] font-medium shrink-0">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white text-[10px] font-medium shrink-0">
                               {user.name.split(' ').map((n) => n[0]).join('')}
                             </span>
                             <span className="truncate">{user.name}</span>
                             <span className={cn(
                               'w-1.5 h-1.5 rounded-full ml-auto shrink-0',
-                              user.status === 'online' ? 'bg-emerald-500' :
+                              user.status === 'online' ? 'bg-blue-500' :
                               user.status === 'away' ? 'bg-amber-500' :
                               user.status === 'busy' ? 'bg-rose-500' : 'bg-muted-foreground/40'
                             )} />
@@ -410,7 +410,7 @@ export function CreateTaskDialog() {
                     <Button
                       variant="outline"
                       className={cn(
-                        'h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.15_160/0.3)]',
+                        'h-10 w-full justify-start text-left font-normal focus:ring-[oklch(0.55_0.18_250/0.3)]',
                         !dueDate && 'text-muted-foreground'
                       )}
                     >
@@ -446,7 +446,7 @@ export function CreateTaskDialog() {
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   {t.createTask.tags}
                 </Label>
-                <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-transparent px-3 py-2 text-sm focus-within:ring-[oklch(0.55_0.15_160/0.3)] focus-within:border-[oklch(0.55_0.15_160/0.5)] min-h-[40px]">
+                <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-transparent px-3 py-2 text-sm focus-within:ring-[oklch(0.55_0.18_250/0.3)] focus-within:border-[oklch(0.55_0.18_250/0.5)] min-h-[40px]">
                   <AnimatePresence>
                     {tags.map((tag) => (
                       <motion.span
@@ -454,7 +454,7 @@ export function CreateTaskDialog() {
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] px-2.5 py-0.5 text-xs font-medium"
+                        className="inline-flex items-center gap-1 rounded-full bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] px-2.5 py-0.5 text-xs font-medium"
                       >
                         {tag}
                         <button
@@ -526,7 +526,7 @@ export function CreateTaskDialog() {
                     onChange={(e) => setNewSubtask(e.target.value)}
                     onKeyDown={handleSubtaskKeyDown}
                     placeholder={t.createTask.subtaskPlaceholder}
-                    className="h-9 text-sm focus-visible:ring-[oklch(0.55_0.15_160/0.3)]"
+                    className="h-9 text-sm focus-visible:ring-[oklch(0.55_0.18_250/0.3)]"
                   />
                   <Button
                     type="button"
@@ -534,7 +534,7 @@ export function CreateTaskDialog() {
                     size="sm"
                     onClick={addSubtask}
                     disabled={!newSubtask.trim()}
-                    className="h-9 px-3 shrink-0 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]"
+                    className="h-9 px-3 shrink-0 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
@@ -554,7 +554,7 @@ export function CreateTaskDialog() {
                 <Button
                   type="submit"
                   disabled={!title.trim()}
-                  className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.44_0.12_160)] text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
+                  className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.44_0.12_160)] text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
                   <CheckSquare className="h-4 w-4 mr-1.5" />
                   {t.createTask.create}

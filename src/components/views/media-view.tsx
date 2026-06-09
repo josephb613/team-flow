@@ -67,8 +67,8 @@ function getMediaTypeColor(type: string) {
   switch (type) {
     case 'image': return 'bg-pink-500/10 text-pink-600 border-pink-500/20';
     case 'video': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-    case 'document': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
-    case 'audio': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+    case 'document': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'audio': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
   }
 }
@@ -77,8 +77,8 @@ function getMediaTypeGradient(type: string) {
   switch (type) {
     case 'image': return 'from-pink-500/10 to-pink-500/5';
     case 'video': return 'from-amber-500/10 to-amber-500/5';
-    case 'document': return 'from-teal-500/10 to-teal-500/5';
-    case 'audio': return 'from-emerald-500/10 to-emerald-500/5';
+    case 'document': return 'from-blue-500/10 to-blue-500/5';
+    case 'audio': return 'from-blue-500/10 to-blue-500/5';
     default: return 'from-slate-500/10 to-slate-500/5';
   }
 }
@@ -122,8 +122,8 @@ export function MediaView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                <ImageIcon className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+              <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                <ImageIcon className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.media.title}
             </h1>
@@ -131,7 +131,7 @@ export function MediaView() {
               {filtered.length} {t.media.all.toLowerCase()} {t.media.title.toLowerCase()}
             </p>
           </div>
-          <Button className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.9)] text-white shadow-md hover:shadow-lg transition-all">
+          <Button className="bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.9)] text-white shadow-md hover:shadow-lg transition-all">
             <Upload className="h-4 w-4 mr-1.5" />
             {t.media.upload}
           </Button>
@@ -141,12 +141,12 @@ export function MediaView() {
       {/* Storage Usage Bar */}
       <motion.div variants={item}>
         <Card className="border-border/50 shadow-sm overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+          <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                  <HardDrive className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                  <HardDrive className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                 </div>
                 <span className="text-sm font-medium">{t.media.storageUsage}</span>
               </div>
@@ -154,7 +154,7 @@ export function MediaView() {
                 {formatFileSize(usedStorage)} / {formatFileSize(totalStorage)}
               </span>
             </div>
-            <Progress value={storagePercent} className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-[oklch(0.55_0.15_160)] [&>div]:to-[oklch(0.65_0.16_160)]" />
+            <Progress value={storagePercent} className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-[oklch(0.55_0.18_250)] [&>div]:to-[oklch(0.65_0.18_250)]" />
             <p className="text-xs text-muted-foreground mt-1.5">{storagePercent}% {t.media.storageUsage.toLowerCase()}</p>
           </CardContent>
         </Card>
@@ -168,8 +168,8 @@ export function MediaView() {
           onDrop={(e) => { e.preventDefault(); setIsDragging(false); }}
           className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 ${
             isDragging
-              ? 'border-[oklch(0.55_0.15_160)] bg-[oklch(0.55_0.15_160/0.05)] scale-[1.01]'
-              : 'border-border/50 hover:border-[oklch(0.55_0.15_160/0.3)] hover:bg-muted/20'
+              ? 'border-[oklch(0.55_0.18_250)] bg-[oklch(0.55_0.18_250/0.05)] scale-[1.01]'
+              : 'border-border/50 hover:border-[oklch(0.55_0.18_250/0.3)] hover:bg-muted/20'
           }`}
         >
           <motion.div
@@ -177,8 +177,8 @@ export function MediaView() {
             transition={{ duration: 0.2 }}
             className="flex flex-col items-center gap-2"
           >
-            <div className={`p-3 rounded-2xl transition-colors ${isDragging ? 'bg-[oklch(0.55_0.15_160/0.15)]' : 'bg-muted/50'}`}>
-              <CloudUpload className={`h-6 w-6 ${isDragging ? 'text-[oklch(0.55_0.15_160)]' : 'text-muted-foreground'}`} />
+            <div className={`p-3 rounded-2xl transition-colors ${isDragging ? 'bg-[oklch(0.55_0.18_250/0.15)]' : 'bg-muted/50'}`}>
+              <CloudUpload className={`h-6 w-6 ${isDragging ? 'text-[oklch(0.55_0.18_250)]' : 'text-muted-foreground'}`} />
             </div>
             <p className="text-sm font-medium">{t.media.dropFilesHere}</p>
             <p className="text-xs text-muted-foreground">{t.media.orClick}</p>
@@ -197,7 +197,7 @@ export function MediaView() {
                   placeholder={t.media.search}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.15_160/0.5)] focus:ring-[oklch(0.55_0.15_160/0.1)]"
+                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.18_250/0.5)] focus:ring-[oklch(0.55_0.18_250/0.1)]"
                 />
               </div>
 
@@ -224,7 +224,7 @@ export function MediaView() {
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={viewMode === 'grid' ? 'bg-[oklch(0.55_0.15_160)] text-white rounded-none' : 'rounded-none'}
+                  className={viewMode === 'grid' ? 'bg-[oklch(0.55_0.18_250)] text-white rounded-none' : 'rounded-none'}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </Button>
@@ -232,7 +232,7 @@ export function MediaView() {
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={viewMode === 'list' ? 'bg-[oklch(0.55_0.15_160)] text-white rounded-none' : 'rounded-none'}
+                  className={viewMode === 'list' ? 'bg-[oklch(0.55_0.18_250)] text-white rounded-none' : 'rounded-none'}
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -363,7 +363,7 @@ export function MediaView() {
                         </td>
                         <td className="p-3 hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
-                            <div className="h-5 w-5 rounded-full bg-[oklch(0.55_0.15_160/0.1)] flex items-center justify-center text-[9px] font-semibold text-[oklch(0.55_0.15_160)]">
+                            <div className="h-5 w-5 rounded-full bg-[oklch(0.55_0.18_250/0.1)] flex items-center justify-center text-[9px] font-semibold text-[oklch(0.55_0.18_250)]">
                               {getUserInitials(media.uploadedBy)}
                             </div>
                             <span className="text-xs text-muted-foreground">{getUserName(media.uploadedBy)}</span>

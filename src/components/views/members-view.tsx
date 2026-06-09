@@ -70,14 +70,14 @@ const roleConfig: Record<MemberRole, {
   icon: React.ElementType;
   gradient: string;
 }> = {
-  admin: { color: 'text-teal-700', bg: 'bg-teal-500/10', border: 'border-teal-500/20', icon: Crown, gradient: 'from-teal-500 to-teal-600' },
-  member: { color: 'text-emerald-700', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: User, gradient: 'from-emerald-500 to-emerald-600' },
+  admin: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Crown, gradient: 'from-blue-500 to-blue-600' },
+  member: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: User, gradient: 'from-blue-500 to-blue-600' },
   guest: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Eye, gradient: 'from-amber-500 to-amber-600' },
 };
 
 // ─── Status Config ───────────────────────────────────────────────────────────
 const statusConfig: Record<string, { color: string; ring: string; label: string; pulse: boolean }> = {
-  online: { color: 'bg-emerald-500', ring: 'ring-emerald-500/20', label: 'Online', pulse: true },
+  online: { color: 'bg-blue-500', ring: 'ring-blue-500/20', label: 'Online', pulse: true },
   away: { color: 'bg-amber-500', ring: 'ring-amber-500/20', label: 'Away', pulse: false },
   busy: { color: 'bg-rose-500', ring: 'ring-rose-500/20', label: 'Busy', pulse: false },
   offline: { color: 'bg-slate-400', ring: 'ring-slate-400/20', label: 'Offline', pulse: false },
@@ -85,10 +85,10 @@ const statusConfig: Record<string, { color: string; ring: string; label: string;
 
 // ─── Avatar Gradient Colors ──────────────────────────────────────────────────
 const avatarGradients = [
-  'from-teal-400 to-cyan-500',
-  'from-emerald-400 to-teal-500',
+  'from-blue-400 to-cyan-500',
+  'from-blue-400 to-blue-500',
   'from-amber-400 to-orange-500',
-  'from-cyan-400 to-teal-500',
+  'from-cyan-400 to-blue-500',
   'from-rose-400 to-pink-500',
   'from-pink-400 to-rose-500',
   'from-orange-400 to-amber-500',
@@ -114,7 +114,7 @@ function ActivityBar({ days }: { days: number[] }) {
       {days.map((val, i) => (
         <motion.div
           key={i}
-          className="w-3 rounded-sm bg-gradient-to-t from-[oklch(0.55_0.15_160)] to-[oklch(0.55_0.15_160/0.5)]"
+          className="w-3 rounded-sm bg-gradient-to-t from-[oklch(0.55_0.18_250)] to-[oklch(0.55_0.18_250/0.5)]"
           initial={{ height: 0 }}
           animate={{ height: `${Math.max((val / max) * 100, 8)}%` }}
           transition={{ duration: 0.4, delay: i * 0.05 }}
@@ -154,7 +154,7 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
     todo: { icon: Clock, color: 'text-slate-500' },
     in_progress: { icon: Activity, color: 'text-amber-500' },
     review: { icon: Eye, color: 'text-cyan-500' },
-    done: { icon: CheckCircle2, color: 'text-emerald-500' },
+    done: { icon: CheckCircle2, color: 'text-blue-500' },
   };
 
   return (
@@ -171,7 +171,7 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
               {user.name.split(' ').map((n) => n[0]).join('')}
             </div>
             <div className={cn('absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-3 border-background ring-2', status.color, status.ring)}>
-              {status.pulse && <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75" />}
+              {status.pulse && <span className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-75" />}
             </div>
           </div>
           <h3 className="text-lg font-bold">{user.name}</h3>
@@ -195,13 +195,13 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
         <div className="py-4 border-b">
           <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">{t.members.quickActions}</h4>
           <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]">
+            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]">
               <Send className="h-3.5 w-3.5" /> {t.members.sendMessage}
             </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]">
+            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]">
               <ListChecks className="h-3.5 w-3.5" /> {t.members.assignTask}
             </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.15_160/0.3)] hover:text-[oklch(0.55_0.15_160)]">
+            <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5 hover:border-[oklch(0.55_0.18_250/0.3)] hover:text-[oklch(0.55_0.18_250)]">
               <Shield className="h-3.5 w-3.5" /> {t.members.changeRole}
             </Button>
           </div>
@@ -313,8 +313,8 @@ export function MembersView() {
 
   // Stats cards data
   const statCards = [
-    { title: t.members.totalMembers, value: mockUsers.length, icon: Users, gradient: 'from-teal-500/10 via-teal-500/5 to-transparent', iconBg: 'bg-teal-500/15 border-teal-500/15', iconColor: 'text-teal-600', borderAccent: 'border-teal-500/20' },
-    { title: t.members.onlineNow, value: onlineCount, icon: Activity, gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent', iconBg: 'bg-emerald-500/15 border-emerald-500/15', iconColor: 'text-emerald-600', borderAccent: 'border-emerald-500/20' },
+    { title: t.members.totalMembers, value: mockUsers.length, icon: Users, gradient: 'from-blue-500/10 via-blue-500/5 to-transparent', iconBg: 'bg-blue-500/15 border-blue-500/15', iconColor: 'text-blue-600', borderAccent: 'border-blue-500/20' },
+    { title: t.members.onlineNow, value: onlineCount, icon: Activity, gradient: 'from-blue-500/10 via-blue-500/5 to-transparent', iconBg: 'bg-blue-500/15 border-blue-500/15', iconColor: 'text-blue-600', borderAccent: 'border-blue-500/20' },
     { title: t.members.newThisMonth, value: 2, icon: UserPlus, gradient: 'from-amber-500/10 via-amber-500/5 to-transparent', iconBg: 'bg-amber-500/15 border-amber-500/15', iconColor: 'text-amber-600', borderAccent: 'border-amber-500/20' },
     { title: t.members.admins, value: adminCount, icon: Shield, gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent', iconBg: 'bg-cyan-500/15 border-cyan-500/15', iconColor: 'text-cyan-600', borderAccent: 'border-cyan-500/20' },
   ];
@@ -342,7 +342,7 @@ export function MembersView() {
           </Tabs>
           <Button
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
           >
             <UserPlus className="h-4 w-4" /> {t.members.inviteMember}
           </Button>
@@ -378,7 +378,7 @@ export function MembersView() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t.members.searchMembers}
-            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)] focus:bg-background transition-all"
+            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -398,7 +398,7 @@ export function MembersView() {
                   isActive
                     ? rc
                       ? `${rc.bg} ${rc.color} ${rc.border} shadow-sm`
-                      : 'bg-[oklch(0.55_0.15_160)] text-white border-[oklch(0.55_0.15_160)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)]'
+                      : 'bg-[oklch(0.55_0.18_250)] text-white border-[oklch(0.55_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)]'
                     : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
                 )}
               >
@@ -461,7 +461,7 @@ export function MembersView() {
                               {/* Online status with pulse */}
                               <div className={cn('absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background ring-2', status.color, status.ring)}>
                                 {status.pulse && (
-                                  <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75" />
+                                  <span className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-75" />
                                 )}
                               </div>
                             </div>
@@ -511,7 +511,7 @@ export function MembersView() {
                             <div className={cn('w-2 h-2 rounded-full', status.color)} />
                             <span className={cn(
                               'text-[11px] font-medium',
-                              user.status === 'online' ? 'text-emerald-600' : 'text-muted-foreground'
+                              user.status === 'online' ? 'text-blue-600' : 'text-muted-foreground'
                             )}>
                               {status.label}
                             </span>
@@ -525,10 +525,10 @@ export function MembersView() {
 
               {/* Invite Member Card */}
               <motion.div variants={item}>
-                <Card className="border-dashed border-2 hover:border-[oklch(0.55_0.15_160/0.4)] transition-all duration-300 cursor-pointer group hover:shadow-md">
+                <Card className="border-dashed border-2 hover:border-[oklch(0.55_0.18_250/0.4)] transition-all duration-300 cursor-pointer group hover:shadow-md">
                   <CardContent className="p-5 flex flex-col items-center justify-center min-h-[140px]">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.15_160/0.1)] to-[oklch(0.55_0.15_160/0.05)] border border-[oklch(0.55_0.15_160/0.15)] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <Sparkles className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250/0.1)] to-[oklch(0.55_0.18_250/0.05)] border border-[oklch(0.55_0.18_250/0.15)] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <Sparkles className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
                     </div>
                     <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {t.members.inviteMember}

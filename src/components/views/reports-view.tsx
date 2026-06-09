@@ -78,14 +78,14 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-const COLORS = ['oklch(0.55 0.15 160)', 'oklch(0.65 0.15 80)', 'oklch(0.55 0.2 25)', 'oklch(0.6 0.15 300)', 'oklch(0.50 0.12 170)'];
+const COLORS = ['oklch(0.55 0.18 250)', 'oklch(0.65 0.15 250)', 'oklch(0.55 0.2 25)', 'oklch(0.6 0.15 300)', 'oklch(0.50 0.12 170)'];
 
 // ─── Campaign Health Colors ──────────────────────────────────────────────────
 const campaignHealthColors: Record<string, { bg: string; text: string; dot: string }> = {
-  active: { bg: 'bg-emerald-500/10', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  active: { bg: 'bg-blue-500/10', text: 'text-blue-700', dot: 'bg-blue-500' },
   draft: { bg: 'bg-slate-500/10', text: 'text-slate-600', dot: 'bg-slate-400' },
   paused: { bg: 'bg-amber-500/10', text: 'text-amber-700', dot: 'bg-amber-500' },
-  completed: { bg: 'bg-teal-500/10', text: 'text-teal-600', dot: 'bg-teal-400' },
+  completed: { bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-400' },
 };
 
 // ─── Export Type ─────────────────────────────────────────────────────────────
@@ -216,11 +216,11 @@ export function ReportsView() {
       change: '+18%',
       trend: 'up' as const,
       icon: FileText,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
-      glowColor: 'shadow-emerald-500/5',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
+      glowColor: 'shadow-blue-500/5',
     },
     {
       title: t.reports.completionRate,
@@ -242,11 +242,11 @@ export function ReportsView() {
       change: '-8%',
       trend: 'up' as const,
       icon: Clock,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
-      glowColor: 'shadow-teal-500/5',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
+      glowColor: 'shadow-blue-500/5',
     },
     {
       title: t.reports.activeContributors,
@@ -283,7 +283,7 @@ export function ReportsView() {
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
             >
               <Download className="h-4 w-4" /> {t.reports.exportReport}
             </Button>
@@ -294,7 +294,7 @@ export function ReportsView() {
               {t.reports.exportContent}
             </div>
             <DropdownMenuItem onClick={() => handleExportCSV('content')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExportJSON('content')} className="gap-2 cursor-pointer">
@@ -303,7 +303,7 @@ export function ReportsView() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleCopyToClipboard('content')} className="gap-2 cursor-pointer">
               {copiedType === 'content' ? (
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4 text-blue-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
@@ -317,7 +317,7 @@ export function ReportsView() {
               {t.reports.exportCampaigns}
             </div>
             <DropdownMenuItem onClick={() => handleExportCSV('campaigns')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExportJSON('campaigns')} className="gap-2 cursor-pointer">
@@ -326,7 +326,7 @@ export function ReportsView() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleCopyToClipboard('campaigns')} className="gap-2 cursor-pointer">
               {copiedType === 'campaigns' ? (
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4 text-blue-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
@@ -340,7 +340,7 @@ export function ReportsView() {
               {t.reports.exportEngagement}
             </div>
             <DropdownMenuItem onClick={() => handleExportCSV('engagement')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExportJSON('engagement')} className="gap-2 cursor-pointer">
@@ -349,7 +349,7 @@ export function ReportsView() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleCopyToClipboard('engagement')} className="gap-2 cursor-pointer">
               {copiedType === 'engagement' ? (
-                <Check className="h-4 w-4 text-emerald-600" />
+                <Check className="h-4 w-4 text-blue-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
@@ -373,7 +373,7 @@ export function ReportsView() {
               >
                 <Card className={`relative overflow-hidden border ${stat.borderAccent} shadow-md ${stat.glowColor} hover:shadow-lg transition-shadow duration-300`}>
                   <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#10b981' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('teal') ? '#14b8a6' : '#ef4444' }} />
+                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#3b82f6' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('blue') ? '#3b82f6' : '#ef4444' }} />
                   <CardContent className="relative p-5">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -385,7 +385,7 @@ export function ReportsView() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 mt-3">
-                      <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${stat.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                      <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${stat.trend === 'up' ? 'bg-blue-500/10 text-blue-600' : 'bg-rose-500/10 text-rose-600'}`}>
                         {stat.trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                         {stat.change}
                       </div>
@@ -407,15 +407,15 @@ export function ReportsView() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.reports.contentTrend}</CardTitle>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Contenus publiés vs créés</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.15_160/0.05)]">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
                   Détails <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
@@ -426,19 +426,19 @@ export function ReportsView() {
                   <AreaChart data={contentTrendData}>
                     <defs>
                       <linearGradient id="reportPublishedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.15 160)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="reportCreatedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.65 0.15 80)" stopOpacity={0.1} />
-                        <stop offset="100%" stopColor="oklch(0.65 0.15 80)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Area type="monotone" dataKey="publiés" stroke="oklch(0.55 0.15 160)" fill="url(#reportPublishedGrad)" strokeWidth={2.5} name="Publiés" />
+                    <Area type="monotone" dataKey="publiés" stroke="oklch(0.55 0.18 250)" fill="url(#reportPublishedGrad)" strokeWidth={2.5} name="Publiés" />
                     <Area type="monotone" dataKey="créés" stroke="oklch(0.65 0.15 80 / 0.7)" fill="url(#reportCreatedGrad)" strokeWidth={2} strokeDasharray="5 5" name="Créés" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -499,8 +499,8 @@ export function ReportsView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                  <BarChart3 className="h-4 w-4 text-teal-600" />
+                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
+                  <BarChart3 className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">{t.reports.teamWorkload}</CardTitle>
@@ -517,8 +517,8 @@ export function ReportsView() {
                   <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" />
                   <YAxis type="category" dataKey="name" fontSize={12} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" width={80} />
                   <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                  <Bar dataKey="contenus" fill="oklch(0.55 0.15 160)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.active} />
-                  <Bar dataKey="publiés" fill="oklch(0.55 0.15 160 / 0.3)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.completed} />
+                  <Bar dataKey="contenus" fill="oklch(0.55 0.18 250)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.active} />
+                  <Bar dataKey="publiés" fill="oklch(0.55 0.18 250 / 0.3)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.completed} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -532,15 +532,15 @@ export function ReportsView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                  <Target className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                  <Target className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">{t.reports.campaignHealth}</CardTitle>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Progression et statut des campagnes</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.15_160/0.05)]">
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
                 Voir tout <ChevronRight className="h-3 w-3" />
               </Button>
             </div>

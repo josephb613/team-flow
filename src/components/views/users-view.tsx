@@ -64,7 +64,7 @@ const roleLabelKeys: Record<UserRole, string> = {
 
 // ─── Status config ───────────────────────────────────────────────────────────
 const statusConfig: Record<UserStatus, { dot: string; label: string; bg: string }> = {
-  online: { dot: 'bg-emerald-500', label: 'En ligne', bg: 'bg-emerald-500/10' },
+  online: { dot: 'bg-blue-500', label: 'En ligne', bg: 'bg-blue-500/10' },
   away: { dot: 'bg-amber-500', label: 'Absent', bg: 'bg-amber-500/10' },
   busy: { dot: 'bg-rose-500', label: 'Occupé', bg: 'bg-rose-500/10' },
   offline: { dot: 'bg-slate-400', label: 'Hors ligne', bg: 'bg-slate-500/10' },
@@ -72,14 +72,14 @@ const statusConfig: Record<UserStatus, { dot: string; label: string; bg: string 
 
 // ─── Avatar gradient colors ──────────────────────────────────────────────────
 const avatarGradients = [
-  'from-teal-500 to-emerald-600',
-  'from-emerald-500 to-teal-600',
-  'from-cyan-500 to-teal-600',
-  'from-teal-500 to-cyan-600',
-  'from-emerald-400 to-teal-500',
-  'from-teal-400 to-emerald-500',
-  'from-cyan-400 to-emerald-500',
-  'from-emerald-600 to-cyan-500',
+  'from-blue-500 to-blue-600',
+  'from-blue-500 to-blue-600',
+  'from-cyan-500 to-blue-600',
+  'from-blue-500 to-cyan-600',
+  'from-blue-400 to-blue-500',
+  'from-blue-400 to-blue-500',
+  'from-cyan-400 to-blue-500',
+  'from-blue-600 to-cyan-500',
 ];
 
 function getRelativeTime(dateStr: string): string {
@@ -141,19 +141,19 @@ export function UsersView() {
       title: t.users.totalUsers,
       value: totalUsers,
       icon: Users,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15 border-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.users.onlineNow,
       value: onlineNow,
       icon: CircleDot,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15 border-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15 border-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.users.newThisMonth,
@@ -182,7 +182,7 @@ export function UsersView() {
         </div>
         <Button
           size="sm"
-          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+          className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
         >
           <UserPlus className="h-4 w-4" /> {t.users.inviteUser}
         </Button>
@@ -205,7 +205,7 @@ export function UsersView() {
                     <div className="flex items-baseline gap-1.5">
                       <p className="text-xl font-extrabold tracking-tight">{stat.value}</p>
                       {'trend' in stat && stat.trend && (
-                        <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                        <span className="text-[10px] font-semibold text-blue-600 flex items-center gap-0.5">
                           <ArrowUpRight className="h-3 w-3" />
                           {stat.trend}
                         </span>
@@ -229,7 +229,7 @@ export function UsersView() {
                 placeholder={t.users.searchUsers}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160/0.3)]"
+                className="h-8 text-xs pl-8 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)]"
               />
             </div>
 
@@ -282,7 +282,7 @@ export function UsersView() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn('h-8 w-8 rounded-none', viewMode === 'grid' && 'bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)]')}
+                  className={cn('h-8 w-8 rounded-none', viewMode === 'grid' && 'bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)]')}
                   onClick={() => setViewMode('grid')}
                 >
                   <LayoutGrid className="h-3.5 w-3.5" />
@@ -290,7 +290,7 @@ export function UsersView() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn('h-8 w-8 rounded-none', viewMode === 'list' && 'bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)]')}
+                  className={cn('h-8 w-8 rounded-none', viewMode === 'list' && 'bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)]')}
                   onClick={() => setViewMode('list')}
                 >
                   <List className="h-3.5 w-3.5" />
@@ -331,7 +331,7 @@ export function UsersView() {
               <motion.div key={user.id} variants={item}>
                 <Card className="group overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-all duration-300">
                   {/* Gradient top strip */}
-                  <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                  <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
 
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">

@@ -61,8 +61,8 @@ function getContentTypeIcon(type: string) {
 
 function getContentTypeColor(type: string) {
   switch (type) {
-    case 'newsletter': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    case 'article': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
+    case 'newsletter': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+    case 'article': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     case 'announcement': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
     default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
   }
@@ -148,8 +148,8 @@ export function PublishedView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)]">
-                <CheckCircle className="h-5 w-5 text-[oklch(0.55_0.15_160)]" />
+              <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
+                <CheckCircle className="h-5 w-5 text-[oklch(0.55_0.18_250)]" />
               </div>
               {t.published.title}
             </h1>
@@ -168,19 +168,19 @@ export function PublishedView() {
               label: t.published.title,
               value: published.length,
               icon: CheckCircle,
-              gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-              iconBg: 'bg-emerald-500/15',
-              iconColor: 'text-emerald-600',
-              borderAccent: 'border-emerald-500/20',
+              gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+              iconBg: 'bg-blue-500/15',
+              iconColor: 'text-blue-600',
+              borderAccent: 'border-blue-500/20',
             },
             {
               label: t.published.viewCount,
               value: totalViews.toLocaleString(),
               icon: Eye,
-              gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-              iconBg: 'bg-teal-500/15',
-              iconColor: 'text-teal-600',
-              borderAccent: 'border-teal-500/20',
+              gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+              iconBg: 'bg-blue-500/15',
+              iconColor: 'text-blue-600',
+              borderAccent: 'border-blue-500/20',
             },
             {
               label: t.published.engagement,
@@ -224,7 +224,7 @@ export function PublishedView() {
                   placeholder={t.published.search}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.15_160/0.5)] focus:ring-[oklch(0.55_0.15_160/0.1)]"
+                  className="pl-9 bg-muted/30 border-border/50 focus:border-[oklch(0.55_0.18_250/0.5)] focus:ring-[oklch(0.55_0.18_250/0.1)]"
                 />
               </div>
               <Button
@@ -303,7 +303,7 @@ export function PublishedView() {
                           <div className="flex items-center gap-2">
                             <div className="flex-1 max-w-[80px] h-1.5 bg-muted rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)] rounded-full"
+                                className="h-full bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)] rounded-full"
                                 style={{ width: `${Math.min(engagement, 100)}%` }}
                               />
                             </div>
@@ -312,7 +312,7 @@ export function PublishedView() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.15_160/0.1)] flex items-center justify-center text-[10px] font-semibold text-[oklch(0.55_0.15_160)]">
+                            <div className="h-6 w-6 rounded-full bg-[oklch(0.55_0.18_250/0.1)] flex items-center justify-center text-[10px] font-semibold text-[oklch(0.55_0.18_250)]">
                               {getUserInitials(content.authorId)}
                             </div>
                             <span className="text-sm text-muted-foreground">{getUserName(content.authorId)}</span>

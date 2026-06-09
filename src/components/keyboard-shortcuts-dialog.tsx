@@ -64,7 +64,7 @@ function ShortcutRow({ keys, label, icon }: ShortcutItem) {
     >
       <span className="text-sm text-foreground/80 flex items-center gap-2">
         {icon && (
-          <span className="text-muted-foreground group-hover:text-[oklch(0.55_0.15_160)] transition-colors">
+          <span className="text-muted-foreground group-hover:text-[oklch(0.55_0.18_250)] transition-colors">
             {icon}
           </span>
         )}
@@ -204,13 +204,13 @@ export function KeyboardShortcutsDialog() {
           transition={{ duration: 0.15 }}
         >
           {/* Header */}
-          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.15_160/0.08)] via-[oklch(0.55_0.15_160/0.04)] to-transparent border-b">
+          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.18_250/0.08)] via-[oklch(0.55_0.18_250/0.04)] to-transparent border-b">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.12_160)] text-white shadow-sm">
+                <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white shadow-sm">
                   <Keyboard className="h-4 w-4" />
                 </div>
-                <span className="bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.45_0.12_160)] bg-clip-text text-transparent font-bold">
+                <span className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.15_250)] bg-clip-text text-transparent font-bold">
                   {t.shortcuts.title}
                 </span>
               </DialogTitle>

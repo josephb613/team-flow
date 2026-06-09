@@ -111,19 +111,19 @@ export function ArticlesView() {
       title: t.articles.title,
       value: totalArticles,
       icon: FileText,
-      gradient: 'from-[oklch(0.55_0.15_160/0.1)] via-[oklch(0.55_0.15_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.15_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.15_160)]',
-      borderAccent: 'border-[oklch(0.55_0.15_160/0.2)]',
+      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_250)]',
+      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
     },
     {
       title: t.articles.published,
       value: publishedCount,
       icon: CheckCircle,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
+      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-600',
+      borderAccent: 'border-blue-500/20',
     },
     {
       title: t.articles.readingTime,
@@ -146,8 +146,8 @@ export function ArticlesView() {
   ];
 
   const categoryColorMap: Record<string, string> = {
-    'Stratégie': 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-    'Guide': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    'Stratégie': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    'Guide': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
     'Finance': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
     'Conformité': 'bg-rose-500/10 text-rose-600 border-rose-500/20',
     'Événement': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
@@ -170,7 +170,7 @@ export function ArticlesView() {
               onClick={() => setViewMode('grid')}
               className={cn(
                 'p-1.5 transition-colors',
-                viewMode === 'grid' ? 'bg-[oklch(0.55_0.15_160)] text-white' : 'text-muted-foreground hover:bg-muted'
+                viewMode === 'grid' ? 'bg-[oklch(0.55_0.18_250)] text-white' : 'text-muted-foreground hover:bg-muted'
               )}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -179,7 +179,7 @@ export function ArticlesView() {
               onClick={() => setViewMode('list')}
               className={cn(
                 'p-1.5 transition-colors',
-                viewMode === 'list' ? 'bg-[oklch(0.55_0.15_160)] text-white' : 'text-muted-foreground hover:bg-muted'
+                viewMode === 'list' ? 'bg-[oklch(0.55_0.18_250)] text-white' : 'text-muted-foreground hover:bg-muted'
               )}
             >
               <List className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function ArticlesView() {
           </div>
           <Button
             size="sm"
-            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.50_0.15_165)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.15_165)] shadow-sm shadow-[oklch(0.55_0.15_160/0.2)] text-white"
+            className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
           >
             <Plus className="h-4 w-4" />
             {t.articles.newArticle}
@@ -243,7 +243,7 @@ export function ArticlesView() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 activeStatus === tab
-                  ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                  ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
@@ -258,7 +258,7 @@ export function ArticlesView() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 activeCategory === cat
-                  ? 'bg-[oklch(0.55_0.15_160)] text-white shadow-sm'
+                  ? 'bg-[oklch(0.55_0.18_250)] text-white shadow-sm'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
@@ -298,7 +298,7 @@ export function ArticlesView() {
                   <motion.div variants={cardHover} initial="rest" whileHover="hover">
                     <Card className="group overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 h-full">
                       {/* Category strip */}
-                      <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.65_0.16_160)]" />
+                      <div className="h-1 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.65_0.18_250)]" />
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge className={cn('text-[10px] px-2 py-0.5 font-medium border', catColor)}>
@@ -308,7 +308,7 @@ export function ArticlesView() {
                             {statusLabel(article.status)}
                           </Badge>
                         </div>
-                        <h3 className="text-sm font-semibold mb-1 group-hover:text-[oklch(0.55_0.15_160)] transition-colors line-clamp-2">
+                        <h3 className="text-sm font-semibold mb-1 group-hover:text-[oklch(0.55_0.18_250)] transition-colors line-clamp-2">
                           {article.title}
                         </h3>
                         <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">
@@ -336,7 +336,7 @@ export function ArticlesView() {
                         {/* Author */}
                         <div className="flex items-center gap-2 pt-2 border-t border-border/50">
                           <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-[9px] bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] font-medium">
+                            <AvatarFallback className="text-[9px] bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] font-medium">
                               {authorInitials}
                             </AvatarFallback>
                           </Avatar>
@@ -365,12 +365,12 @@ export function ArticlesView() {
                 >
                   <Card className="group overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300">
                     <CardContent className="p-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.15)] flex-shrink-0">
-                        <FileText className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)] flex-shrink-0">
+                        <FileText className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.15_160)] transition-colors">
+                          <h3 className="text-sm font-semibold truncate group-hover:text-[oklch(0.55_0.18_250)] transition-colors">
                             {article.title}
                           </h3>
                           <Badge className={cn('text-[10px] px-2 py-0.5 font-medium border', catColor)}>
@@ -389,7 +389,7 @@ export function ArticlesView() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-[9px] bg-[oklch(0.55_0.15_160/0.1)] text-[oklch(0.55_0.15_160)] font-medium">
+                          <AvatarFallback className="text-[9px] bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] font-medium">
                             {authorInitials}
                           </AvatarFallback>
                         </Avatar>

@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const colorOptions = [
-  '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#14b8a6',
+  '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#3b82f6',
 ];
 
 const iconOptions = ['🌐', '📱', '⚡', '📢', '📊', '🔒', '🎨', '🚀', '📋', '🏠'];
@@ -28,13 +28,13 @@ export function CreateProjectDialog() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [color, setColor] = useState('#10b981');
+  const [color, setColor] = useState('#3b82f6');
   const [icon, setIcon] = useState('📋');
 
   const resetForm = () => {
     setName('');
     setDescription('');
-    setColor('#10b981');
+    setColor('#3b82f6');
     setIcon('📋');
   };
 
@@ -98,7 +98,7 @@ export function CreateProjectDialog() {
                   className={cn(
                     'w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all border-2',
                     icon === i
-                      ? 'border-[oklch(0.55_0.15_160)] bg-[oklch(0.55_0.15_160/0.1)] scale-110'
+                      ? 'border-[oklch(0.55_0.18_250)] bg-[oklch(0.55_0.18_250/0.1)] scale-110'
                       : 'border-transparent bg-muted hover:bg-muted/80'
                   )}
                 >
@@ -152,7 +152,7 @@ export function CreateProjectDialog() {
             </Button>
             <Button
               type="submit"
-              className="bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white"
+              className="bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white"
               disabled={!name.trim()}
             >
               {t.createProject.create}

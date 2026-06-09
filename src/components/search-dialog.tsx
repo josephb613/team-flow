@@ -72,14 +72,14 @@ const statusColorMap: Record<TaskStatus, string> = {
   todo: 'text-slate-500',
   in_progress: 'text-cyan-500',
   review: 'text-amber-500',
-  done: 'text-emerald-500',
+  done: 'text-blue-500',
 };
 
 const priorityDotMap: Record<TaskPriority, { icon: React.ReactNode; color: string }> = {
   urgent: { icon: <Flame className="h-3 w-3" />, color: 'text-rose-500' },
   high: { icon: <ArrowUpRight className="h-3 w-3" />, color: 'text-amber-500' },
   medium: { icon: <ArrowRight className="h-3 w-3" />, color: 'text-cyan-500' },
-  low: { icon: <ArrowDownRight className="h-3 w-3" />, color: 'text-emerald-500' },
+  low: { icon: <ArrowDownRight className="h-3 w-3" />, color: 'text-blue-500' },
 };
 
 export function SearchDialog() {
@@ -174,7 +174,7 @@ export function SearchDialog() {
         placeholder={`✦  ${t.search.typeCommand}`}
         value={query}
         onValueChange={setQuery}
-        className="focus:border-[oklch(0.55_0.15_160/0.3)]"
+        className="focus:border-[oklch(0.55_0.18_250/0.3)]"
       />
       <CommandList>
         {isQueryEmpty ? (
@@ -315,7 +315,7 @@ export function SearchDialog() {
                       <span
                         className={cn(
                           'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-1 ring-background',
-                          user.status === 'online' ? 'bg-emerald-500' :
+                          user.status === 'online' ? 'bg-blue-500' :
                           user.status === 'away' ? 'bg-amber-400' :
                           user.status === 'busy' ? 'bg-rose-500' :
                           'bg-slate-300 dark:bg-slate-600'

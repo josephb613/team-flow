@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       data: {
         name,
         description: description || null,
-        color: color || '#10b981',
+        color: color || '#3b82f6',
         icon: icon || '📋',
         workspaceId,
       },

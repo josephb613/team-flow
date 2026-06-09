@@ -41,8 +41,8 @@ const item = {
 
 // ─── Channel type config ────────────────────────────────────────────────────
 const channelTypeConfig: Record<string, { icon: typeof Mail; color: string; bg: string; label: string }> = {
-  email: { icon: Mail, color: 'text-teal-600', bg: 'bg-teal-500/10', label: 'E-mail' },
-  web: { icon: Globe, color: 'text-emerald-600', bg: 'bg-emerald-500/10', label: 'Web' },
+  email: { icon: Mail, color: 'text-blue-600', bg: 'bg-blue-500/10', label: 'E-mail' },
+  web: { icon: Globe, color: 'text-blue-600', bg: 'bg-blue-500/10', label: 'Web' },
   intranet: { icon: Building2, color: 'text-amber-600', bg: 'bg-amber-500/10', label: 'Intranet' },
   social: { icon: Smartphone, color: 'text-rose-600', bg: 'bg-rose-500/10', label: 'Réseaux sociaux' },
   push: { icon: Bell, color: 'text-cyan-600', bg: 'bg-cyan-500/10', label: 'Push' },
@@ -110,17 +110,17 @@ export function ChannelsView() {
             label: 'Total canaux',
             value: totalChannels,
             icon: Radio,
-            color: 'text-[oklch(0.55_0.15_160)]',
-            bg: 'bg-[oklch(0.55_0.15_160/0.1)]',
-            border: 'border-[oklch(0.55_0.15_160/0.2)]',
+            color: 'text-[oklch(0.55_0.18_250)]',
+            bg: 'bg-[oklch(0.55_0.18_250/0.1)]',
+            border: 'border-[oklch(0.55_0.18_250/0.2)]',
           },
           {
             label: 'Canaux actifs',
             value: activeChannels,
             icon: Send,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-500/10',
-            border: 'border-emerald-500/20',
+            color: 'text-blue-600',
+            bg: 'bg-blue-500/10',
+            border: 'border-blue-500/20',
           },
           {
             label: 'Total abonnés',
@@ -170,7 +170,7 @@ export function ChannelsView() {
               size="sm"
               className={cn(
                 'h-8 text-xs whitespace-nowrap',
-                filterType === type && 'bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.50_0.15_165)] text-white',
+                filterType === type && 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.50_0.18_250)] text-white',
               )}
               onClick={() => setFilterType(type)}
             >
@@ -233,7 +233,7 @@ export function ChannelsView() {
                         <Switch
                           checked={isActive}
                           onCheckedChange={() => toggleChannel(channel.id)}
-                          className="data-[state=checked]:bg-[oklch(0.55_0.15_160)]"
+                          className="data-[state=checked]:bg-[oklch(0.55_0.18_250)]"
                         />
                       </div>
 
@@ -258,9 +258,9 @@ export function ChannelsView() {
                           <div className="flex items-center gap-1">
                             <div className={cn(
                               'w-1.5 h-1.5 rounded-full',
-                              isActive ? 'bg-emerald-500' : 'bg-slate-400'
+                              isActive ? 'bg-blue-500' : 'bg-slate-400'
                             )} />
-                            <span className={cn('font-medium', isActive ? 'text-emerald-600' : 'text-slate-500')}>
+                            <span className={cn('font-medium', isActive ? 'text-blue-600' : 'text-slate-500')}>
                               {isActive ? 'Actif' : 'Inactif'}
                             </span>
                           </div>
