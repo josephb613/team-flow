@@ -6,52 +6,50 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
-  FileText,
-  Megaphone,
+  CheckCircle2,
   Clock,
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  CalendarDays,
-  MessageSquare,
   Activity,
   BarChart3,
   PieChart as PieChartIcon,
   ChevronRight,
   Plus,
   UserPlus,
-  Send,
   Zap,
-  Eye,
-  CheckCircle2,
   Edit3,
   Trash2,
   LogIn,
   Shield,
-  Mail,
   Bell,
   CheckCircle,
-  XCircle,
-  ClipboardCheck,
-  Timer,
+  AlertTriangle,
+  FolderKanban,
   Gauge,
-  TrendingDown,
+  Timer,
+  Target,
+  Flame,
 } from 'lucide-react';
 import {
-  mockNewsletters,
-  mockArticles,
-  mockAnnouncements,
-  mockCampaigns,
+  mockTasks,
+  mockProjects,
+  mockSprints,
+  mockTimeEntries,
   mockCalendarEvents,
   mockAuditLogs,
   mockUsers,
   getUserName,
   getUserInitials,
-  contentStatusColors,
-  contentStatusLabels,
+  taskStatusColors,
+  taskStatusLabels,
+  taskPriorityColors,
+  projectStatusColors,
+  projectStatusLabels,
 } from '@/lib/mock-data';
 import { useTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
+import type { TaskStatus, TaskPriority } from '@/lib/types';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 
@@ -170,228 +168,154 @@ const cardHover = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function DashboardView() {
   const { t, locale } = useTranslation();
-  const { setActivePage, setCreateContentDialogOpen, activeTenantId, currentUser } = useAppStore();
+  const { setActivePage, setCreateContentDialogOpen, activeOrganizationId, currentUser } = useAppStore();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
   );
 
-  // ─── State for new sections ───────────────────────────────────────────────
-  const [performancePeriod, setPerformancePeriod] = useState<'7j' | '30j' | '90j'>('7j');
+  // ─── Compute PM stats from mock data ────────────────────────────────────
+  const tasksCompletedThisWeek = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 86400000);
+    return mockTasks.filter((task) => task.status === 'done' && new Date(task.updatedAt) >= weekAgo).length;
+  }, []);
 
-  // ─── Approval Queue: content items with status 'review' ────────────────────
-  const [approvalItems, setApprovalItems] = useState(() =>
-    [...mockNewsletters, ...mockArticles, ...mockAnnouncements]
-      .filter((c) => c.status === 'review')
-      .slice(0, 5)
-  );
+  const activeProjectsCount = useMemo(() => {
+    return mockProjects.filter((p) => p.status === 'active').length;
+  }, []);
 
-  const handleApprove = (id: string) => {
-    setApprovalItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  const inReviewCount = useMemo(() => {
+    return mockTasks.filter((task) => task.status === 'review').length;
+  }, []);
 
-  const handleReject = (id: string) => {
-    setApprovalItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  const totalTimeSpentThisWeek = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 86400000);
+    return mockTimeEntries
+      .filter((te) => new Date(te.date) >= weekAgo)
+      .reduce((sum, te) => sum + te.hours, 0);
+  }, []);
 
-  // ─── Performance Metrics (simulated based on period) ───────────────────────
-  const perfMetrics = useMemo(() => {
-    const base = { '7j': { engagement: 42, avgPublishTime: 2.3, deliveryRate: 98.5 }, '30j': { engagement: 38, avgPublishTime: 2.8, deliveryRate: 97.2 }, '90j': { engagement: 35, avgPublishTime: 3.1, deliveryRate: 96.8 } };
-    return base[performancePeriod];
-  }, [performancePeriod]);
+  const sprintVelocity = useMemo(() => {
+    const activeSprints = mockSprints.filter((s) => s.status === 'active');
+    if (activeSprints.length === 0) return 0;
+    return Math.round(activeSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / activeSprints.length);
+  }, []);
 
-  // ─── Compute CMS stats from mock data, filtered by activeTenantId ──────
-  const allContent = useMemo(() => {
-    const tenantNewsletters = mockNewsletters.filter((n) => n.tenantId === activeTenantId);
-    const tenantArticles = mockArticles.filter((a) => a.tenantId === activeTenantId);
-    const tenantAnnouncements = mockAnnouncements.filter((a) => a.tenantId === activeTenantId);
-    return [...tenantNewsletters, ...tenantArticles, ...tenantAnnouncements];
-  }, [activeTenantId]);
+  const overdueTasksCount = useMemo(() => {
+    const now = new Date();
+    return mockTasks.filter((task) => task.status !== 'done' && new Date(task.dueDate) < now).length;
+  }, []);
 
-  const publishedCount = useMemo(
-    () => allContent.filter((c) => c.status === 'published').length,
-    [allContent]
-  );
-
-  const activeCampaigns = useMemo(
-    () => mockCampaigns.filter((c) => c.tenantId === activeTenantId && c.status === 'active'),
-    [activeTenantId]
-  );
-
-  const inReviewCount = useMemo(
-    () => allContent.filter((c) => c.status === 'review').length,
-    [allContent]
-  );
-
-  const avgOpenRate = useMemo(() => {
-    const tenantNewsletters = mockNewsletters.filter((n) => n.tenantId === activeTenantId);
-    const withRates = tenantNewsletters.filter((n) => n.openRate > 0);
-    if (withRates.length === 0) return 0;
-    const total = withRates.reduce((sum, n) => sum + n.openRate, 0);
-    return Math.round((total / withRates.length) * 10) / 10;
-  }, [activeTenantId]);
-
-  const totalViews = useMemo(
-    () => allContent.reduce((sum, c) => sum + (c.viewCount || 0), 0),
-    [allContent]
-  );
-
-  const draftsCount = useMemo(
-    () => allContent.filter((c) => c.status === 'draft').length,
-    [allContent]
-  );
-
-  // ─── Chart Data: Publication Activity per Day of Week ──────────────────
-  const publicationActivityData = useMemo(() => {
-    const tenantLogs = mockAuditLogs.filter(
-      (l) => l.tenantId === activeTenantId && l.action === 'publish'
-    );
-    const dayNames = locale === 'fr'
-      ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    // Count publications per day of week from logs
-    const counts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-    tenantLogs.forEach((log) => {
-      const day = new Date(log.timestamp).getDay();
-      // Convert Sunday=0 to Monday-start index
-      const idx = day === 0 ? 6 : day - 1;
-      counts[idx]++;
-    });
-
-    // Add baseline data for visual appeal
-    const baseline = [3, 5, 2, 6, 4, 1, 1];
-    return dayNames.map((name, i) => ({
-      name,
-      published: counts[i] + baseline[i],
-      scheduled: Math.max(1, Math.round(baseline[i] * 0.6)),
+  // ─── Chart Data: Tâches par statut (bar chart) ─────────────────────────
+  const tasksByStatusData = useMemo(() => {
+    const statusLabels = locale === 'fr'
+      ? { todo: 'À faire', in_progress: 'En cours', review: 'En revue', done: 'Terminé' }
+      : { todo: 'To Do', in_progress: 'In Progress', review: 'In Review', done: 'Done' };
+    const statuses: TaskStatus[] = ['todo', 'in_progress', 'review', 'done'];
+    return statuses.map((status) => ({
+      name: statusLabels[status],
+      count: mockTasks.filter((t) => t.status === status).length,
     }));
-  }, [activeTenantId, locale]);
+  }, [locale]);
 
-  // ─── Chart Data: Campaign Progress Over Time ───────────────────────────
-  const campaignProgressData = useMemo(() => {
-    const tenantCampaigns = mockCampaigns.filter((c) => c.tenantId === activeTenantId);
+  // ─── Chart Data: Avancement des projets (area chart) ────────────────────
+  const projectProgressData = useMemo(() => {
     const labels = locale === 'fr'
       ? ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']
       : ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
-
     const targetValues = [15, 30, 45, 60, 75, 90];
-    const actualValues = tenantCampaigns.length > 0
+    const actualValues = activeProjectsCount > 0
       ? [10, 22, 35, 48, 58, 65]
       : [0, 0, 0, 0, 0, 0];
-
     return labels.map((name, i) => ({
       name,
       target: targetValues[i],
       actual: actualValues[i],
     }));
-  }, [activeTenantId, locale]);
+  }, [locale, activeProjectsCount]);
+
+  // ─── Chart Data: Répartition par priorité (pie chart) ───────────────────
+  const priorityDistributionData = useMemo(() => {
+    const priorityLabels = locale === 'fr'
+      ? { urgent: 'Urgent', high: 'Élevée', medium: 'Moyenne', low: 'Basse' }
+      : { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
+    const colors: Record<TaskPriority, string> = { urgent: '#ef4444', high: '#f59e0b', medium: '#06b6d4', low: '#64748b' };
+    const priorities: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
+    return priorities.map((p) => ({
+      name: priorityLabels[p],
+      value: mockTasks.filter((t) => t.priority === p).length,
+      color: colors[p],
+    })).filter((d) => d.value > 0);
+  }, [locale]);
 
   // ─── Recent Activity from Audit Logs ───────────────────────────────────
   const recentActivity = useMemo(() => {
     return mockAuditLogs
-      .filter((l) => l.tenantId === activeTenantId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 6);
-  }, [activeTenantId]);
+  }, []);
 
   const auditActionConfig: Record<string, { icon: React.ElementType; color: string; dotColor: string }> = {
-    create: { icon: Zap, color: 'text-blue-500', dotColor: 'bg-blue-500' },
+    create: { icon: Zap, color: 'text-teal-500', dotColor: 'bg-teal-500' },
     update: { icon: Edit3, color: 'text-amber-500', dotColor: 'bg-amber-500' },
     delete: { icon: Trash2, color: 'text-rose-500', dotColor: 'bg-rose-500' },
-    validate: { icon: CheckCircle2, color: 'text-blue-500', dotColor: 'bg-blue-500' },
-    publish: { icon: Send, color: 'text-[oklch(0.55_0.18_250)]', dotColor: 'bg-[oklch(0.55_0.18_250)]' },
+    assign: { icon: UserPlus, color: 'text-cyan-500', dotColor: 'bg-cyan-500' },
+    move: { icon: ArrowUpRight, color: 'text-emerald-500', dotColor: 'bg-emerald-500' },
+    archive: { icon: CheckCircle2, color: 'text-slate-500', dotColor: 'bg-slate-500' },
     login: { icon: LogIn, color: 'text-cyan-500', dotColor: 'bg-cyan-500' },
     logout: { icon: LogIn, color: 'text-slate-500', dotColor: 'bg-slate-500' },
     permission_change: { icon: Shield, color: 'text-violet-500', dotColor: 'bg-violet-500' },
   };
 
   const entityTypeIcon: Record<string, React.ElementType> = {
-    newsletter: Mail,
-    article: FileText,
-    announcement: Bell,
+    task: CheckCircle2,
+    project: FolderKanban,
     user: UserPlus,
-    campaign: Megaphone,
+    sprint: Gauge,
   };
 
-  // ─── Scheduled Content (next 3) ────────────────────────────────────────
-  const scheduledContent = useMemo(() => {
-    return allContent
-      .filter((c) => c.status === 'scheduled' && c.scheduledAt)
-      .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
-      .slice(0, 3);
-  }, [allContent]);
-
-  // ─── Upcoming Calendar Events (next 3) ─────────────────────────────────
+  // ─── Upcoming Calendar Events ──────────────────────────────────────────
   const upcomingEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return mockCalendarEvents
-      .filter((e) => e.tenantId === activeTenantId && e.date >= today)
+      .filter((e) => e.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 3);
-  }, [activeTenantId]);
+  }, []);
 
-  // ─── Active Campaigns for Progress Section ─────────────────────────────
-  const campaignsForProgress = useMemo(() => {
-    return mockCampaigns
-      .filter((c) => c.tenantId === activeTenantId && c.status === 'active')
-      .map((c) => ({
-        ...c,
-        progress: c.contentCount > 0 ? Math.round((c.publishedCount / c.contentCount) * 100) : 0,
-      }));
-  }, [activeTenantId]);
-
-  // ─── Chart Data: Content Type Distribution ─────────────────────────────
-  const contentTypeData = useMemo(() => {
-    const tenantNewsletters = mockNewsletters.filter((n) => n.tenantId === activeTenantId);
-    const tenantArticles = mockArticles.filter((a) => a.tenantId === activeTenantId);
-    const tenantAnnouncements = mockAnnouncements.filter((a) => a.tenantId === activeTenantId);
-    return [
-      { name: t.dashboard.newsletters, value: tenantNewsletters.length, color: '#3b82f6' },
-      { name: t.dashboard.articles, value: tenantArticles.length, color: '#f59e0b' },
-      { name: t.dashboard.announcements, value: tenantAnnouncements.length, color: '#ef4444' },
-    ].filter((d) => d.value > 0);
-  }, [activeTenantId, t]);
-
-  // ─── Editorial Pipeline Counts ────────────────────────────────────────────
-  const pipelineCounts = useMemo(() => {
-    const statuses = ['draft', 'review', 'approved', 'scheduled', 'published', 'archived'] as const;
-    return statuses.map((status) => ({
-      status,
-      count: allContent.filter((c) => c.status === status).length,
-    }));
-  }, [allContent]);
-
-  const pipelineColors: Record<string, { dot: string; bg: string; text: string }> = {
-    draft: { dot: 'bg-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-600' },
-    review: { dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-600' },
-    approved: { dot: 'bg-cyan-400', bg: 'bg-cyan-500/10', text: 'text-cyan-600' },
-    scheduled: { dot: 'bg-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-600' },
-    published: { dot: 'bg-blue-400', bg: 'bg-blue-500/10', text: 'text-blue-600' },
-    archived: { dot: 'bg-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-500' },
-  };
+  // ─── Active Sprints for Progress Section ───────────────────────────────
+  const sprintsForProgress = useMemo(() => {
+    return mockSprints.filter((s) => s.status === 'active').map((sprint) => {
+      const sprintTasks = mockTasks.filter((t) => t.sprintId === sprint.id);
+      const doneTasks = sprintTasks.filter((t) => t.status === 'done').length;
+      const progress = sprintTasks.length > 0 ? Math.round((doneTasks / sprintTasks.length) * 100) : 0;
+      return { ...sprint, progress, doneTasks, totalTasks: sprintTasks.length };
+    });
+  }, []);
 
   // ─── Stats Config ──────────────────────────────────────────────────────
   const statsConfig = [
     {
-      title: t.dashboard.totalTasks, // "Contenus publiés"
-      value: publishedCount,
+      title: t.dashboard.totalTasks,
+      value: tasksCompletedThisWeek,
       change: '+12%',
       trend: 'up' as const,
-      icon: FileText,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
-      glowColor: 'shadow-blue-500/5',
+      icon: CheckCircle2,
+      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+      iconBg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-600',
+      borderAccent: 'border-emerald-500/20',
+      glowColor: 'shadow-emerald-500/5',
     },
     {
-      title: t.dashboard.activeProjects, // "Campagnes actives"
-      value: activeCampaigns.length,
-      change: '+2',
+      title: t.dashboard.activeProjects,
+      value: sprintVelocity,
+      change: '+5',
       trend: 'up' as const,
-      icon: Megaphone,
+      icon: Gauge,
       gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
       iconBg: 'bg-amber-500/15',
       iconColor: 'text-amber-600',
@@ -399,11 +323,12 @@ export function DashboardView() {
       glowColor: 'shadow-amber-500/5',
     },
     {
-      title: t.dashboard.inProgress, // "En révision"
-      value: inReviewCount,
-      change: '-1',
-      trend: 'down' as const,
-      icon: Clock,
+      title: t.dashboard.inProgress,
+      value: Math.round(totalTimeSpentThisWeek),
+      suffix: 'h',
+      change: '+8h',
+      trend: 'up' as const,
+      icon: Timer,
       gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
       iconBg: 'bg-cyan-500/15',
       iconColor: 'text-cyan-600',
@@ -411,24 +336,24 @@ export function DashboardView() {
       glowColor: 'shadow-cyan-500/5',
     },
     {
-      title: t.dashboard.completionRate, // "Taux d'ouverture"
-      value: Math.round(avgOpenRate),
+      title: t.dashboard.completionRate,
+      value: Math.round(mockProjects.reduce((sum, p) => sum + p.progress, 0) / mockProjects.length),
       isPercent: true,
       change: '+3.2%',
       trend: 'up' as const,
-      icon: Eye,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
-      glowColor: 'shadow-blue-500/5',
+      icon: Target,
+      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+      iconBg: 'bg-teal-500/15',
+      iconColor: 'text-teal-600',
+      borderAccent: 'border-teal-500/20',
+      glowColor: 'shadow-teal-500/5',
     },
     {
-      title: t.dashboard.totalViews, // "Total des vues"
-      value: totalViews,
-      change: '+18%',
+      title: t.dashboard.activeProjectsCount,
+      value: activeProjectsCount,
+      change: '+1',
       trend: 'up' as const,
-      icon: Eye,
+      icon: FolderKanban,
       gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
       iconBg: 'bg-amber-500/15',
       iconColor: 'text-amber-600',
@@ -436,11 +361,11 @@ export function DashboardView() {
       glowColor: 'shadow-amber-500/5',
     },
     {
-      title: t.dashboard.drafts, // "Brouillons"
-      value: draftsCount,
-      change: '-3',
+      title: t.dashboard.activeTasks,
+      value: overdueTasksCount,
+      change: '-2',
       trend: 'down' as const,
-      icon: Edit3,
+      icon: AlertTriangle,
       gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
       iconBg: 'bg-rose-500/15',
       iconColor: 'text-rose-600',
@@ -451,20 +376,20 @@ export function DashboardView() {
 
   // ─── Quick Actions ─────────────────────────────────────────────────────
   const quickActions = [
-    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateContentDialogOpen(true), color: 'text-blue-600 hover:bg-blue-500/10 hover:border-blue-500/30' },
-    { icon: Megaphone, label: t.dashboard.quickActionNewProject, onClick: () => setActivePage('campaigns'), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
-    { icon: Send, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('scheduling'), color: 'text-blue-600 hover:bg-blue-500/10 hover:border-blue-500/30' },
-    { icon: UserPlus, label: t.dashboard.quickActionInviteMember, onClick: () => setActivePage('users'), color: 'text-cyan-600 hover:bg-cyan-500/10 hover:border-cyan-500/30' },
+    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateContentDialogOpen(true), color: 'text-teal-600 hover:bg-teal-500/10 hover:border-teal-500/30' },
+    { icon: FolderKanban, label: t.dashboard.quickActionNewProject, onClick: () => setActivePage('projects'), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
+    { icon: Timer, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('time-tracking'), color: 'text-cyan-600 hover:bg-cyan-500/10 hover:border-cyan-500/30' },
+    { icon: UserPlus, label: t.dashboard.quickActionInviteMember, onClick: () => setActivePage('members'), color: 'text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/30' },
   ];
 
   // ─── User color helper ─────────────────────────────────────────────────
   const getUserColor = (id: string) => {
     const colors = [
-      'bg-blue-500/20 text-blue-700',
+      'bg-teal-500/20 text-teal-700',
       'bg-amber-500/20 text-amber-700',
       'bg-cyan-500/20 text-cyan-700',
       'bg-rose-500/20 text-rose-700',
-      'bg-blue-500/20 text-blue-700',
+      'bg-emerald-500/20 text-emerald-700',
       'bg-orange-500/20 text-orange-700',
     ];
     const idx = mockUsers.findIndex((u) => u.id === id);
@@ -497,7 +422,7 @@ export function DashboardView() {
               {mounted ? new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
             </span>
             <span className="text-muted-foreground/40">·</span>
-            <span className="text-sm text-[oklch(0.55_0.18_250)] font-medium">
+            <span className="text-sm text-teal-600 font-medium">
               {t.dashboard.motivationalMessage}
             </span>
           </motion.div>
@@ -546,7 +471,7 @@ export function DashboardView() {
                     className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
                   />
                   {/* Decorative Circle */}
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('blue') ? '#3b82f6' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('cyan') ? '#06b6d4' : stat.iconColor.includes('rose') ? '#f43f5e' : '#3b82f6' }} />
+                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#10b981' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('cyan') ? '#06b6d4' : stat.iconColor.includes('rose') ? '#f43f5e' : stat.iconColor.includes('teal') ? '#14b8a6' : '#10b981' }} />
 
                   <CardContent className="relative p-5">
                     <div className="flex items-start justify-between">
@@ -560,7 +485,10 @@ export function DashboardView() {
                                 <span className="text-lg font-semibold text-muted-foreground ml-0.5">%</span>
                               </>
                             ) : (
-                              <AnimatedCounter value={stat.value} />
+                              <>
+                                <AnimatedCounter value={stat.value} />
+                                {stat.suffix && <span className="text-lg font-semibold text-muted-foreground ml-0.5">{stat.suffix}</span>}
+                              </>
                             )}
                           </p>
                         </div>
@@ -573,7 +501,7 @@ export function DashboardView() {
                       <motion.div
                         className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
                           stat.trend === 'up'
-                            ? 'bg-blue-500/10 text-blue-600'
+                            ? 'bg-emerald-500/10 text-emerald-600'
                             : 'bg-rose-500/10 text-rose-600'
                         }`}
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -599,23 +527,23 @@ export function DashboardView() {
 
       {/* ─── Charts Section ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Publication Activity Bar Chart */}
+        {/* Tâches par statut Bar Chart */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                    <BarChart3 className="h-4 w-4 text-blue-600" />
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
+                    <BarChart3 className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.weeklyActivity}</CardTitle>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {locale === 'fr' ? 'Contenus publiés vs planifiés' : 'Published vs scheduled content'}
+                      {locale === 'fr' ? 'Tâches par statut' : 'Tasks by status'}
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-blue-500/5">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
                   {t.dashboard.viewDetails}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
@@ -624,7 +552,7 @@ export function DashboardView() {
             <CardContent>
               <div className="h-[220px] mt-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={publicationActivityData} barGap={4}>
+                  <RechartsBarChart data={tasksByStatusData} barGap={4}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="name"
@@ -646,8 +574,7 @@ export function DashboardView() {
                       }}
                       cursor={{ fill: 'var(--muted)', radius: 4 }}
                     />
-                    <Bar dataKey="published" fill="oklch(0.55 0.18 250)" radius={[6, 6, 0, 0]} maxBarSize={28} name={locale === 'fr' ? 'Publiés' : 'Published'} />
-                    <Bar dataKey="scheduled" fill="oklch(0.65 0.15 80 / 0.5)" radius={[6, 6, 0, 0]} maxBarSize={28} name={locale === 'fr' ? 'Planifiés' : 'Scheduled'} />
+                    <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} name={locale === 'fr' ? 'Tâches' : 'Tasks'} />
                   </RechartsBarChart>
                 </ResponsiveContainer>
               </div>
@@ -655,14 +582,14 @@ export function DashboardView() {
           </Card>
         </motion.div>
 
-        {/* Campaign Progress Area Chart */}
+        {/* Avancement des projets Area Chart */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                    <Activity className="h-4 w-4 text-blue-600" />
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
+                    <Activity className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.sprintBurndown}</CardTitle>
@@ -671,7 +598,7 @@ export function DashboardView() {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-blue-500/5">
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-amber-500/5">
                   {t.dashboard.viewDetails}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
@@ -680,11 +607,11 @@ export function DashboardView() {
             <CardContent>
               <div className="h-[220px] mt-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={campaignProgressData}>
+                  <AreaChart data={projectProgressData}>
                     <defs>
-                      <linearGradient id="campaignGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
+                      <linearGradient id="projectGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -710,7 +637,7 @@ export function DashboardView() {
                     <Area
                       type="monotone"
                       dataKey="target"
-                      stroke="oklch(0.55 0.18 250 / 0.4)"
+                      stroke="#10b98180"
                       fill="none"
                       strokeDasharray="5 5"
                       strokeWidth={2}
@@ -719,8 +646,8 @@ export function DashboardView() {
                     <Area
                       type="monotone"
                       dataKey="actual"
-                      stroke="oklch(0.55 0.18 250)"
-                      fill="url(#campaignGradient)"
+                      stroke="#10b981"
+                      fill="url(#projectGradient)"
                       strokeWidth={2.5}
                       name={locale === 'fr' ? 'Réel' : 'Actual'}
                     />
@@ -731,19 +658,19 @@ export function DashboardView() {
           </Card>
         </motion.div>
 
-        {/* Content Type Distribution Pie Chart */}
+        {/* Répartition par priorité Pie Chart */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                    <PieChartIcon className="h-4 w-4 text-blue-600" />
+                  <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/15">
+                    <PieChartIcon className="h-4 w-4 text-rose-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.contentTypeBreakdown}</CardTitle>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {locale === 'fr' ? 'Répartition des contenus par type' : 'Content breakdown by type'}
+                      {locale === 'fr' ? 'Répartition des tâches par priorité' : 'Task distribution by priority'}
                     </p>
                   </div>
                 </div>
@@ -754,7 +681,7 @@ export function DashboardView() {
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
                     <Pie
-                      data={contentTypeData}
+                      data={priorityDistributionData}
                       cx="50%"
                       cy="50%"
                       innerRadius={40}
@@ -763,7 +690,7 @@ export function DashboardView() {
                       dataKey="value"
                       strokeWidth={0}
                     >
-                      {contentTypeData.map((entry, index) => (
+                      {priorityDistributionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -782,8 +709,8 @@ export function DashboardView() {
                 </ResponsiveContainer>
               </div>
               <div className="flex items-center justify-center gap-4 mt-2">
-                {contentTypeData.map((entry, idx) => {
-                  const total = contentTypeData.reduce((sum, d) => sum + d.value, 0);
+                {priorityDistributionData.map((entry, idx) => {
+                  const total = priorityDistributionData.reduce((sum, d) => sum + d.value, 0);
                   const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
                   return (
                     <div key={idx} className="flex items-center gap-1.5">
@@ -800,265 +727,6 @@ export function DashboardView() {
         </motion.div>
       </div>
 
-      {/* ─── Editorial Workflow Pipeline ─────────────────────────────────── */}
-      <motion.div variants={item}>
-        <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                  <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-                </div>
-                <CardTitle className="text-sm font-semibold">{t.dashboard.editorialPipeline}</CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="flex items-center justify-between gap-2 overflow-x-auto py-2">
-              {pipelineCounts.map((stage, idx) => {
-                const colors = pipelineColors[stage.status] || pipelineColors.draft;
-                const statusLabels = contentStatusLabels[locale] || contentStatusLabels.fr;
-                return (
-                  <div key={stage.status} className="flex items-center gap-2">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.1 + idx * 0.08, duration: 0.3 }}
-                      className="flex flex-col items-center gap-1.5 min-w-[80px]"
-                    >
-                      <div className={`w-10 h-10 rounded-full ${colors.bg} border border-current/10 flex items-center justify-center`}>
-                        <span className={`text-sm font-bold ${colors.text}`}>
-                          <AnimatedCounter value={stage.count} />
-                        </span>
-                      </div>
-                      <div className={`w-3 h-3 rounded-full ${colors.dot} ring-2 ring-background`} />
-                      <span className="text-[11px] font-medium text-muted-foreground text-center leading-tight">
-                        {statusLabels[stage.status] || stage.status}
-                      </span>
-                    </motion.div>
-                    {idx < pipelineCounts.length - 1 && (
-                      <div className="flex-shrink-0 w-6 h-0.5 bg-border/60 rounded-full mt-[-20px]" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* ─── Content Approval Queue + Performance Summary ──────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Content Approval Queue */}
-        <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                    <ClipboardCheck className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{t.dashboard.approvalQueue}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{t.dashboard.approvalQueueDesc}</p>
-                  </div>
-                </div>
-                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/15 text-xs">
-                  {approvalItems.length}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              {approvalItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 gap-2">
-                  <div className="p-3 rounded-2xl bg-emerald-500/10">
-                    <CheckCircle className="h-8 w-8 text-emerald-500" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">{t.dashboard.allClear}</p>
-                  <p className="text-xs text-muted-foreground">{t.dashboard.allClearDesc}</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {approvalItems.map((contentItem, idx) => {
-                    const typeIcon = contentItem.type === 'newsletter' ? Mail : contentItem.type === 'article' ? FileText : Megaphone;
-                    const typeColor = contentItem.type === 'newsletter' ? 'bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)]' : contentItem.type === 'article' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600';
-                    const priorityColor = contentItem.priority === 'urgent' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : contentItem.priority === 'high' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : contentItem.priority === 'medium' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-slate-500/10 text-slate-600 border-slate-500/20';
-                    const priorityLabel = contentItem.priority === 'urgent' ? 'Urgent' : contentItem.priority === 'high' ? 'High' : contentItem.priority === 'medium' ? 'Medium' : 'Low';
-                    const TypeIcon = typeIcon;
-                    return (
-                      <motion.div
-                        key={contentItem.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.06, duration: 0.3 }}
-                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group"
-                      >
-                        <div className={`p-1.5 rounded-lg ${typeColor} flex-shrink-0`}>
-                          <TypeIcon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium truncate">{contentItem.title}</p>
-                            <Badge className={`${priorityColor} text-[10px] px-1.5 py-0 h-4 border flex-shrink-0`}>
-                              {priorityLabel}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback className="text-[8px] bg-muted">
-                                {getUserInitials(contentItem.authorId)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-[11px] text-muted-foreground">{getUserName(contentItem.authorId)}</span>
-                            <span className="text-[11px] text-muted-foreground/60">·</span>
-                            <span className="text-[11px] text-muted-foreground/60">{getRelativeTime(contentItem.updatedAt)}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.2)] hover:text-[oklch(0.55_0.18_250)]"
-                            onClick={() => handleApprove(contentItem.id)}
-                          >
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            {t.dashboard.approve}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs text-rose-600 hover:bg-rose-500/10 hover:text-rose-600"
-                            onClick={() => handleReject(contentItem.id)}
-                          >
-                            <XCircle className="h-3 w-3 mr-1" />
-                            {t.dashboard.reject}
-                          </Button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Performance Summary */}
-        <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">{t.dashboard.performance}</CardTitle>
-                </div>
-                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
-                  {(['7j', '30j', '90j'] as const).map((period) => (
-                    <button
-                      key={period}
-                      onClick={() => setPerformancePeriod(period)}
-                      className={`px-2 py-1 text-[11px] font-medium rounded-md transition-all ${
-                        performancePeriod === period
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {period}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="space-y-5">
-                {/* Engagement Rate */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-emerald-500/10">
-                        <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">{t.dashboard.engagementRate}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold">{perfMetrics.engagement}%</span>
-                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
-                        <ArrowUpRight className="h-3 w-3" />
-                        +3.2%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${perfMetrics.engagement}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Avg Publish Time */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-amber-500/10">
-                        <Timer className="h-3.5 w-3.5 text-amber-600" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">{t.dashboard.avgPublishTime}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold">{perfMetrics.avgPublishTime}{locale === 'fr' ? 'j' : 'd'}</span>
-                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
-                        <ArrowDownRight className="h-3 w-3" />
-                        -0.4
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, (perfMetrics.avgPublishTime / 7) * 100)}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.35 }}
-                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Delivery Rate */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250/0.1)]">
-                        <Gauge className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">{t.dashboard.deliveryRate}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold">{perfMetrics.deliveryRate}%</span>
-                      <span className="text-[11px] text-emerald-600 flex items-center gap-0.5">
-                        <ArrowUpRight className="h-3 w-3" />
-                        +0.8%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${perfMetrics.deliveryRate}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.5 }}
-                      className="h-full rounded-full bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.55_0.18_250/0.7)]"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
       {/* ─── Recent Activity + Upcoming ──────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Recent Activity */}
@@ -1067,342 +735,157 @@ export function DashboardView() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
+                    <Activity className="h-4 w-4 text-teal-600" />
                   </div>
                   <CardTitle className="text-sm font-semibold">{t.dashboard.recentActivity}</CardTitle>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]"
-                  onClick={() => setActivePage('audit')}
-                >
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5">
                   {t.dashboard.seeAll}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="space-y-1 max-h-[320px] overflow-y-auto">
-                <AnimatePresence>
-                  {recentActivity.map((log, idx) => {
-                    const actionConfig = auditActionConfig[log.action] || auditActionConfig.update;
-                    const ActionIcon = actionConfig.icon;
-                    const EntityIcon = entityTypeIcon[log.entityType] || FileText;
+              <div className="relative space-y-0">
+                {/* Timeline line */}
+                <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-500 via-teal-500/40 to-transparent" />
+
+                {recentActivity.map((log, idx) => {
+                  const config = auditActionConfig[log.action] || auditActionConfig.create;
+                  const IconComp = config.icon;
+                  const EntityIcon = entityTypeIcon[log.entityType] || CheckCircle2;
+
+                  return (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.06, duration: 0.3 }}
+                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group relative"
+                    >
+                      {/* Timeline dot */}
+                      <div className={`w-[7px] h-[7px] rounded-full ${config.dotColor} mt-2.5 flex-shrink-0 z-10 ring-2 ring-background`} />
+                      {/* Icon */}
+                      <div className={`p-1.5 rounded-lg flex-shrink-0 bg-muted/50`}>
+                        <EntityIcon className={`h-3.5 w-3.5 ${config.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-foreground leading-snug">{log.details}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{getUserName(log.userId)} · {getRelativeTime(log.timestamp, locale)}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Upcoming Deadlines + Sprint Progress */}
+        <motion.div variants={item} className="space-y-5">
+          {/* Upcoming Deadlines */}
+          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                </div>
+                <CardTitle className="text-sm font-semibold">{t.dashboard.upcomingDeadlines}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="space-y-2">
+                {mockTasks
+                  .filter((task) => task.status !== 'done')
+                  .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                  .slice(0, 4)
+                  .map((task) => {
+                    const dueDate = new Date(task.dueDate);
+                    const now = new Date();
+                    const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
+                    const isOverdue = daysUntil < 0;
+                    const isSoon = daysUntil >= 0 && daysUntil <= 3;
+                    const project = mockProjects.find((p) => p.id === task.projectId);
+
                     return (
-                      <motion.div
-                        key={log.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 + idx * 0.04, duration: 0.3, ease: 'easeOut' }}
-                        className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-border hover:bg-muted/30 transition-all duration-200"
-                      >
-                        <div className="relative flex-shrink-0">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className={`text-xs font-semibold ${getUserColor(log.userId)}`}>
-                              {getUserInitials(log.userId)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background flex items-center justify-center ${actionConfig.dotColor}`}>
-                            <ActionIcon className="h-2 w-2 text-white" />
-                          </div>
-                        </div>
+                      <div key={task.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOverdue ? 'bg-rose-500' : isSoon ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm leading-snug">
-                            <span className="font-medium">{getUserName(log.userId)}</span>{' '}
-                            <span className="text-muted-foreground">{log.details}</span>
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className="flex items-center gap-1">
-                              <EntityIcon className="h-3 w-3 text-muted-foreground/60" />
-                              <span className="text-[11px] text-muted-foreground/70 capitalize">{log.entityType}</span>
-                            </div>
-                            <span className="text-muted-foreground/30">·</span>
-                            <span className="text-[11px] text-muted-foreground/60">{getRelativeTime(log.timestamp, locale)}</span>
-                          </div>
+                          <p className="text-xs font-medium truncate">{task.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{project?.name}</p>
                         </div>
-                      </motion.div>
+                        <span className={`text-[10px] font-semibold flex-shrink-0 ${isOverdue ? 'text-rose-500' : isSoon ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                          {isOverdue ? `${Math.abs(daysUntil)}d ${locale === 'fr' ? 'retard' : 'overdue'}` : daysUntil === 0 ? (locale === 'fr' ? "Aujourd'hui" : 'Today') : `${daysUntil}d`}
+                        </span>
+                      </div>
                     );
                   })}
-                </AnimatePresence>
               </div>
             </CardContent>
           </Card>
-        </motion.div>
 
-        {/* Upcoming Section */}
-        <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                    <CalendarDays className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">{t.dashboard.upcoming}</CardTitle>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1 hover:bg-amber-500/5"
-                  onClick={() => setActivePage('editorial-calendar')}
-                >
-                  {t.dashboard.seeAll}
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="space-y-4">
-                {/* Scheduled Content */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {locale === 'fr' ? 'Contenus planifiés' : 'Scheduled Content'}
-                  </h4>
-                  <div className="space-y-2">
-                    {scheduledContent.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/60 italic py-2">
-                        {locale === 'fr' ? 'Aucun contenu planifié' : 'No scheduled content'}
-                      </p>
-                    ) : (
-                      scheduledContent.map((content, idx) => {
-                        const statusColors = contentStatusColors[content.status] || contentStatusColors.draft;
-                        const statusLabels = contentStatusLabels[locale] || contentStatusLabels.fr;
-                        return (
-                          <motion.div
-                            key={content.id}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 + idx * 0.05, duration: 0.25 }}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
-                          >
-                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[oklch(0.55_0.18_250/0.08)] border border-[oklch(0.55_0.18_250/0.12)] flex items-center justify-center">
-                              {content.type === 'newsletter' ? (
-                                <Mail className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-                              ) : content.type === 'article' ? (
-                                <FileText className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-                              ) : (
-                                <Bell className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{content.title}</p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {new Date(content.scheduledAt!).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>
-                              {statusLabels[content.status] || content.status}
-                            </Badge>
-                          </motion.div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Upcoming Deadlines */}
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {t.dashboard.upcomingDeadlines}
-                  </h4>
-                  <div className="space-y-2">
-                    {upcomingEvents.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/60 italic py-2">
-                        {locale === 'fr' ? 'Aucune échéance à venir' : 'No upcoming deadlines'}
-                      </p>
-                    ) : (
-                      upcomingEvents.map((event, idx) => (
-                        <motion.div
-                          key={event.id}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + idx * 0.05, duration: 0.25 }}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
-                        >
-                          <div
-                            className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center border"
-                            style={{
-                              backgroundColor: `${event.color}15`,
-                              borderColor: `${event.color}30`,
-                            }}
-                          >
-                            {event.type === 'deadline' ? (
-                              <Clock className="h-4 w-4" style={{ color: event.color }} />
-                            ) : event.type === 'publication' ? (
-                              <Send className="h-4 w-4" style={{ color: event.color }} />
-                            ) : event.type === 'review' ? (
-                              <Eye className="h-4 w-4" style={{ color: event.color }} />
-                            ) : event.type === 'meeting' ? (
-                              <MessageSquare className="h-4 w-4" style={{ color: event.color }} />
-                            ) : (
-                              <Megaphone className="h-4 w-4" style={{ color: event.color }} />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{event.title}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {new Date(event.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] px-1.5 py-0 capitalize"
-                            style={{
-                              backgroundColor: `${event.color}10`,
-                              color: event.color,
-                              borderColor: `${event.color}30`,
-                            }}
-                          >
-                            {event.type}
-                          </Badge>
-                        </motion.div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* ─── Campaign Progress ───────────────────────────────────────────── */}
-      {campaignsForProgress.length > 0 && (
-        <motion.div variants={item}>
+          {/* Sprint Progress */}
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                    <Megaphone className="h-4 w-4 text-amber-600" />
+                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
+                    <Gauge className="h-4 w-4 text-teal-600" />
                   </div>
                   <div>
                     <CardTitle className="text-sm font-semibold">{t.dashboard.projectProgress}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {campaignsForProgress.length} {t.dashboard.activeProjectsCount}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{locale === 'fr' ? 'Sprints actifs' : 'Active sprints'}</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1 hover:bg-amber-500/5"
-                  onClick={() => setActivePage('campaigns')}
-                >
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5" onClick={() => setActivePage('projects')}>
                   {t.dashboard.viewAllProjects}
                   <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {campaignsForProgress.map((campaign, idx) => (
-                  <motion.div
-                    key={campaign.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + idx * 0.08, duration: 0.3 }}
-                    className="group p-4 rounded-xl border border-border/50 hover:border-border hover:shadow-md transition-all duration-200"
-                  >
-                    <div className="flex items-start gap-3">
-                      <CircularProgress
-                        value={campaign.progress}
-                        size={52}
-                        strokeWidth={4}
-                        color={campaign.color}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold truncate">{campaign.name}</h4>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{campaign.description}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
-                            <motion.div
-                              className="h-full rounded-full"
-                              style={{ backgroundColor: campaign.color }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${campaign.progress}%` }}
-                              transition={{ duration: 1, delay: 0.3 + idx * 0.1, ease: 'easeOut' }}
-                            />
+              {sprintsForProgress.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                  <Gauge className="h-8 w-8 opacity-30 mb-2" />
+                  <p className="text-xs">{locale === 'fr' ? 'Aucun sprint actif' : 'No active sprints'}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sprintsForProgress.map((sprint) => {
+                    const project = mockProjects.find((p) => p.id === sprint.projectId);
+                    return (
+                      <div key={sprint.id} className="group">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <CircularProgress value={sprint.progress} size={36} strokeWidth={4} color={project?.color || '#10b981'} />
+                            <div>
+                              <p className="text-xs font-semibold">{sprint.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{sprint.totalTasks} {locale === 'fr' ? 'tâches' : 'tasks'} · {sprint.velocity || 0} {locale === 'fr' ? 'pts' : 'pts'}</p>
+                            </div>
                           </div>
-                          <span className="text-[10px] font-medium text-muted-foreground flex-shrink-0">
-                            {campaign.publishedCount}/{campaign.contentCount}
-                          </span>
+                          <span className="text-[10px] font-bold" style={{ color: project?.color || '#10b981' }}>{sprint.progress}%</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                            <Eye className="h-3 w-3" />
-                            {campaign.avgOpenRate}%
-                          </span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                            <TrendingUp className="h-3 w-3" />
-                            {campaign.avgClickRate}%
-                          </span>
+                        <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{
+                              background: `linear-gradient(90deg, ${project?.color || '#10b981'}, ${project?.color || '#10b981'}cc)`,
+                            }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${sprint.progress}%` }}
+                            transition={{ duration: 1, delay: 0.2, ease: 'easeOut' }}
+                          />
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
-      )}
-
-      {/* ─── Team Activity Heatmap ────────────────────────────────────────── */}
-      <motion.div variants={item}>
-        <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                  <Activity className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold">{t.dashboard.teamActivityHeatmap}</CardTitle>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <span>{t.dashboard.heatmapLess}</span>
-                <div className="flex gap-0.5">
-                  {[0.1, 0.25, 0.5, 0.75, 1].map((opacity, i) => (
-                    <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: `oklch(0.55 0.18 250 / ${opacity})` }} />
-                  ))}
-                </div>
-                <span>{t.dashboard.heatmapMore}</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-1" style={{ gridTemplateRows: 'repeat(4, 1fr)' }}>
-              {Array.from({ length: 28 }).map((_, i) => {
-                const level = mounted ? ((Math.sin(i * 127.1 + 311.7) * 43758.5453) % 1 + 1) % 1 : 0.5;
-                const opacity = level < 0.15 ? 0.05 : level < 0.35 ? 0.15 : level < 0.55 ? 0.3 : level < 0.75 ? 0.55 : 0.85;
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.02 * i, duration: 0.2 }}
-                    whileHover={{ scale: 1.3, borderRadius: '4px' }}
-                    className="aspect-square rounded-sm cursor-pointer transition-all"
-                    style={{ backgroundColor: `oklch(0.55 0.18 250 / ${opacity})` }}
-                    title={`${Math.round(level * 10)} activities`}
-                  />
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex gap-3 text-[10px] text-muted-foreground">
-                {(locale === 'fr' ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']).map((day) => (
-                  <span key={day} className="w-6 text-center">{day}</span>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

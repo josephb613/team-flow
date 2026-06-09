@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  FileText,
+  CheckCircle2,
   TrendingUp,
   Clock,
   Users,
@@ -29,18 +29,20 @@ import {
   FileJson,
   Clipboard,
   Check,
-  Mail,
-  Megaphone,
-  BookOpen,
+  PauseCircle,
+  FolderKanban,
+  Timer,
 } from 'lucide-react';
 import {
-  mockNewsletters,
-  mockArticles,
-  mockAnnouncements,
-  mockCampaigns,
+  mockTasks,
+  mockProjects,
+  mockSprints,
+  mockTimeEntries,
   mockUsers,
+  mockMilestones,
   getUserName,
-  contentStatusLabels,
+  projectStatusLabels,
+  taskStatusLabels,
 } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
@@ -78,126 +80,99 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-const COLORS = ['oklch(0.55 0.18 250)', 'oklch(0.65 0.15 250)', 'oklch(0.55 0.2 25)', 'oklch(0.6 0.15 300)', 'oklch(0.50 0.12 170)'];
+const COLORS = ['#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#8b5cf6'];
 
-// ─── Campaign Health Colors ──────────────────────────────────────────────────
-const campaignHealthColors: Record<string, { bg: string; text: string; dot: string }> = {
-  active: { bg: 'bg-blue-500/10', text: 'text-blue-700', dot: 'bg-blue-500' },
-  draft: { bg: 'bg-slate-500/10', text: 'text-slate-600', dot: 'bg-slate-400' },
-  paused: { bg: 'bg-amber-500/10', text: 'text-amber-700', dot: 'bg-amber-500' },
-  completed: { bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-400' },
+// ─── Project Health Colors ────────────────────────────────────────────────────
+const projectHealthColors: Record<string, { bg: string; text: string; dot: string }> = {
+  active: { bg: 'bg-emerald-500/10', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  on_hold: { bg: 'bg-amber-500/10', text: 'text-amber-700', dot: 'bg-amber-500' },
+  completed: { bg: 'bg-slate-500/10', text: 'text-slate-600', dot: 'bg-slate-400' },
+  archived: { bg: 'bg-slate-500/10', text: 'text-slate-500', dot: 'bg-slate-300' },
 };
 
 // ─── Export Type ─────────────────────────────────────────────────────────────
-type ExportType = 'content' | 'campaigns' | 'engagement';
+type ExportType = 'tasks' | 'projects' | 'time';
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function ReportsView() {
-  const { t } = useTranslation();
-  const activeTenantId = useAppStore((s) => s.activeTenantId);
+  const { t, locale } = useTranslation();
   const [copiedType, setCopiedType] = useState<ExportType | null>(null);
 
-  // ─── Compute CMS Metrics ──────────────────────────────────────────────
-  const tenantContent = useMemo(() => {
-    const newsletters = mockNewsletters.filter(n => n.tenantId === activeTenantId);
-    const articles = mockArticles.filter(a => a.tenantId === activeTenantId);
-    const announcements = mockAnnouncements.filter(a => a.tenantId === activeTenantId);
-    const campaigns = mockCampaigns.filter(c => c.tenantId === activeTenantId);
-    return { newsletters, articles, announcements, campaigns };
-  }, [activeTenantId]);
+  // ─── Compute PM Metrics ────────────────────────────────────────────────
+  const totalTasks = mockTasks.length;
+  const completedTasks = mockTasks.filter(t => t.status === 'done').length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const totalContent = useMemo(() => {
-    return tenantContent.newsletters.length + tenantContent.articles.length + tenantContent.announcements.length;
-  }, [tenantContent]);
-
-  const publishedContent = useMemo(() => {
-    const all = [
-      ...tenantContent.newsletters,
-      ...tenantContent.articles,
-      ...tenantContent.announcements,
-    ];
-    return all.filter(c => c.status === 'published').length;
-  }, [tenantContent]);
-
-  const publicationRate = totalContent > 0 ? Math.round((publishedContent / totalContent) * 100) : 0;
-
-  const avgReadTime = useMemo(() => {
-    const articles = tenantContent.articles.filter(a => a.readingTime > 0);
-    if (articles.length === 0) return 0;
-    return Math.round(articles.reduce((sum, a) => sum + a.readingTime, 0) / articles.length);
-  }, [tenantContent]);
+  const avgTaskDuration = useMemo(() => {
+    const doneTasks = mockTasks.filter(t => t.status === 'done' && t.estimatedHours && t.estimatedHours > 0);
+    if (doneTasks.length === 0) return 0;
+    return Math.round(doneTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0) / doneTasks.length);
+  }, []);
 
   const activeContributors = useMemo(() => {
-    const authorIds = new Set([
-      ...tenantContent.newsletters.map(n => n.authorId),
-      ...tenantContent.articles.map(a => a.authorId),
-      ...tenantContent.announcements.map(a => a.authorId),
-    ]);
-    return authorIds.size;
-  }, [tenantContent]);
+    const assigneeIds = new Set(mockTasks.map(t => t.assigneeId));
+    return assigneeIds.size;
+  }, []);
+
+  const totalHoursLogged = useMemo(() => mockTimeEntries.reduce((sum, te) => sum + te.hours, 0), []);
 
   // ─── Chart Data ───────────────────────────────────────────────────────
-  const contentTrendData = useMemo(() => [
-    { name: 'S18', publiés: 4, créés: 6 },
-    { name: 'S19', publiés: 6, créés: 5 },
-    { name: 'S20', publiés: 3, créés: 7 },
-    { name: 'S21', publiés: 8, créés: 4 },
-    { name: 'S22', publiés: 5, créés: 6 },
-    { name: 'S23', publiés: 7, créés: 3 },
-    { name: 'S24', publiés: 9, créés: 5 },
+  const taskTrendData = useMemo(() => [
+    { name: 'S18', terminees: 4, creees: 6 },
+    { name: 'S19', terminees: 6, creees: 5 },
+    { name: 'S20', terminees: 3, creees: 7 },
+    { name: 'S21', terminees: 8, creees: 4 },
+    { name: 'S22', terminees: 5, creees: 6 },
+    { name: 'S23', terminees: 7, creees: 3 },
+    { name: 'S24', terminees: 9, creees: 5 },
   ], []);
 
-  const contentByTypeData = useMemo(() => [
-    { name: 'Newsletters', value: tenantContent.newsletters.length },
-    { name: 'Articles', value: tenantContent.articles.length },
-    { name: 'Annonces', value: tenantContent.announcements.length },
-    { name: 'Campagnes', value: tenantContent.campaigns.length },
-  ], [tenantContent]);
+  const tasksByStatusData = useMemo(() => {
+    const statusLabels = locale === 'fr'
+      ? { todo: 'À faire', in_progress: 'En cours', review: 'En revue', done: 'Terminé' }
+      : { todo: 'To Do', in_progress: 'In Progress', review: 'In Review', done: 'Done' };
+    const colors: Record<string, string> = { todo: '#64748b', in_progress: '#f59e0b', review: '#06b6d4', done: '#10b981' };
+    return ['todo', 'in_progress', 'review', 'done'].map(s => ({
+      name: statusLabels[s as keyof typeof statusLabels],
+      value: mockTasks.filter(t => t.status === s).length,
+      color: colors[s],
+    }));
+  }, [locale]);
 
   const teamWorkloadData = useMemo(() => {
-    const usersByTenant = mockUsers.filter(u => u.tenantId === activeTenantId);
-    return usersByTenant.map(user => ({
+    return mockUsers.slice(0, 6).map(user => ({
       name: user.name.split(' ')[0],
-      contenus: user.contentCount,
-      publiés: Math.floor(user.contentCount * 0.6),
+      taches: user.taskCount,
+      terminees: Math.floor(user.taskCount * 0.6),
     }));
-  }, [activeTenantId]);
+  }, []);
 
   // ─── Export Handlers ───────────────────────────────────────────────────
   const getExportData = useCallback((type: ExportType) => {
     switch (type) {
-      case 'content':
-        return [
-          ...tenantContent.newsletters.map(n => ({ Titre: n.title, Type: 'Newsletter', Statut: n.status, Auteur: getUserName(n.authorId), 'Date création': n.createdAt })),
-          ...tenantContent.articles.map(a => ({ Titre: a.title, Type: 'Article', Statut: a.status, Auteur: getUserName(a.authorId), 'Date création': a.createdAt })),
-          ...tenantContent.announcements.map(a => ({ Titre: a.title, Type: 'Annonce', Statut: a.status, Auteur: getUserName(a.authorId), 'Date création': a.createdAt })),
-        ];
-      case 'campaigns':
-        return tenantContent.campaigns.map(c => ({
-          Nom: c.name,
-          Statut: c.status,
-          'Contenus': c.contentCount,
-          'Publiés': c.publishedCount,
-          'Portée': c.totalReach,
-          'Taux ouverture': `${c.avgOpenRate}%`,
-          'Taux clic': `${c.avgClickRate}%`,
+      case 'tasks':
+        return mockTasks.map(t => ({
+          Titre: t.title, Statut: t.status, Priorité: t.priority, Projet: mockProjects.find(p => p.id === t.projectId)?.name || '', Assigné: getUserName(t.assigneeId), 'Heures estimées': t.estimatedHours || 0, 'Heures loguées': t.loggedHours, 'Date d\'échéance': t.dueDate,
         }));
-      case 'engagement':
-        return [
-          { Type: 'Newsletter', 'Taux ouverture': tenantContent.newsletters.filter(n => n.openRate > 0).reduce((s, n) => s + n.openRate, 0) / Math.max(tenantContent.newsletters.filter(n => n.openRate > 0).length, 1), 'Taux clic': tenantContent.newsletters.filter(n => n.clickRate > 0).reduce((s, n) => s + n.clickRate, 0) / Math.max(tenantContent.newsletters.filter(n => n.clickRate > 0).length, 1) },
-          { Type: 'Article', 'Taux clic': tenantContent.articles.filter(a => a.clickRate > 0).reduce((s, a) => s + a.clickRate, 0) / Math.max(tenantContent.articles.filter(a => a.clickRate > 0).length, 1), 'Vues moyennes': tenantContent.articles.reduce((s, a) => s + a.viewCount, 0) / Math.max(tenantContent.articles.length, 1) },
-        ];
+      case 'projects':
+        return mockProjects.map(p => ({
+          Nom: p.name, Statut: p.status, 'Tâches': p.taskCount, 'Terminées': p.completedTasks, 'Progression': `${p.progress}%`, 'Date de début': p.startDate, 'Date de fin': p.dueDate,
+        }));
+      case 'time':
+        return mockTimeEntries.map(te => ({
+          Tâche: mockTasks.find(t => t.id === te.taskId)?.title || '', Projet: mockProjects.find(p => p.id === te.projectId)?.name || '', Utilisateur: getUserName(te.userId), Date: te.date, Heures: te.hours, Description: te.description, Facturable: te.billable ? 'Oui' : 'Non',
+        }));
     }
-  }, [tenantContent]);
+  }, []);
 
   const handleExportCSV = useCallback((type: ExportType) => {
     const data = getExportData(type);
-    exportToCSV(data, `contentflow-${type}-${new Date().toISOString().split('T')[0]}`);
+    exportToCSV(data, `teamflow-${type}-${new Date().toISOString().split('T')[0]}`);
   }, [getExportData]);
 
   const handleExportJSON = useCallback((type: ExportType) => {
     const data = getExportData(type);
-    exportToJSON(data, `contentflow-${type}-${new Date().toISOString().split('T')[0]}`);
+    exportToJSON(data, `teamflow-${type}-${new Date().toISOString().split('T')[0]}`);
   }, [getExportData]);
 
   const handleCopyToClipboard = useCallback(async (type: ExportType) => {
@@ -211,20 +186,20 @@ export function ReportsView() {
 
   const stats = [
     {
-      title: t.reports.totalContent,
-      value: totalContent,
+      title: t.reports.totalTasks,
+      value: totalTasks,
       change: '+18%',
       trend: 'up' as const,
-      icon: FileText,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
-      glowColor: 'shadow-blue-500/5',
+      icon: FolderKanban,
+      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+      iconBg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-600',
+      borderAccent: 'border-emerald-500/20',
+      glowColor: 'shadow-emerald-500/5',
     },
     {
       title: t.reports.completionRate,
-      value: `${publicationRate}%`,
+      value: `${completionRate}%`,
       isPercent: true,
       change: '+5%',
       trend: 'up' as const,
@@ -236,17 +211,17 @@ export function ReportsView() {
       glowColor: 'shadow-amber-500/5',
     },
     {
-      title: t.reports.avgReadTime,
-      value: `${avgReadTime} min`,
+      title: t.reports.avgCompletionTime,
+      value: `${avgTaskDuration}h`,
       isString: true,
       change: '-8%',
       trend: 'up' as const,
       icon: Clock,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
-      glowColor: 'shadow-blue-500/5',
+      gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
+      iconBg: 'bg-cyan-500/15',
+      iconColor: 'text-cyan-600',
+      borderAccent: 'border-cyan-500/20',
+      glowColor: 'shadow-cyan-500/5',
     },
     {
       title: t.reports.activeContributors,
@@ -254,11 +229,11 @@ export function ReportsView() {
       change: '+2',
       trend: 'up' as const,
       icon: Users,
-      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
-      iconBg: 'bg-rose-500/15',
-      iconColor: 'text-rose-600',
-      borderAccent: 'border-rose-500/20',
-      glowColor: 'shadow-rose-500/5',
+      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+      iconBg: 'bg-teal-500/15',
+      iconColor: 'text-teal-600',
+      borderAccent: 'border-teal-500/20',
+      glowColor: 'shadow-teal-500/5',
     },
   ];
 
@@ -283,77 +258,77 @@ export function ReportsView() {
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
+              className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_160)] to-[oklch(0.50_0.18_160)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_160)] shadow-sm shadow-[oklch(0.55_0.18_160/0.2)] text-white"
             >
               <Download className="h-4 w-4" /> {t.reports.exportReport}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            {/* Content Export */}
+            {/* Tasks Export */}
             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              {t.reports.exportContent}
+              {t.reports.exportTasks}
             </div>
-            <DropdownMenuItem onClick={() => handleExportCSV('content')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleExportCSV('tasks')} className="gap-2 cursor-pointer">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExportJSON('content')} className="gap-2 cursor-pointer">
+            <DropdownMenuItem onClick={() => handleExportJSON('tasks')} className="gap-2 cursor-pointer">
               <FileJson className="h-4 w-4 text-amber-600" />
               <span>{t.reports.exportAsJSON}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleCopyToClipboard('content')} className="gap-2 cursor-pointer">
-              {copiedType === 'content' ? (
-                <Check className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleCopyToClipboard('tasks')} className="gap-2 cursor-pointer">
+              {copiedType === 'tasks' ? (
+                <Check className="h-4 w-4 text-emerald-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
-              <span>{copiedType === 'content' ? t.reports.copied : t.reports.copyToClipboard}</span>
+              <span>{copiedType === 'tasks' ? t.reports.copied : t.reports.copyToClipboard}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
-            {/* Campaigns Export */}
+            {/* Projects Export */}
             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              {t.reports.exportCampaigns}
+              {t.reports.exportProjects}
             </div>
-            <DropdownMenuItem onClick={() => handleExportCSV('campaigns')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleExportCSV('projects')} className="gap-2 cursor-pointer">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExportJSON('campaigns')} className="gap-2 cursor-pointer">
+            <DropdownMenuItem onClick={() => handleExportJSON('projects')} className="gap-2 cursor-pointer">
               <FileJson className="h-4 w-4 text-amber-600" />
               <span>{t.reports.exportAsJSON}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleCopyToClipboard('campaigns')} className="gap-2 cursor-pointer">
-              {copiedType === 'campaigns' ? (
-                <Check className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleCopyToClipboard('projects')} className="gap-2 cursor-pointer">
+              {copiedType === 'projects' ? (
+                <Check className="h-4 w-4 text-emerald-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
-              <span>{copiedType === 'campaigns' ? t.reports.copied : t.reports.copyToClipboard}</span>
+              <span>{copiedType === 'projects' ? t.reports.copied : t.reports.copyToClipboard}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
-            {/* Engagement Export */}
+            {/* Time Tracking Export */}
             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              {t.reports.exportEngagement}
+              {t.reports.exportTimeTracking}
             </div>
-            <DropdownMenuItem onClick={() => handleExportCSV('engagement')} className="gap-2 cursor-pointer">
-              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleExportCSV('time')} className="gap-2 cursor-pointer">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
               <span>{t.reports.exportAsCSV}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExportJSON('engagement')} className="gap-2 cursor-pointer">
+            <DropdownMenuItem onClick={() => handleExportJSON('time')} className="gap-2 cursor-pointer">
               <FileJson className="h-4 w-4 text-amber-600" />
               <span>{t.reports.exportAsJSON}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleCopyToClipboard('engagement')} className="gap-2 cursor-pointer">
-              {copiedType === 'engagement' ? (
-                <Check className="h-4 w-4 text-blue-600" />
+            <DropdownMenuItem onClick={() => handleCopyToClipboard('time')} className="gap-2 cursor-pointer">
+              {copiedType === 'time' ? (
+                <Check className="h-4 w-4 text-emerald-600" />
               ) : (
                 <Clipboard className="h-4 w-4 text-muted-foreground" />
               )}
-              <span>{copiedType === 'engagement' ? t.reports.copied : t.reports.copyToClipboard}</span>
+              <span>{copiedType === 'time' ? t.reports.copied : t.reports.copyToClipboard}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -373,7 +348,7 @@ export function ReportsView() {
               >
                 <Card className={`relative overflow-hidden border ${stat.borderAccent} shadow-md ${stat.glowColor} hover:shadow-lg transition-shadow duration-300`}>
                   <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#3b82f6' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('blue') ? '#3b82f6' : '#ef4444' }} />
+                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ color: stat.iconColor.includes('emerald') ? '#10b981' : stat.iconColor.includes('amber') ? '#f59e0b' : stat.iconColor.includes('teal') ? '#14b8a6' : '#06b6d4' }} />
                   <CardContent className="relative p-5">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -385,7 +360,7 @@ export function ReportsView() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 mt-3">
-                      <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${stat.trend === 'up' ? 'bg-blue-500/10 text-blue-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                      <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${stat.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
                         {stat.trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                         {stat.change}
                       </div>
@@ -401,45 +376,47 @@ export function ReportsView() {
 
       {/* ─── Charts Row 1 ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Content Trend Chart */}
+        {/* Task Trend Chart */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
+                    <Activity className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t.reports.contentTrend}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Contenus publiés vs créés</p>
+                    <CardTitle className="text-sm font-semibold">{t.reports.taskTrend}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {locale === 'fr' ? 'Tâches terminées vs créées' : 'Tasks completed vs created'}
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
-                  Détails <ChevronRight className="h-3 w-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
+                  {locale === 'fr' ? 'Détails' : 'Details'} <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="h-[280px] mt-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={contentTrendData}>
+                  <AreaChart data={taskTrendData}>
                     <defs>
-                      <linearGradient id="reportPublishedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
+                      <linearGradient id="reportCompletedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="reportCreatedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0.1} />
-                        <stop offset="100%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Area type="monotone" dataKey="publiés" stroke="oklch(0.55 0.18 250)" fill="url(#reportPublishedGrad)" strokeWidth={2.5} name="Publiés" />
-                    <Area type="monotone" dataKey="créés" stroke="oklch(0.65 0.15 80 / 0.7)" fill="url(#reportCreatedGrad)" strokeWidth={2} strokeDasharray="5 5" name="Créés" />
+                    <Area type="monotone" dataKey="terminees" stroke="#10b981" fill="url(#reportCompletedGrad)" strokeWidth={2.5} name={locale === 'fr' ? 'Terminées' : 'Completed'} />
+                    <Area type="monotone" dataKey="creees" stroke="#f59e0b80" fill="url(#reportCreatedGrad)" strokeWidth={2} strokeDasharray="5 5" name={locale === 'fr' ? 'Créées' : 'Created'} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -447,7 +424,7 @@ export function ReportsView() {
           </Card>
         </motion.div>
 
-        {/* Content by Type Pie Chart */}
+        {/* Tasks by Status Pie Chart */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
@@ -457,8 +434,10 @@ export function ReportsView() {
                     <PieChartIcon className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t.reports.contentByType}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Répartition des contenus par type</p>
+                    <CardTitle className="text-sm font-semibold">{t.reports.tasksByStatus}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {locale === 'fr' ? 'Répartition des tâches par statut' : 'Task distribution by status'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -468,7 +447,7 @@ export function ReportsView() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={contentByTypeData}
+                      data={tasksByStatusData}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -476,8 +455,8 @@ export function ReportsView() {
                       paddingAngle={4}
                       dataKey="value"
                     >
-                      {contentByTypeData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {tasksByStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
@@ -499,12 +478,14 @@ export function ReportsView() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/15">
+                  <BarChart3 className="h-4 w-4 text-cyan-600" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">{t.reports.teamWorkload}</CardTitle>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Contenus par contributeur de l&apos;entité</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {locale === 'fr' ? 'Tâches par membre de l\'équipe' : 'Tasks per team member'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -517,8 +498,8 @@ export function ReportsView() {
                   <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" />
                   <YAxis type="category" dataKey="name" fontSize={12} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" width={80} />
                   <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                  <Bar dataKey="contenus" fill="oklch(0.55 0.18 250)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.active} />
-                  <Bar dataKey="publiés" fill="oklch(0.55 0.18 250 / 0.3)" radius={[0, 6, 6, 0]} maxBarSize={20} name={t.reports.completed} />
+                  <Bar dataKey="taches" fill="#10b981" radius={[0, 6, 6, 0]} maxBarSize={20} name={locale === 'fr' ? 'Tâches' : 'Tasks'} />
+                  <Bar dataKey="terminees" fill="#10b98130" radius={[0, 6, 6, 0]} maxBarSize={20} name={locale === 'fr' ? 'Terminées' : 'Completed'} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -526,61 +507,70 @@ export function ReportsView() {
         </Card>
       </motion.div>
 
-      {/* ─── Campaign Health Overview ─────────────────────────────────────── */}
+      {/* ─── Project Health Overview ─────────────────────────────────────── */}
       <motion.div variants={item}>
         <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                  <Target className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
+                  <Target className="h-4 w-4 text-teal-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold">{t.reports.campaignHealth}</CardTitle>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Progression et statut des campagnes</p>
+                  <CardTitle className="text-sm font-semibold">{t.reports.projectHealth}</CardTitle>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {locale === 'fr' ? 'Santé et progression des projets' : 'Project health and progress'}
+                  </p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
-                Voir tout <ChevronRight className="h-3 w-3" />
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5" onClick={() => {}}>
+                {locale === 'fr' ? 'Voir tout' : 'View all'} <ChevronRight className="h-3 w-3" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {tenantContent.campaigns.map((campaign, idx) => {
-                const health = campaignHealthColors[campaign.status] || campaignHealthColors.active;
-                const progress = campaign.contentCount > 0 ? Math.round((campaign.publishedCount / campaign.contentCount) * 100) : 0;
-                const statusLabel = contentStatusLabels.fr[campaign.status] || campaign.status;
+              {mockProjects.map((project, idx) => {
+                const health = projectHealthColors[project.status] || projectHealthColors.active;
+                const statusLabel = (locale === 'fr' ? projectStatusLabels.fr : projectStatusLabels.en)[project.status] || project.status;
+                const sprintCount = mockSprints.filter(s => s.projectId === project.id).length;
+                const milestoneProgress = (() => {
+                  const ms = mockMilestones.filter(m => m.projectId === project.id);
+                  if (ms.length === 0) return 0;
+                  const completed = ms.filter(m => m.status === 'completed').length;
+                  return Math.round((completed / ms.length) * 100);
+                })();
+
                 return (
                   <motion.div
-                    key={campaign.id}
+                    key={project.id}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + idx * 0.05 }}
                     className="group flex items-center gap-4 p-3 rounded-xl hover:bg-muted/30 transition-all duration-200 cursor-pointer"
                   >
-                    {/* Campaign Icon */}
+                    {/* Project Icon */}
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-sm flex-shrink-0 border border-white/10 shadow-sm"
-                      style={{ backgroundColor: campaign.color + '20', color: campaign.color }}
+                      style={{ backgroundColor: project.color + '20', color: project.color }}
                     >
-                      <Target className="h-4 w-4" />
+                      {project.icon}
                     </div>
 
                     {/* Progress */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-medium truncate group-hover:text-primary transition-colors">{campaign.name}</span>
-                        <span className="text-xs font-semibold text-muted-foreground">{progress}%</span>
+                        <span className="text-sm font-medium truncate group-hover:text-primary transition-colors">{project.name}</span>
+                        <span className="text-xs font-semibold text-muted-foreground">{project.progress}%</span>
                       </div>
                       <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden">
                         <motion.div
                           className="h-full rounded-full"
                           style={{
-                            background: `linear-gradient(90deg, ${campaign.color}, ${campaign.color}cc)`,
+                            background: `linear-gradient(90deg, ${project.color}, ${project.color}cc)`,
                           }}
                           initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
+                          animate={{ width: `${project.progress}%` }}
                           transition={{ duration: 1, delay: 0.2 + idx * 0.1, ease: 'easeOut' }}
                         />
                       </div>
@@ -588,9 +578,9 @@ export function ReportsView() {
 
                     {/* Stats */}
                     <div className="hidden md:flex items-center gap-3 text-[11px] text-muted-foreground">
-                      <span>{campaign.contentCount} contenus</span>
-                      <span>{campaign.publishedCount} publiés</span>
-                      <span>{campaign.totalReach.toLocaleString('fr-FR')} portée</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {project.completedTasks}/{project.taskCount}</span>
+                      <span className="flex items-center gap-1"><Timer className="h-3 w-3" /> {sprintCount} {locale === 'fr' ? 'sprints' : 'sprints'}</span>
+                      <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {milestoneProgress}% {locale === 'fr' ? 'jalons' : 'milestones'}</span>
                     </div>
 
                     {/* Status Badge */}

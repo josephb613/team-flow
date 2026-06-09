@@ -4,34 +4,32 @@ import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DashboardView } from '@/components/views/dashboard-view';
-import { AutomationsView } from '@/components/views/automations-view';
+import { TasksView } from '@/components/views/tasks-view';
+import { ProjectsView } from '@/components/views/projects-view';
+import { CalendarView } from '@/components/views/calendar-view';
+import { MessagesView } from '@/components/views/messages-view';
+import { MeetingsView } from '@/components/views/meetings-view';
+import { MembersView } from '@/components/views/members-view';
+import { TeamsView } from '@/components/views/teams-view';
 import { ReportsView } from '@/components/views/reports-view';
-import { SettingsView } from '@/components/views/settings-view';
-import { NewslettersView } from '@/components/views/newsletters-view';
-import { ArticlesView } from '@/components/views/articles-view';
-import { AnnouncementsView } from '@/components/views/announcements-view';
-import { CampaignsView } from '@/components/views/campaigns-view';
-import { EditorialCalendarView } from '@/components/views/editorial-calendar-view';
-import { LibraryView } from '@/components/views/library-view';
-import { MediaView } from '@/components/views/media-view';
-import { TemplatesView } from '@/components/views/templates-view';
-import { DraftsView } from '@/components/views/drafts-view';
-import { PublishedView } from '@/components/views/published-view';
-import { ArchiveView } from '@/components/views/archive-view';
-import { SchedulingView } from '@/components/views/scheduling-view';
-import { PublishingView } from '@/components/views/publishing-view';
-import { ChannelsView } from '@/components/views/channels-view';
 import { StatisticsView } from '@/components/views/statistics-view';
+import { AutomationsView } from '@/components/views/automations-view';
 import { UsersView } from '@/components/views/users-view';
 import { RolesView } from '@/components/views/roles-view';
-import { TenantsView } from '@/components/views/tenants-view';
 import { AuditView } from '@/components/views/audit-view';
+import { SettingsView } from '@/components/views/settings-view';
+import { ActivityView } from '@/components/views/activity-view';
+import { SprintsView } from '@/components/views/sprints-view';
+import { PlanningView } from '@/components/views/planning-view';
+import { MilestonesView } from '@/components/views/milestones-view';
+import { TimeTrackingView } from '@/components/views/time-tracking-view';
+import { OrganizationsView } from '@/components/views/organizations-view';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
-import { CreateContentDialog } from '@/components/create-content-dialog';
+import { CreateTaskDialog } from '@/components/create-task-dialog';
+import { CreateProjectDialog } from '@/components/create-project-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
-import { ContentDetailDrawer } from '@/components/content-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
 import { ConnectionStatus } from '@/components/connection-status';
@@ -40,34 +38,39 @@ import { Toaster } from '@/components/ui/sonner';
 
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ArrowUp, Plus, FileText, Target, Clock } from 'lucide-react';
+import { Heart, ArrowUp, Plus, ListChecks, FolderKanban, Timer } from 'lucide-react';
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { PageTransition } from '@/components/page-transition';
 
 const viewMap: Record<string, React.ComponentType> = {
+  // Favoris
   dashboard: DashboardView,
-  newsletters: NewslettersView,
-  articles: ArticlesView,
-  announcements: AnnouncementsView,
-  campaigns: CampaignsView,
-  'editorial-calendar': EditorialCalendarView,
-  library: LibraryView,
-  media: MediaView,
-  templates: TemplatesView,
-  drafts: DraftsView,
-  published: PublishedView,
-  archive: ArchiveView,
-  scheduling: SchedulingView,
-  publishing: PublishingView,
-  channels: ChannelsView,
-  automations: AutomationsView,
+  projects: ProjectsView,
+  'my-tasks': TasksView,
+  // Projets
+  sprints: SprintsView,
+  planning: PlanningView,
+  calendar: CalendarView,
+  milestones: MilestonesView,
+  // Communication
+  messages: MessagesView,
+  meetings: MeetingsView,
+  // Équipe
+  members: MembersView,
+  teams: TeamsView,
+  // Analyse
   statistics: StatisticsView,
   reports: ReportsView,
+  // Administration
   users: UsersView,
   roles: RolesView,
-  tenants: TenantsView,
+  organizations: OrganizationsView,
   audit: AuditView,
   settings: SettingsView,
+  // Tools
+  automations: AutomationsView,
+  'time-tracking': TimeTrackingView,
+  activity: ActivityView,
 };
 
 
@@ -97,7 +100,7 @@ function AppFooter() {
       {/* Gradient top border */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250/0.2)] to-transparent" />
       <div className="flex items-center gap-3">
-        <span className="font-medium text-foreground/60">ContentFlow</span>
+        <span className="font-medium text-foreground/60">TeamFlow PM</span>
         <span className="text-muted-foreground/40">{t.footer.version}</span>
         <span className="hidden sm:inline text-muted-foreground/40">•</span>
         <span className="hidden sm:inline">{t.footer.rights}</span>
@@ -114,7 +117,7 @@ function AppFooter() {
           <span className="flex items-center gap-1.5">
             <span className={cn(
               'h-2 w-2 rounded-full',
-              isOnline ? 'bg-blue-500' : 'bg-amber-500'
+              isOnline ? 'bg-emerald-500' : 'bg-amber-500'
             )} />
             <span className="text-muted-foreground/60">{isOnline ? t.footer.online : 'Offline'}</span>
           </span>
@@ -192,33 +195,33 @@ function MobileFAB() {
           >
             <button
               onClick={() => {
-                useAppStore.getState().setCreateContentDialogOpen(true);
+                useAppStore.getState().setCreateTaskDialogOpen(true);
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <FileText className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-              <span>{t.topbar.newContent}</span>
+              <ListChecks className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+              <span>{t.topbar.newTask}</span>
             </button>
             <button
               onClick={() => {
-                useAppStore.getState().setActivePage('campaigns');
+                useAppStore.getState().setCreateProjectDialogOpen(true);
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <Target className="h-4 w-4 text-amber-500" />
-              <span>{t.topbar.newCampaign}</span>
+              <FolderKanban className="h-4 w-4 text-amber-500" />
+              <span>{t.topbar.newProject}</span>
             </button>
             <button
               onClick={() => {
-                useAppStore.getState().setActivePage('scheduling');
+                useAppStore.getState().setActivePage('time-tracking');
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <Clock className="h-4 w-4 text-rose-500" />
-              <span>{t.topbar.schedulePublish}</span>
+              <Timer className="h-4 w-4 text-rose-500" />
+              <span>{t.topbar.timeTracking}</span>
             </button>
           </motion.div>
         )}
@@ -292,13 +295,13 @@ export function MainApp() {
       {/* Task Detail Drawer */}
       <TaskDetailDrawer />
 
-      {/* Content Detail Drawer */}
-      <ContentDetailDrawer />
+      {/* Create Task Dialog */}
+      <CreateTaskDialog />
 
-      {/* Create Content Dialog */}
-      <CreateContentDialog />
+      {/* Create Project Dialog */}
+      <CreateProjectDialog />
 
-      {/* Create Workspace Dialog */}
+      {/* Create Workspace/Organization Dialog */}
       <CreateWorkspaceDialog />
 
       {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}

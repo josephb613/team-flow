@@ -45,13 +45,12 @@ import {
   Settings,
   User,
   Plus,
-  FileText,
-  Target,
-  Clock,
+  ListChecks,
+  FolderKanban,
+  Timer,
   ChevronRight,
   Sparkles,
   AtSign,
-  ListChecks,
   CalendarClock,
   Mail,
   AlertTriangle,
@@ -60,6 +59,8 @@ import {
   EyeOff,
   CheckCircle,
   MessageSquare,
+  Flag,
+  Video,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -69,72 +70,68 @@ import type { PageId } from '@/lib/types';
 
 // Map each page to its section key (for i18n)
 const PAGE_SECTION_MAP: Record<PageId, string> = {
+  // Favoris
+  dashboard: 'favorites',
+  projects: 'favorites',
+  'my-tasks': 'favorites',
+  // Projets
+  sprints: 'projects',
+  planning: 'projects',
+  calendar: 'projects',
+  milestones: 'projects',
   // Communication
-  dashboard: 'communication',
-  newsletters: 'communication',
-  articles: 'communication',
-  announcements: 'communication',
-  campaigns: 'communication',
-  'editorial-calendar': 'communication',
-  // Gestion de contenu
-  library: 'contentManagement',
-  media: 'contentManagement',
-  templates: 'contentManagement',
-  drafts: 'contentManagement',
-  published: 'contentManagement',
-  archive: 'contentManagement',
-  // Diffusion
-  scheduling: 'distribution',
-  publishing: 'distribution',
-  channels: 'distribution',
-  automations: 'distribution',
+  messages: 'communication',
+  meetings: 'communication',
+  // Équipe
+  members: 'team',
+  teams: 'team',
   // Analyse
   statistics: 'analysis',
   reports: 'analysis',
   // Administration
   users: 'administration',
   roles: 'administration',
-  tenants: 'administration',
+  organizations: 'administration',
   audit: 'administration',
   settings: 'administration',
+  // Tools
+  automations: 'projects',
+  'time-tracking': 'projects',
+  activity: 'analysis',
 };
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
-  assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
-  comment: <MessageSquare className="h-3.5 w-3.5 text-cyan-500" />,
-  deadline: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />,
+  task_assigned: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
+  task_completed: <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />,
+  sprint_started: <Flag className="h-3.5 w-3.5 text-amber-500" />,
+  deadline_approaching: <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />,
   mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
-  invitation: <Mail className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
+  comment_added: <MessageSquare className="h-3.5 w-3.5 text-cyan-500" />,
+  meeting_reminder: <Video className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
   system: <Globe className="h-3.5 w-3.5 text-muted-foreground" />,
-  validation_requested: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
-  content_approved: <CheckCircle className="h-3.5 w-3.5 text-blue-500" />,
-  content_published: <Globe className="h-3.5 w-3.5 text-cyan-500" />,
-  send_failed: <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />,
-  new_assignment: <ListChecks className="h-3.5 w-3.5 text-amber-500" />,
-  comment_mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
 };
 
-// Role badge color mapping
+// Role badge color mapping (PM roles)
 const ROLE_BADGE_STYLES: Record<string, string> = {
-  super_admin: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
-  tenant_admin: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
-  editor: 'bg-amber-500/15 text-amber-600 border-amber-500/20',
-  contributor: 'bg-cyan-500/15 text-cyan-600 border-cyan-500/20',
-  reader: 'bg-slate-500/15 text-slate-600 border-slate-500/20',
+  super_admin: 'bg-rose-500/15 text-rose-600 border-rose-500/20',
+  org_admin: 'bg-[oklch(0.55_0.18_250/0.15)] text-[oklch(0.55_0.18_250)] border-[oklch(0.55_0.18_250/0.2)]',
+  project_manager: 'bg-amber-500/15 text-amber-600 border-amber-500/20',
+  member: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20',
+  viewer: 'bg-slate-500/15 text-slate-600 border-slate-500/20',
 };
 
 export function TopBar() {
   const {
     activePage,
-    activeTenantId,
-    tenants,
+    activeOrganizationId,
+    organizations,
     sidebarCollapsed,
     toggleSidebar,
     setSearchOpen,
     notifications,
     setNotificationPanelOpen,
-    setCreateWorkspaceDialogOpen,
-    setCreateContentDialogOpen,
+    setCreateProjectDialogOpen,
+    setCreateTaskDialogOpen,
     setActivePage,
     currentUser,
     logout,
@@ -151,21 +148,21 @@ export function TopBar() {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const last3Notifications = notifications.slice(0, 3);
 
-  const activeTenant = tenants.find((t) => t.id === activeTenantId);
+  const activeOrganization = organizations.find((org) => org.id === activeOrganizationId);
 
   // Get section key for current page
-  const sectionKey = PAGE_SECTION_MAP[activePage] || 'communication';
+  const sectionKey = PAGE_SECTION_MAP[activePage] || 'favorites';
   // @ts-expect-error — dynamic section key access on topbar.sections
   const sectionName = t.topbar?.sections?.[sectionKey] || t.sidebar[sectionKey as keyof typeof t.sidebar] || sectionKey;
 
-  // CMS role labels
+  // PM role labels
   const getRoleLabel = (role: string): string => {
     const roles: Record<string, string> = {
       super_admin: 'Super Admin',
-      tenant_admin: 'Admin Tenant',
-      editor: 'Éditeur',
-      contributor: 'Contributeur',
-      reader: 'Lecteur',
+      org_admin: 'Admin Org',
+      project_manager: 'Chef de projet',
+      member: 'Membre',
+      viewer: 'Observateur',
     };
     return roles[role] || role;
   };
@@ -177,7 +174,7 @@ export function TopBar() {
 
   // Get role badge class
   const getRoleBadgeStyle = (role: string): string => {
-    return ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES['reader'];
+    return ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES['viewer'];
   };
 
   return (
@@ -185,7 +182,7 @@ export function TopBar() {
       {/* Gradient border-bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-[oklch(0.55_0.18_250/0.4)] via-[oklch(0.55_0.18_250/0.1)] to-transparent" />
 
-      {/* Data loading indicator - thin blue bar at top */}
+      {/* Data loading indicator - thin bar at top */}
       <AnimatePresence>
         {(isApiLoading || searchFocused) && (
           <motion.div
@@ -193,7 +190,7 @@ export function TopBar() {
             animate={{ scaleX: 1, opacity: 1 }}
             exit={{ scaleX: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent origin-left"
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250)] to-transparent origin-left"
           />
         )}
       </AnimatePresence>
@@ -241,7 +238,7 @@ export function TopBar() {
                 className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
               >
                 <span onClick={() => setActivePage('dashboard')} className="flex items-center gap-1.5">
-                  {activeTenant?.name || 'ContentFlow'}
+                  {activeOrganization?.name || 'TeamFlow PM'}
                   <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)] leading-none">
                     {t.topbar.pro}
                   </span>
@@ -331,7 +328,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Search bar with ⌘K hint and blue focus border */}
+        {/* Search bar with ⌘K hint */}
         <motion.div
           animate={{
             width: searchFocused ? 320 : undefined,
@@ -344,7 +341,7 @@ export function TopBar() {
               'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
               'w-72 justify-start shadow-sm bg-muted/30',
               'transition-all duration-200',
-              searchFocused && 'ring-2 ring-blue-500/40 border-blue-500/40'
+              searchFocused && 'ring-2 ring-[oklch(0.55_0.18_250/0.4)] border-[oklch(0.55_0.18_250/0.4)]'
             )}
             onClick={() => setSearchOpen(true)}
             onFocus={() => setSearchFocused(true)}
@@ -384,7 +381,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Quick create dropdown - CMS options */}
+        {/* Quick create dropdown - PM options */}
         <DropdownMenu>
           <TooltipProvider>
             <Tooltip>
@@ -410,32 +407,32 @@ export function TopBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setCreateContentDialogOpen(true)}
+              onClick={() => setCreateTaskDialogOpen(true)}
             >
-              <FileText className="h-4 w-4 mr-2 text-[oklch(0.55_0.18_250)]" />
-              {t.topbar.newContent}
+              <ListChecks className="h-4 w-4 mr-2 text-[oklch(0.55_0.18_250)]" />
+              {t.topbar.newTask}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('campaigns')}
+              onClick={() => setCreateProjectDialogOpen(true)}
             >
-              <Target className="h-4 w-4 mr-2 text-amber-500" />
-              {t.topbar.newCampaign}
+              <FolderKanban className="h-4 w-4 mr-2 text-amber-500" />
+              {t.topbar.newProject}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('scheduling')}
+              onClick={() => setActivePage('time-tracking')}
             >
-              <Clock className="h-4 w-4 mr-2 text-rose-500" />
-              {t.topbar.schedulePublish || t.topbar.scheduleSend}
+              <Timer className="h-4 w-4 mr-2 text-rose-500" />
+              {t.topbar.timeTracking}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-[oklch(0.55_0.18_250)]"
-              onClick={() => setCreateWorkspaceDialogOpen(true)}
+              onClick={() => useAppStore.getState().setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t.sidebar.createTenant || t.sidebar.createWorkspace}
+              {t.sidebar.createOrganization || t.sidebar.createWorkspace}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -589,7 +586,7 @@ export function TopBar() {
                   </AvatarFallback>
                 </Avatar>
                 {/* Online status dot */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-background" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-background" />
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight max-w-[120px] truncate">

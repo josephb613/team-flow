@@ -23,24 +23,18 @@ import {
 } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  Mail,
-  FileText,
-  Megaphone,
-  Target,
-  Calendar,
-  BookOpen,
-  ImageIcon,
-  LayoutTemplate,
-  FilePen,
-  CheckCircle,
-  Archive,
-  Clock,
-  Send,
-  Radio,
+  FolderKanban,
+  ListChecks,
   Zap,
+  Calendar,
+  CalendarClock,
+  Flag,
+  MessageSquare,
+  Video,
+  Users,
+  UserCircle,
   BarChart3,
   PieChart,
-  Users,
   Shield,
   Building2,
   ScrollText,
@@ -53,8 +47,8 @@ import {
   LogOut,
   X,
   Keyboard,
-  ListChecks,
-  CalendarClock,
+  Clock,
+  Timer,
   Globe,
   Bell,
 } from 'lucide-react';
@@ -168,30 +162,28 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
   );
 }
 
-// CMS Navigation items grouped by section
-const communicationItems: NavItemConfig[] = [
+// PM Navigation items grouped by section
+const favoritesItems: NavItemConfig[] = [
   { icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', pageId: 'dashboard' },
-  { icon: <Mail className="h-4 w-4" />, label: 'Newsletters', pageId: 'newsletters', badge: 3 },
-  { icon: <FileText className="h-4 w-4" />, label: 'Articles', pageId: 'articles', badge: 7 },
-  { icon: <Megaphone className="h-4 w-4" />, label: 'Announcements', pageId: 'announcements' },
-  { icon: <Target className="h-4 w-4" />, label: 'Campaigns', pageId: 'campaigns', badge: 2 },
-  { icon: <Calendar className="h-4 w-4" />, label: 'Editorial Calendar', pageId: 'editorial-calendar' },
+  { icon: <FolderKanban className="h-4 w-4" />, label: 'Projects', pageId: 'projects' },
+  { icon: <ListChecks className="h-4 w-4" />, label: 'My Tasks', pageId: 'my-tasks' },
 ];
 
-const contentManagementItems: NavItemConfig[] = [
-  { icon: <BookOpen className="h-4 w-4" />, label: 'Library', pageId: 'library' },
-  { icon: <ImageIcon className="h-4 w-4" />, label: 'Media', pageId: 'media' },
-  { icon: <LayoutTemplate className="h-4 w-4" />, label: 'Templates', pageId: 'templates' },
-  { icon: <FilePen className="h-4 w-4" />, label: 'Drafts', pageId: 'drafts', badge: 5 },
-  { icon: <CheckCircle className="h-4 w-4" />, label: 'Published', pageId: 'published' },
-  { icon: <Archive className="h-4 w-4" />, label: 'Archive', pageId: 'archive' },
+const projectsItems: NavItemConfig[] = [
+  { icon: <Zap className="h-4 w-4" />, label: 'Sprints', pageId: 'sprints', badge: 2 },
+  { icon: <CalendarClock className="h-4 w-4" />, label: 'Planning', pageId: 'planning' },
+  { icon: <Calendar className="h-4 w-4" />, label: 'Calendar', pageId: 'calendar' },
+  { icon: <Flag className="h-4 w-4" />, label: 'Milestones', pageId: 'milestones' },
 ];
 
-const distributionItems: NavItemConfig[] = [
-  { icon: <Clock className="h-4 w-4" />, label: 'Scheduling', pageId: 'scheduling', badge: 1 },
-  { icon: <Send className="h-4 w-4" />, label: 'Publishing', pageId: 'publishing' },
-  { icon: <Radio className="h-4 w-4" />, label: 'Channels', pageId: 'channels' },
-  { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
+const communicationItems: NavItemConfig[] = [
+  { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages', badge: 3 },
+  { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings' },
+];
+
+const teamItems: NavItemConfig[] = [
+  { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
+  { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
 ];
 
 const analysisItems: NavItemConfig[] = [
@@ -202,22 +194,24 @@ const analysisItems: NavItemConfig[] = [
 const administrationItems: NavItemConfig[] = [
   { icon: <Users className="h-4 w-4" />, label: 'Users', pageId: 'users' },
   { icon: <Shield className="h-4 w-4" />, label: 'Roles & Permissions', pageId: 'roles' },
-  { icon: <Building2 className="h-4 w-4" />, label: 'Tenants', pageId: 'tenants' },
+  { icon: <Building2 className="h-4 w-4" />, label: 'Organizations', pageId: 'organizations' },
   { icon: <ScrollText className="h-4 w-4" />, label: 'Audit Log', pageId: 'audit' },
   { icon: <Settings className="h-4 w-4" />, label: 'Settings', pageId: 'settings' },
 ];
 
 const allNavItems: NavItemConfig[] = [
+  ...favoritesItems,
+  ...projectsItems,
   ...communicationItems,
-  ...contentManagementItems,
-  ...distributionItems,
+  ...teamItems,
   ...analysisItems,
   ...administrationItems,
 ];
 
+const favoritesPageIds: Set<string> = new Set(favoritesItems.map(i => i.pageId));
+const projectsPageIds: Set<string> = new Set(projectsItems.map(i => i.pageId));
 const communicationPageIds: Set<string> = new Set(communicationItems.map(i => i.pageId));
-const contentManagementPageIds: Set<string> = new Set(contentManagementItems.map(i => i.pageId));
-const distributionPageIds: Set<string> = new Set(distributionItems.map(i => i.pageId));
+const teamPageIds: Set<string> = new Set(teamItems.map(i => i.pageId));
 const analysisPageIds: Set<string> = new Set(analysisItems.map(i => i.pageId));
 const administrationPageIds: Set<string> = new Set(administrationItems.map(i => i.pageId));
 
@@ -225,9 +219,9 @@ export function AppSidebar() {
   const {
     activePage,
     setActivePage,
-    tenants,
-    activeTenantId,
-    setActiveTenant,
+    organizations,
+    activeOrganizationId,
+    setActiveOrganization,
     sidebarCollapsed,
     favorites,
     mobileSidebarOpen,
@@ -237,7 +231,7 @@ export function AppSidebar() {
   } = useAppStore();
   const { t } = useTranslation();
 
-  const activeTenant = tenants.find((t) => t.id === activeTenantId);
+  const activeOrganization = organizations.find((org) => org.id === activeOrganizationId);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Helper to get translated nav label by pageId
@@ -247,9 +241,10 @@ export function AppSidebar() {
   };
 
   // Filter out favorited items from section listings to avoid duplication
+  const favItems = favoritesItems.filter((i) => favorites.includes(i.pageId));
+  const projItems = projectsItems.filter((i) => !favorites.includes(i.pageId));
   const commItems = communicationItems.filter((i) => !favorites.includes(i.pageId));
-  const contentItems = contentManagementItems.filter((i) => !favorites.includes(i.pageId));
-  const distItems = distributionItems.filter((i) => !favorites.includes(i.pageId));
+  const teamItemsFiltered = teamItems.filter((i) => !favorites.includes(i.pageId));
   const anaItems = analysisItems.filter((i) => !favorites.includes(i.pageId));
   const adminItems = administrationItems.filter((i) => !favorites.includes(i.pageId));
   const favoriteItems = allNavItems.filter((i) => favorites.includes(i.pageId));
@@ -268,7 +263,7 @@ export function AppSidebar() {
 
   const sidebarContent = (
     <div className="flex flex-col h-screen bg-sidebar text-sidebar-foreground">
-      {/* Tenant Switcher - with gradient background */}
+      {/* Organization Switcher - with gradient background */}
       <div className="px-3 py-3 flex-shrink-0 bg-gradient-to-b from-sidebar-accent/50 to-transparent">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -284,18 +279,18 @@ export function AppSidebar() {
                   sidebarCollapsed && 'ring-2 ring-offset-1 ring-offset-sidebar'
                 )}
                 style={{
-                  backgroundColor: activeTenant?.color || '#3b82f6',
-                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeTenant?.color || '#3b82f6'}40` } : {}),
+                  backgroundColor: activeOrganization?.color || '#3b82f6',
+                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeOrganization?.color || '#3b82f6'}40` } : {}),
                 }}
               >
-                {activeTenant?.icon || '🏢'}
+                {activeOrganization?.icon || '🏢'}
               </div>
               {!sidebarCollapsed && (
                 <>
                   <div className="flex-1 text-left min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold truncate">
-                        {activeTenant?.name || 'Tenant'}
+                        {activeOrganization?.name || 'Organization'}
                       </span>
                       <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.18_250/0.15)] text-[oklch(0.55_0.18_250)]">
                         {t.topbar.pro}
@@ -303,9 +298,9 @@ export function AppSidebar() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/40">
                       <Globe className="h-2.5 w-2.5" />
-                      {activeTenant?.country || 'France'}
+                      {activeOrganization?.country || 'France'}
                       <span className="text-sidebar-foreground/20">·</span>
-                      {activeTenant?.memberCount || 0} {t.sidebar.members}
+                      {activeOrganization?.memberCount || 0} {t.sidebar.members}
                     </div>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
@@ -314,24 +309,24 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-56">
-            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">{t.sidebar.tenants}</div>
-            {tenants.map((tenant) => (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">{t.sidebar.organizations}</div>
+            {organizations.map((org) => (
               <DropdownMenuItem
-                key={tenant.id}
-                onClick={() => setActiveTenant(tenant.id)}
+                key={org.id}
+                onClick={() => setActiveOrganization(org.id)}
                 className="flex items-center gap-2.5 cursor-pointer"
               >
                 <div
                   className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: tenant.color }}
+                  style={{ backgroundColor: org.color }}
                 >
-                  {tenant.icon}
+                  {org.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="truncate block">{tenant.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{tenant.country}</span>
+                  <span className="truncate block">{org.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{org.country}</span>
                 </div>
-                {tenant.id === activeTenantId && (
+                {org.id === activeOrganizationId && (
                   <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]" />
                 )}
               </DropdownMenuItem>
@@ -342,17 +337,17 @@ export function AppSidebar() {
               onClick={() => useAppStore.getState().setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t.sidebar.createTenant}
+              {t.sidebar.createOrganization}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-[oklch(0.55_0.18_250)]">
               <LogOut className="h-4 w-4 mr-2" />
-              {t.sidebar.createTenant}
+              {t.sidebar.createOrganization}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Gradient border under tenant switcher */}
+      {/* Gradient border under organization switcher */}
       <div className="bg-gradient-to-r from-[oklch(0.55_0.18_250/0.3)] via-[oklch(0.55_0.18_250/0.1)] to-transparent h-px" />
 
       {/* Quick Stats mini-section */}
@@ -365,17 +360,17 @@ export function AppSidebar() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-sidebar-foreground">5</span>
-                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.contentDueToday}</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.tasksTodo}</span>
               </div>
             </div>
             <div className="w-px h-5 bg-sidebar-border/30" />
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <div className="p-1.5 rounded-md bg-cyan-500/10">
-                <CalendarClock className="h-3 w-3 text-cyan-600" />
+                <Video className="h-3 w-3 text-cyan-600" />
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-sidebar-foreground">2</span>
-                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.schedulingToday}</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.meetingsToday}</span>
               </div>
             </div>
           </div>
@@ -467,13 +462,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.1)] border border-sidebar-border/20"
-                    onClick={() => useAppStore.getState().setCreateContentDialogOpen(true)}
+                    onClick={() => useAppStore.getState().setCreateTaskDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
-                    {t.sidebar.quickContent}
+                    {t.sidebar.quickTask}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickContent}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickTask}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -483,13 +478,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-amber-500 hover:bg-amber-500/10 border border-sidebar-border/20"
-                    onClick={() => setActivePage('campaigns')}
+                    onClick={() => useAppStore.getState().setCreateProjectDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
-                    {t.sidebar.quickCampaign}
+                    {t.sidebar.quickProject}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickCampaign}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickProject}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -499,13 +494,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-rose-500 hover:bg-rose-500/10 border border-sidebar-border/20"
-                    onClick={() => setActivePage('scheduling')}
+                    onClick={() => setActivePage('time-tracking')}
                   >
-                    <Plus className="h-3 w-3" />
-                    {t.sidebar.quickSchedule}
+                    <Timer className="h-3 w-3" />
+                    {t.sidebar.quickTimeTracking}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickSchedule}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickTimeTracking}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -519,7 +514,7 @@ export function AppSidebar() {
 
       {/* Scrollable Navigation */}
       <ScrollArea className="flex-1 min-h-0 overflow-hidden px-2 py-1">
-        {/* Favorites */}
+        {/* Favorites (Pinned) */}
         {favoriteItems.length > 0 && (
           <>
             <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.pinned}</SectionLabel>
@@ -571,6 +566,27 @@ export function AppSidebar() {
           </>
         )}
 
+        {/* Projects Section */}
+        {projItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.projects}</SectionLabel>
+            <div className="space-y-0.5">
+              {projItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={getNavLabel(item.pageId)}
+                  pageId={item.pageId}
+                  badge={item.badge}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Communication Section */}
         {commItems.length > 0 && (
           <>
@@ -592,33 +608,12 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Content Management Section */}
-        {contentItems.length > 0 && (
+        {/* Team Section */}
+        {teamItemsFiltered.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.contentManagement}</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.team}</SectionLabel>
             <div className="space-y-0.5">
-              {contentItems.map((item) => (
-                <NavItem
-                  key={item.pageId}
-                  icon={item.icon}
-                  label={getNavLabel(item.pageId)}
-                  pageId={item.pageId}
-                  badge={item.badge}
-                  active={activePage === item.pageId}
-                  collapsed={sidebarCollapsed}
-                  onClick={() => handleNavClick(item.pageId)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Distribution Section */}
-        {distItems.length > 0 && (
-          <>
-            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.distribution}</SectionLabel>
-            <div className="space-y-0.5">
-              {distItems.map((item) => (
+              {teamItemsFiltered.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}

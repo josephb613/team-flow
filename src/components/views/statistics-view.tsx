@@ -7,24 +7,26 @@ import { Button } from '@/components/ui/button';
 import {
   BarChart3,
   TrendingUp,
-  Mail,
-  Eye,
-  MousePointer,
+  Clock,
   ArrowUpRight,
   ArrowDownRight,
   Activity,
   PieChart as PieChartIcon,
-  Clock,
-  FileText,
-  Megaphone,
+  CheckCircle2,
+  Gauge,
+  Target,
+  Timer,
   ChevronRight,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import {
-  mockNewsletters,
-  mockArticles,
-  mockAnnouncements,
-  mockCampaigns,
+  mockTasks,
+  mockProjects,
+  mockSprints,
+  mockTimeEntries,
+  mockUsers,
+  getUserName,
 } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
@@ -57,57 +59,8 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-// ─── Chart Colors (blue only) ────────────────────────────────────────
-const COLORS = [
-  'oklch(0.55 0.18 250)',
-  'oklch(0.65 0.15 250)',
-  'oklch(0.45 0.15 250)',
-  'oklch(0.55 0.18 250)',
-  'oklch(0.60 0.10 170)',
-];
-
-const PIE_COLORS = [
-  'oklch(0.55 0.18 250)',
-  'oklch(0.60 0.12 80)',
-  'oklch(0.55 0.18 25)',
-  'oklch(0.50 0.15 300)',
-  'oklch(0.65 0.10 200)',
-];
-
-// ─── Data Generators ─────────────────────────────────────────────────────────
-function generateWeeklyData(weeks: number) {
-  const data = [];
-  const now = new Date();
-  for (let i = weeks - 1; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i * 7);
-    const weekLabel = `S${String(weeks - i).padStart(2, '0')}`;
-    data.push({
-      name: weekLabel,
-      published: Math.floor(Math.random() * 8) + 3,
-      scheduled: Math.floor(Math.random() * 5) + 1,
-    });
-  }
-  return data;
-}
-
-function generateEngagementByType() {
-  return [
-    { name: 'Newsletter', engagement: 68, views: 450, clicks: 120 },
-    { name: 'Article', engagement: 45, views: 320, clicks: 85 },
-    { name: 'Annonce', engagement: 72, views: 280, clicks: 60 },
-    { name: 'Communiqué', engagement: 38, views: 190, clicks: 42 },
-  ];
-}
-
-function generateContentDistribution() {
-  return [
-    { name: 'Newsletters', value: 6 },
-    { name: 'Articles', value: 6 },
-    { name: 'Annonces', value: 4 },
-    { name: 'Campagnes', value: 5 },
-  ];
-}
+const COLORS = ['#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#8b5cf6'];
+const PIE_COLORS = ['#ef4444', '#f59e0b', '#06b6d4', '#64748b'];
 
 // ─── Period selector options ─────────────────────────────────────────────────
 const periods = [
@@ -121,117 +74,133 @@ type Period = typeof periods[number]['key'];
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function StatisticsView() {
-  const { t } = useTranslation();
-  const activeTenantId = useAppStore((s) => s.activeTenantId);
+  const { t, locale } = useTranslation();
   const [period, setPeriod] = useState<Period>('30d');
 
-  // Compute real metrics from mock data filtered by tenant
-  const tenantContent = useMemo(() => {
-    const newsletters = mockNewsletters.filter(n => n.tenantId === activeTenantId);
-    const articles = mockArticles.filter(a => a.tenantId === activeTenantId);
-    const announcements = mockAnnouncements.filter(a => a.tenantId === activeTenantId);
-    const campaigns = mockCampaigns.filter(c => c.tenantId === activeTenantId);
-    return { newsletters, articles, announcements, campaigns };
-  }, [activeTenantId]);
+  // ─── Compute PM Metrics ────────────────────────────────────────────────
+  const completedTasks = useMemo(() => mockTasks.filter(t => t.status === 'done').length, []);
+  const totalTasks = mockTasks.length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const publishedContent = useMemo(() => {
+  const sprintsDelivered = useMemo(() => mockSprints.filter(s => s.status === 'completed').length, []);
+  const avgVelocity = useMemo(() => {
+    const activeSprints = mockSprints.filter(s => s.status === 'active' || s.status === 'completed');
+    if (activeSprints.length === 0) return 0;
+    return Math.round(activeSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / activeSprints.length);
+  }, []);
+
+  const onTimeDelivery = useMemo(() => {
+    const doneTasks = mockTasks.filter(t => t.status === 'done');
+    if (doneTasks.length === 0) return 0;
+    const onTime = doneTasks.filter(t => new Date(t.updatedAt) <= new Date(t.dueDate)).length;
+    return Math.round((onTime / doneTasks.length) * 100);
+  }, []);
+
+  const totalTimeSpent = useMemo(() => mockTimeEntries.reduce((sum, te) => sum + te.hours, 0), []);
+
+  // ─── Chart Data: Task completion trend ──────────────────────────────────
+  const taskTrendData = useMemo(() => {
+    const weeks = period === '7d' ? 7 : period === '30d' ? 12 : 12;
+    const data = [];
+    for (let i = weeks - 1; i >= 0; i--) {
+      const label = `S${String(weeks - i).padStart(2, '0')}`;
+      data.push({
+        name: label,
+        completed: Math.floor(Math.random() * 6) + 2,
+        created: Math.floor(Math.random() * 5) + 3,
+      });
+    }
+    return data;
+  }, [period]);
+
+  // ─── Chart Data: Team workload ─────────────────────────────────────────
+  const workloadData = useMemo(() => {
+    return mockUsers.slice(0, 6).map(user => ({
+      name: user.name.split(' ')[0],
+      taches: user.taskCount,
+      terminees: Math.floor(user.taskCount * 0.6),
+    }));
+  }, []);
+
+  // ─── Chart Data: Priority distribution ─────────────────────────────────
+  const priorityData = useMemo(() => {
+    const priorityLabels = locale === 'fr'
+      ? { urgent: 'Urgent', high: 'Élevée', medium: 'Moyenne', low: 'Basse' }
+      : { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
     return [
-      ...tenantContent.newsletters.filter(n => n.status === 'published'),
-      ...tenantContent.articles.filter(a => a.status === 'published'),
-      ...tenantContent.announcements.filter(a => a.status === 'published'),
-    ].length;
-  }, [tenantContent]);
-
-  const newslettersSent = tenantContent.newsletters.filter(n => n.status === 'published').length;
-
-  const avgOpenRate = useMemo(() => {
-    const published = tenantContent.newsletters.filter(n => n.status === 'published' && n.openRate > 0);
-    if (published.length === 0) return 0;
-    return Math.round(published.reduce((sum, n) => sum + n.openRate, 0) / published.length * 10) / 10;
-  }, [tenantContent]);
-
-  const avgClickRate = useMemo(() => {
-    const published = tenantContent.newsletters.filter(n => n.status === 'published' && n.clickRate > 0);
-    if (published.length === 0) return 0;
-    return Math.round(published.reduce((sum, n) => sum + n.clickRate, 0) / published.length * 10) / 10;
-  }, [tenantContent]);
-
-  const engagementRate = useMemo(() => {
-    return Math.round((avgOpenRate * 0.4 + avgClickRate * 0.6) * 10) / 10;
-  }, [avgOpenRate, avgClickRate]);
-
-  // Generate chart data based on period
-  const weeksCount = period === '7d' ? 7 : period === '30d' ? 12 : period === '90d' ? 12 : 12;
-  const weeklyData = useMemo(() => generateWeeklyData(weeksCount), [weeksCount]);
-  const engagementData = useMemo(() => generateEngagementByType(), []);
-  const contentDistribution = useMemo(() => generateContentDistribution(), []);
+      { name: priorityLabels.urgent, value: mockTasks.filter(t => t.priority === 'urgent').length },
+      { name: priorityLabels.high, value: mockTasks.filter(t => t.priority === 'high').length },
+      { name: priorityLabels.medium, value: mockTasks.filter(t => t.priority === 'medium').length },
+      { name: priorityLabels.low, value: mockTasks.filter(t => t.priority === 'low').length },
+    ];
+  }, [locale]);
 
   const stats = [
     {
-      title: t.statistics.contentPublished,
-      value: publishedContent,
+      title: t.statistics.tasksCompleted,
+      value: completedTasks,
       change: '+12%',
       trend: 'up' as const,
-      icon: FileText,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
+      icon: CheckCircle2,
+      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+      iconBg: 'bg-emerald-500/15',
+      iconColor: 'text-emerald-600',
+      borderAccent: 'border-emerald-500/20',
     },
     {
-      title: t.statistics.newslettersSent,
-      value: newslettersSent,
-      change: '+8%',
+      title: t.statistics.sprintsDelivered,
+      value: sprintsDelivered,
+      change: '+2',
       trend: 'up' as const,
-      icon: Mail,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      iconBg: 'bg-blue-500/15',
-      iconColor: 'text-blue-600',
-      borderAccent: 'border-blue-500/20',
-    },
-    {
-      title: t.statistics.openRate,
-      value: `${avgOpenRate}%`,
-      change: '+3.2%',
-      trend: 'up' as const,
-      icon: Eye,
+      icon: Gauge,
       gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
       iconBg: 'bg-amber-500/15',
       iconColor: 'text-amber-600',
       borderAccent: 'border-amber-500/20',
     },
     {
-      title: t.statistics.clickRate,
-      value: `${avgClickRate}%`,
-      change: '-1.1%',
-      trend: 'down' as const,
-      icon: MousePointer,
-      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
-      iconBg: 'bg-rose-500/15',
-      iconColor: 'text-rose-600',
-      borderAccent: 'border-rose-500/20',
-    },
-    {
-      title: t.statistics.conversionRate,
-      value: '4.8%',
-      change: '+0.6%',
+      title: t.statistics.velocity,
+      value: avgVelocity,
+      change: '+5',
       trend: 'up' as const,
-      icon: TrendingUp,
+      icon: Zap,
       gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
       iconBg: 'bg-cyan-500/15',
       iconColor: 'text-cyan-600',
       borderAccent: 'border-cyan-500/20',
     },
     {
-      title: t.statistics.engagement,
-      value: `${engagementRate}%`,
+      title: t.statistics.completionRate,
+      value: `${completionRate}%`,
+      change: '+3.2%',
+      trend: 'up' as const,
+      icon: Target,
+      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+      iconBg: 'bg-teal-500/15',
+      iconColor: 'text-teal-600',
+      borderAccent: 'border-teal-500/20',
+    },
+    {
+      title: t.statistics.timeSpent,
+      value: `${Math.round(totalTimeSpent)}h`,
+      change: '+8h',
+      trend: 'up' as const,
+      icon: Timer,
+      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
+      iconBg: 'bg-rose-500/15',
+      iconColor: 'text-rose-600',
+      borderAccent: 'border-rose-500/20',
+    },
+    {
+      title: t.statistics.onTimeDelivery,
+      value: `${onTimeDelivery}%`,
       change: '+2.4%',
       trend: 'up' as const,
-      icon: Activity,
-      gradient: 'from-[oklch(0.55_0.18_250/0.1)] via-[oklch(0.55_0.18_250/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.18_250/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.18_250)]',
-      borderAccent: 'border-[oklch(0.55_0.18_250/0.2)]',
+      icon: TrendingUp,
+      gradient: 'from-[oklch(0.55_0.18_160/0.1)] via-[oklch(0.55_0.18_160/0.05)] to-transparent',
+      iconBg: 'bg-[oklch(0.55_0.18_160/0.15)]',
+      iconColor: 'text-[oklch(0.55_0.18_160)]',
+      borderAccent: 'border-[oklch(0.55_0.18_160/0.2)]',
     },
   ];
 
@@ -251,7 +220,7 @@ export function StatisticsView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.statistics.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Mesurez les performances de votre communication
+            {locale === 'fr' ? 'Mesurez les performances de vos projets et équipes' : 'Measure your projects and team performance'}
           </p>
         </div>
         {/* Period Selector */}
@@ -263,7 +232,7 @@ export function StatisticsView() {
               size="sm"
               className={cn(
                 'h-7 text-xs px-3',
-                period === p.key && 'bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.50_0.18_250)] text-white shadow-sm',
+                period === p.key && 'bg-[oklch(0.55_0.18_160)] hover:bg-[oklch(0.50_0.18_160)] text-white shadow-sm',
               )}
               onClick={() => setPeriod(p.key)}
             >
@@ -290,7 +259,7 @@ export function StatisticsView() {
                   <p className="text-lg font-extrabold tracking-tight">{stat.value}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{stat.title}</p>
                   <div className="flex items-center gap-1 mt-1.5">
-                    <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${stat.trend === 'up' ? 'bg-blue-500/10 text-blue-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                    <div className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${stat.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
                       {stat.trend === 'up' ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
                       {stat.change}
                     </div>
@@ -304,45 +273,47 @@ export function StatisticsView() {
 
       {/* ─── Charts Row 1 ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Area Chart - Content published over time */}
+        {/* Area Chart - Task completion trend */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                    <Activity className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
+                    <Activity className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t.statistics.contentPublished}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Contenus publiés vs planifiés</p>
+                    <CardTitle className="text-sm font-semibold">{t.statistics.tasksCompleted}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {locale === 'fr' ? 'Tâches terminées vs créées' : 'Tasks completed vs created'}
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-[oklch(0.55_0.18_250/0.05)]">
-                  Détails <ChevronRight className="h-3 w-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
+                  {locale === 'fr' ? 'Détails' : 'Details'} <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="h-[280px] mt-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyData}>
+                  <AreaChart data={taskTrendData}>
                     <defs>
-                      <linearGradient id="statsPublishedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="oklch(0.55 0.18 250)" stopOpacity={0} />
+                      <linearGradient id="statsCompletedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
-                      <linearGradient id="statsScheduledGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0.1} />
-                        <stop offset="100%" stopColor="oklch(0.65 0.15 250)" stopOpacity={0} />
+                      <linearGradient id="statsCreatedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.1} />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Area type="monotone" dataKey="published" stroke="oklch(0.55 0.18 250)" fill="url(#statsPublishedGrad)" strokeWidth={2.5} name="Publiés" />
-                    <Area type="monotone" dataKey="scheduled" stroke="oklch(0.65 0.18 250 / 0.7)" fill="url(#statsScheduledGrad)" strokeWidth={2} strokeDasharray="5 5" name="Planifiés" />
+                    <Area type="monotone" dataKey="completed" stroke="#10b981" fill="url(#statsCompletedGrad)" strokeWidth={2.5} name={locale === 'fr' ? 'Terminées' : 'Completed'} />
+                    <Area type="monotone" dataKey="created" stroke="#f59e0b80" fill="url(#statsCreatedGrad)" strokeWidth={2} strokeDasharray="5 5" name={locale === 'fr' ? 'Créées' : 'Created'} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -350,7 +321,7 @@ export function StatisticsView() {
           </Card>
         </motion.div>
 
-        {/* Bar Chart - Engagement by content type */}
+        {/* Bar Chart - Team workload */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
@@ -360,8 +331,10 @@ export function StatisticsView() {
                     <BarChart3 className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t.statistics.engagement}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Engagement par type de contenu</p>
+                    <CardTitle className="text-sm font-semibold">{locale === 'fr' ? 'Charge de travail' : 'Team Workload'}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {locale === 'fr' ? 'Tâches par membre de l\'équipe' : 'Tasks per team member'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -369,13 +342,13 @@ export function StatisticsView() {
             <CardContent>
               <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={engagementData} barGap={4}>
+                  <BarChart data={workloadData} barGap={4}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dy={8} />
                     <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--muted)', radius: 4 }} />
-                    <Bar dataKey="engagement" fill="oklch(0.55 0.18 250)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Engagement %" />
-                    <Bar dataKey="clicks" fill="oklch(0.55 0.18 250 / 0.3)" radius={[6, 6, 0, 0]} maxBarSize={40} name="Clics" />
+                    <Bar dataKey="taches" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} name={locale === 'fr' ? 'Tâches' : 'Tasks'} />
+                    <Bar dataKey="terminees" fill="#10b98130" radius={[6, 6, 0, 0]} maxBarSize={40} name={locale === 'fr' ? 'Terminées' : 'Completed'} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -386,18 +359,20 @@ export function StatisticsView() {
 
       {/* ─── Charts Row 2 ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Pie Chart - Content distribution by type */}
+        {/* Pie Chart - Priority distribution */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/15">
-                    <PieChartIcon className="h-4 w-4 text-blue-600" />
+                  <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/15">
+                    <PieChartIcon className="h-4 w-4 text-rose-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t.statistics.audience}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Distribution des contenus par type</p>
+                    <CardTitle className="text-sm font-semibold">{locale === 'fr' ? 'Répartition par priorité' : 'Priority Distribution'}</CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {locale === 'fr' ? 'Distribution des tâches par priorité' : 'Task distribution by priority'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -407,7 +382,7 @@ export function StatisticsView() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={contentDistribution}
+                      data={priorityData}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -415,7 +390,7 @@ export function StatisticsView() {
                       paddingAngle={4}
                       dataKey="value"
                     >
-                      {contentDistribution.map((_, index) => (
+                      {priorityData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
@@ -431,17 +406,19 @@ export function StatisticsView() {
           </Card>
         </motion.div>
 
-        {/* Quick Insights */}
+        {/* Sprint Velocity Insights */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)]">
-                  <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
+                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
+                  <Sparkles className="h-4 w-4 text-teal-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold">Insights rapides</CardTitle>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Recommandations basées sur vos données</p>
+                  <CardTitle className="text-sm font-semibold">{locale === 'fr' ? 'Insights sprint' : 'Sprint Insights'}</CardTitle>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {locale === 'fr' ? 'Recommandations basées sur vos données' : 'Recommendations based on your data'}
+                  </p>
                 </div>
               </div>
             </CardHeader>
@@ -449,32 +426,32 @@ export function StatisticsView() {
               <div className="space-y-3">
                 {[
                   {
-                    title: 'Meilleur créneau d\'envoi',
-                    value: 'Mardi 9h-10h',
-                    description: 'Vos newsletters ont le taux d\'ouverture le plus élevé le mardi matin',
-                    color: 'text-blue-600',
-                    bg: 'bg-blue-500/10',
+                    title: locale === 'fr' ? 'Vélocité moyenne' : 'Average velocity',
+                    value: `${avgVelocity} pts`,
+                    description: locale === 'fr' ? 'La vélocité de votre équipe est stable cette semaine' : 'Your team velocity is stable this week',
+                    color: 'text-emerald-600',
+                    bg: 'bg-emerald-500/10',
                   },
                   {
-                    title: 'Type le plus engageant',
-                    value: 'Annonces',
-                    description: 'Les annonces obtiennent 72% d\'engagement en moyenne',
+                    title: locale === 'fr' ? 'Taux de livraison' : 'Delivery rate',
+                    value: `${completionRate}%`,
+                    description: locale === 'fr' ? `${completedTasks} tâches terminées sur ${totalTasks} au total` : `${completedTasks} tasks completed out of ${totalTasks} total`,
                     color: 'text-amber-600',
                     bg: 'bg-amber-500/10',
                   },
                   {
-                    title: 'Tendance d\'audience',
-                    value: '+15% ce mois',
-                    description: 'Votre audience croît régulièrement depuis 3 semaines',
-                    color: 'text-blue-600',
-                    bg: 'bg-blue-500/10',
+                    title: locale === 'fr' ? 'Temps moyen par tâche' : 'Avg. time per task',
+                    value: totalTimeSpent > 0 ? `${Math.round(totalTimeSpent / Math.max(completedTasks, 1))}h` : '0h',
+                    description: locale === 'fr' ? 'Durée moyenne pour compléter une tâche' : 'Average time to complete a task',
+                    color: 'text-cyan-600',
+                    bg: 'bg-cyan-500/10',
                   },
                   {
-                    title: 'Optimisation suggérée',
-                    value: 'Objets plus courts',
-                    description: 'Les objets de moins de 40 caractères ont 23% plus d\'ouvertures',
-                    color: 'text-[oklch(0.55_0.18_250)]',
-                    bg: 'bg-[oklch(0.55_0.18_250/0.1)]',
+                    title: locale === 'fr' ? 'Sprints en cours' : 'Active sprints',
+                    value: `${mockSprints.filter(s => s.status === 'active').length}`,
+                    description: locale === 'fr' ? 'Nombre de sprints actuellement actifs' : 'Number of currently active sprints',
+                    color: 'text-teal-600',
+                    bg: 'bg-teal-500/10',
                   },
                 ].map((insight, idx) => (
                   <motion.div

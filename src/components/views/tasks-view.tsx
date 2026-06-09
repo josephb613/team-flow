@@ -48,7 +48,7 @@ import {
   AlertTriangle,
   SlidersHorizontal,
 } from 'lucide-react';
-import { mockTasks, mockProjects, mockUsers } from '@/lib/mock-data';
+import { mockTasks, mockProjects, mockUsers, mockSprints } from '@/lib/mock-data';
 import { useTranslation } from '@/lib/i18n';
 import type { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';

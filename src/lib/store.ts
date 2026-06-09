@@ -1,17 +1,27 @@
 import { create } from 'zustand';
-import type { PageId, Tenant, Notification, UserRole } from './types';
+import type { PageId, Organization, Notification, UserRole } from './types';
 import type { Locale } from './i18n';
+
+export type TaskViewMode = 'kanban' | 'list' | 'my-tasks';
+export type SprintViewMode = 'board' | 'list' | 'timeline';
 
 interface AppState {
   // Navigation
   activePage: PageId;
   setActivePage: (page: PageId) => void;
 
-  // Tenant (Multi-Tenant)
-  tenants: Tenant[];
+  // Organization (was Tenant)
+  organizations: Organization[];
+  activeOrganizationId: string;
+  setActiveOrganization: (id: string) => void;
+  addOrganization: (org: Organization) => void;
+
+  // Backward-compatible aliases
+  tenants: Organization[];
   activeTenantId: string;
   setActiveTenant: (id: string) => void;
-  addTenant: (tenant: Tenant) => void;
+  createContentDialogOpen: boolean;
+  setCreateContentDialogOpen: (open: boolean) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -35,17 +45,44 @@ interface AppState {
   favorites: string[];
   toggleFavorite: (pageId: string) => void;
 
-  // Content detail drawer
-  contentDetailOpen: boolean;
-  setContentDetailOpen: (open: boolean) => void;
-  selectedContent: Record<string, unknown> | null;
-  setSelectedContent: (content: Record<string, unknown> | null) => void;
+  // Task detail drawer
+  taskDetailOpen: boolean;
+  setTaskDetailOpen: (open: boolean) => void;
+  selectedTask: Record<string, unknown> | null;
+  setSelectedTask: (task: Record<string, unknown> | null) => void;
 
-  // Create content dialog
-  createContentDialogOpen: boolean;
-  setCreateContentDialogOpen: (open: boolean) => void;
-  createContentType: string;
-  setCreateContentType: (type: string) => void;
+  // Create task dialog
+  createTaskDialogOpen: boolean;
+  setCreateTaskDialogOpen: (open: boolean) => void;
+
+  // Create project dialog
+  createProjectDialogOpen: boolean;
+  setCreateProjectDialogOpen: (open: boolean) => void;
+
+  // Active project
+  activeProjectId: string | null;
+  setActiveProjectId: (id: string | null) => void;
+
+  // Task view mode
+  taskViewMode: TaskViewMode;
+  setTaskViewMode: (mode: TaskViewMode) => void;
+
+  // Sprint view mode
+  sprintViewMode: SprintViewMode;
+  setSprintViewMode: (mode: SprintViewMode) => void;
+
+  // Active sprint
+  activeSprintId: string | null;
+  setActiveSprintId: (id: string | null) => void;
+
+  // Timer state (time tracking)
+  timerRunning: boolean;
+  timerTaskId: string | null;
+  timerStartTime: number | null;
+  timerElapsed: number;
+  startTimer: (taskId: string) => void;
+  stopTimer: () => void;
+  tickTimer: () => void;
 
   // Shortcuts help dialog
   shortcutsHelpOpen: boolean;
@@ -83,8 +120,8 @@ interface AppState {
     email: string;
     avatar: string;
     role: UserRole;
-    tenantId: string;
-    tenantName: string;
+    organizationId: string;
+    organizationName: string;
   } | null;
   login: (email: string, password: string) => void;
   logout: () => void;
@@ -95,49 +132,49 @@ export const useAppStore = create<AppState>((set) => ({
   activePage: 'dashboard',
   setActivePage: (page) => set({ activePage: page }),
 
-  // Tenant (Multi-Tenant)
-  tenants: [
+  // Organization (was Tenant)
+  organizations: [
     {
-      id: 't-1',
+      id: 'org-1',
       name: 'Global Corp France',
       slug: 'global-corp-france',
-      type: 'country',
+      type: 'company',
       color: '#3b82f6',
-      icon: '🇫🇷',
+      icon: '🏢',
       country: 'France',
       memberCount: 24,
-      contentCount: 156,
+      projectCount: 8,
       isActive: true,
       createdAt: '2024-01-15',
     },
     {
-      id: 't-2',
+      id: 'org-2',
       name: 'Global Corp RDC',
       slug: 'global-corp-rdc',
       type: 'subsidiary',
       color: '#f59e0b',
-      icon: '🇨🇩',
+      icon: '🌍',
       country: 'RD Congo',
       memberCount: 12,
-      contentCount: 67,
+      projectCount: 4,
       isActive: true,
       createdAt: '2024-03-20',
     },
     {
-      id: 't-3',
+      id: 'org-3',
       name: 'TechBrand',
       slug: 'techbrand',
-      type: 'brand',
+      type: 'company',
       color: '#ef4444',
-      icon: '🏢',
+      icon: '💻',
       country: 'France',
       memberCount: 8,
-      contentCount: 42,
+      projectCount: 3,
       isActive: true,
       createdAt: '2024-06-10',
     },
     {
-      id: 't-4',
+      id: 'org-4',
       name: 'Marketing Dept',
       slug: 'marketing-dept',
       type: 'department',
@@ -145,14 +182,74 @@ export const useAppStore = create<AppState>((set) => ({
       icon: '📣',
       country: 'France',
       memberCount: 6,
-      contentCount: 89,
+      projectCount: 5,
       isActive: true,
       createdAt: '2024-08-01',
     },
   ],
-  activeTenantId: 't-1',
-  setActiveTenant: (id) => set({ activeTenantId: id, activePage: 'dashboard' }),
-  addTenant: (tenant) => set((s) => ({ tenants: [...s.tenants, tenant] })),
+  activeOrganizationId: 'org-1',
+  setActiveOrganization: (id) => set({ activeOrganizationId: id, activePage: 'dashboard' }),
+  addOrganization: (org) => set((s) => ({ organizations: [...s.organizations, org], tenants: [...s.organizations, org] })),
+
+  // Backward-compatible aliases (tenants = organizations)
+  tenants: [
+    {
+      id: 'org-1',
+      name: 'Global Corp France',
+      slug: 'global-corp-france',
+      type: 'company' as const,
+      color: '#3b82f6',
+      icon: '🏢',
+      country: 'France',
+      memberCount: 24,
+      projectCount: 8,
+      isActive: true,
+      createdAt: '2024-01-15',
+    },
+    {
+      id: 'org-2',
+      name: 'Global Corp RDC',
+      slug: 'global-corp-rdc',
+      type: 'subsidiary' as const,
+      color: '#f59e0b',
+      icon: '🌍',
+      country: 'RD Congo',
+      memberCount: 12,
+      projectCount: 4,
+      isActive: true,
+      createdAt: '2024-03-20',
+    },
+    {
+      id: 'org-3',
+      name: 'TechBrand',
+      slug: 'techbrand',
+      type: 'company' as const,
+      color: '#ef4444',
+      icon: '💻',
+      country: 'France',
+      memberCount: 8,
+      projectCount: 3,
+      isActive: true,
+      createdAt: '2024-06-10',
+    },
+    {
+      id: 'org-4',
+      name: 'Marketing Dept',
+      slug: 'marketing-dept',
+      type: 'department' as const,
+      color: '#8b5cf6',
+      icon: '📣',
+      country: 'France',
+      memberCount: 6,
+      projectCount: 5,
+      isActive: true,
+      createdAt: '2024-08-01',
+    },
+  ],
+  activeTenantId: 'org-1',
+  setActiveTenant: (id) => set({ activeOrganizationId: id, activeTenantId: id, activePage: 'dashboard' as PageId }),
+  createContentDialogOpen: false,
+  setCreateContentDialogOpen: (open) => set({ createContentDialogOpen: open }),
 
   // Sidebar
   sidebarCollapsed: false,
@@ -168,66 +265,66 @@ export const useAppStore = create<AppState>((set) => ({
   notifications: [
     {
       id: 'n1',
-      type: 'validation_requested',
-      title: 'Validation demandée',
-      message: 'L\'article "Résultats Q2 2025" attend votre validation',
+      type: 'task_assigned',
+      title: 'Tâche assignée',
+      message: 'Vous avez été assigné à "Refonte UI Dashboard"',
       read: false,
       timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     },
     {
       id: 'n2',
-      type: 'content_approved',
-      title: 'Contenu approuvé',
-      message: 'La newsletter "Flash Info Juin" a été approuvée',
+      type: 'task_completed',
+      title: 'Tâche terminée',
+      message: 'Jean-Pierre a terminé "API endpoints sprint 4"',
       read: false,
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n3',
-      type: 'content_published',
-      title: 'Publication effectuée',
-      message: 'L\'annonce "Mise à jour système" a été publiée',
+      type: 'sprint_started',
+      title: 'Sprint démarré',
+      message: 'Le Sprint 4 de "Refonte Platform" a démarré',
       read: false,
       timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n4',
-      type: 'send_failed',
-      title: 'Échec d\'envoi',
-      message: 'L\'envoi de la newsletter "Weekly Digest" a échoué',
+      type: 'deadline_approaching',
+      title: 'Échéance proche',
+      message: 'La tâche "Module paiement" est due demain',
       read: false,
       timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n5',
-      type: 'new_assignment',
-      title: 'Nouvelle attribution',
-      message: 'Vous avez été assigné à l\'article "Guide interne"',
+      type: 'mention',
+      title: 'Mention dans un commentaire',
+      message: '@vous dans "Sprint Planning Q3"',
       read: true,
       timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n6',
-      type: 'comment_mention',
-      title: 'Mention dans un commentaire',
-      message: '@vous dans "Stratégie contenu Q3"',
+      type: 'comment_added',
+      title: 'Nouveau commentaire',
+      message: 'Sophie a commenté "Migration base de données"',
       read: true,
       timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n7',
-      type: 'system',
-      title: 'Mise à jour système',
-      message: 'ContentFlow v3.2 est disponible',
+      type: 'meeting_reminder',
+      title: 'Rappel réunion',
+      message: 'Daily standup dans 15 minutes',
       read: true,
       timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n8',
-      type: 'validation_requested',
-      title: 'Validation demandée',
-      message: 'Le communiqué "Partenariat stratégique" attend validation',
-      read: false,
+      type: 'system',
+      title: 'Mise à jour système',
+      message: 'TeamFlow PM v2.1 est disponible',
+      read: true,
       timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
     },
   ],
@@ -249,7 +346,7 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   // Favorites
-  favorites: ['dashboard', 'newsletters', 'articles'],
+  favorites: ['dashboard', 'projects', 'my-tasks'],
   toggleFavorite: (pageId) =>
     set((s) => ({
       favorites: s.favorites.includes(pageId)
@@ -257,17 +354,47 @@ export const useAppStore = create<AppState>((set) => ({
         : [...s.favorites, pageId],
     })),
 
-  // Content detail drawer
-  contentDetailOpen: false,
-  setContentDetailOpen: (open) => set({ contentDetailOpen: open }),
-  selectedContent: null,
-  setSelectedContent: (content) => set({ selectedContent: content, contentDetailOpen: content !== null }),
+  // Task detail drawer
+  taskDetailOpen: false,
+  setTaskDetailOpen: (open) => set({ taskDetailOpen: open }),
+  selectedTask: null,
+  setSelectedTask: (task) => set({ selectedTask: task, taskDetailOpen: task !== null }),
 
-  // Create content dialog
-  createContentDialogOpen: false,
-  setCreateContentDialogOpen: (open) => set({ createContentDialogOpen: open }),
-  createContentType: 'article',
-  setCreateContentType: (type) => set({ createContentType: type }),
+  // Create task dialog
+  createTaskDialogOpen: false,
+  setCreateTaskDialogOpen: (open) => set({ createTaskDialogOpen: open }),
+
+  // Create project dialog
+  createProjectDialogOpen: false,
+  setCreateProjectDialogOpen: (open) => set({ createProjectDialogOpen: open }),
+
+  // Active project
+  activeProjectId: null,
+  setActiveProjectId: (id) => set({ activeProjectId: id }),
+
+  // Task view mode
+  taskViewMode: 'kanban',
+  setTaskViewMode: (mode) => set({ taskViewMode: mode }),
+
+  // Sprint view mode
+  sprintViewMode: 'board',
+  setSprintViewMode: (mode) => set({ sprintViewMode: mode }),
+
+  // Active sprint
+  activeSprintId: null,
+  setActiveSprintId: (id) => set({ activeSprintId: id }),
+
+  // Timer state (time tracking)
+  timerRunning: false,
+  timerTaskId: null,
+  timerStartTime: null,
+  timerElapsed: 0,
+  startTimer: (taskId) => set({ timerRunning: true, timerTaskId: taskId, timerStartTime: Date.now(), timerElapsed: 0 }),
+  stopTimer: () => set((s) => ({ timerRunning: false, timerElapsed: s.timerStartTime ? s.timerElapsed + (Date.now() - s.timerStartTime) : s.timerElapsed, timerStartTime: null })),
+  tickTimer: () => set((s) => {
+    if (!s.timerRunning || !s.timerStartTime) return {};
+    return { timerElapsed: s.timerElapsed + (Date.now() - s.timerStartTime), timerStartTime: Date.now() };
+  }),
 
   // Shortcuts help dialog
   shortcutsHelpOpen: false,
@@ -276,7 +403,7 @@ export const useAppStore = create<AppState>((set) => ({
   setKeyboardShortcutsOpen: (open) => set({ keyboardShortcutsOpen: open }),
 
   // Recent items
-  recentItems: ['dashboard', 'newsletters', 'articles'],
+  recentItems: ['dashboard', 'projects', 'my-tasks'],
   addRecentItem: (pageId) =>
     set((s) => {
       const filtered = s.recentItems.filter((id) => id !== pageId);
@@ -296,7 +423,7 @@ export const useAppStore = create<AppState>((set) => ({
   createWorkspaceDialogOpen: false,
   setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
   addWorkspace: (workspace) => set((s) => ({
-    tenants: [...s.tenants, { ...workspace, type: 'brand', country: 'France', memberCount: 1, contentCount: 0, isActive: true, createdAt: new Date().toISOString() } as Tenant],
+    organizations: [...s.organizations, { ...workspace, type: 'team' as const, country: 'France', memberCount: 1, projectCount: 0, isActive: true, createdAt: new Date().toISOString() } as Organization],
   })),
 
   // i18n / Locale
@@ -314,9 +441,9 @@ export const useAppStore = create<AppState>((set) => ({
         name: 'Marie Dupont',
         email: 'marie@globalcorp.com',
         avatar: '',
-        role: 'tenant_admin' as UserRole,
-        tenantId: 't-1',
-        tenantName: 'Global Corp France',
+        role: 'org_admin' as UserRole,
+        organizationId: 'org-1',
+        organizationName: 'Global Corp France',
       },
     }),
   logout: () => set({ isAuthenticated: false, currentUser: null }),

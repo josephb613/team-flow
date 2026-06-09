@@ -93,10 +93,10 @@ export function LoginPage() {
     setIsLoading(false);
   };
 
-  // Stats data
+  // Stats data — PM-specific metrics
   const stats = [
     { value: 10, suffix: 'K+', label: t.login.statTeams },
-    { value: 2, suffix: 'M+', label: t.login.statTasks },
+    { value: 50, suffix: 'K+', label: t.login.statTasks },
     { value: 99.9, suffix: '%', label: t.login.statUptime },
     { value: 150, suffix: '+', label: t.login.statCountries },
   ];
@@ -165,14 +165,14 @@ export function LoginPage() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center shadow-lg shadow-[oklch(0.55_0.18_250)/20]">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
                   <path d="M2 17L12 22L22 17" stroke="white" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M2 12L12 17L22 12" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="text-2xl font-bold text-white tracking-tight">TeamFlow</span>
+              <span className="text-2xl font-bold text-white tracking-tight">TeamFlow PM</span>
             </div>
             <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
               {t.login.leftTitle1}<br />
@@ -185,9 +185,9 @@ export function LoginPage() {
             {/* Feature highlights */}
             <div className="space-y-4">
               {[
-                { icon: '⚡', title: t.login.feature1Title, desc: t.login.feature1Desc },
-                { icon: '📊', title: t.login.feature2Title, desc: t.login.feature2Desc },
-                { icon: '🔄', title: t.login.feature3Title, desc: t.login.feature3Desc },
+                { icon: '📋', title: t.login.feature1Title, desc: t.login.feature1Desc },
+                { icon: '📈', title: t.login.feature2Title, desc: t.login.feature2Desc },
+                { icon: '👥', title: t.login.feature3Title, desc: t.login.feature3Desc },
               ].map((feature, i) => (
                 <motion.div
                   key={i}
@@ -220,7 +220,7 @@ export function LoginPage() {
                   </span>
                   <span className="text-xs text-white/50">{stat.label}</span>
                   {i < stats.length - 1 && (
-                    <span className="text-white/20 ml-2">·</span>
+                    <span className="text-white/20 ml-2">&middot;</span>
                   )}
                 </div>
               ))}
@@ -302,7 +302,7 @@ export function LoginPage() {
                 <path d="M2 12L12 17L22 12" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-xl font-bold tracking-tight">TeamFlow</span>
+            <span className="text-xl font-bold tracking-tight">TeamFlow PM</span>
           </div>
 
           <div className="mb-8">
