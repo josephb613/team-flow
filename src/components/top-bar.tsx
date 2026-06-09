@@ -45,9 +45,9 @@ import {
   Settings,
   User,
   Plus,
-  CheckSquare,
-  FolderKanban,
-  Video,
+  FileText,
+  Target,
+  Clock,
   ChevronRight,
   Sparkles,
   AtSign,
@@ -65,7 +65,6 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import type { PageId } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
   assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
@@ -74,27 +73,35 @@ const notificationTypeIcons: Record<string, React.ReactNode> = {
   mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
   invitation: <Mail className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
   system: <Globe className="h-3.5 w-3.5 text-muted-foreground" />,
+  validation_requested: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.15_160)]" />,
+  content_approved: <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />,
+  content_published: <Globe className="h-3.5 w-3.5 text-cyan-500" />,
+  send_failed: <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />,
+  new_assignment: <ListChecks className="h-3.5 w-3.5 text-amber-500" />,
+  comment_mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
 };
+
+// Import CheckCircle for notification type icons
+import { CheckCircle } from 'lucide-react';
 
 export function TopBar() {
   const {
     activePage,
-    activeWorkspaceId,
-    workspaces,
+    activeTenantId,
+    tenants,
     sidebarCollapsed,
     toggleSidebar,
     setSearchOpen,
     notifications,
     setNotificationPanelOpen,
     setCreateWorkspaceDialogOpen,
-    setCreateTaskDialogOpen,
-    setCreateProjectDialogOpen,
+    setCreateContentDialogOpen,
+    setActivePage,
     currentUser,
     logout,
     setMobileSidebarOpen,
     locale,
     setLocale,
-    setActivePage,
     isApiLoading,
     focusMode,
     toggleFocusMode,
@@ -105,7 +112,19 @@ export function TopBar() {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const last3Notifications = notifications.slice(0, 3);
 
-  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+  const activeTenant = tenants.find((t) => t.id === activeTenantId);
+
+  // CMS role labels
+  const getRoleLabel = (role: string): string => {
+    const roles: Record<string, string> = {
+      super_admin: 'Super Admin',
+      tenant_admin: 'Admin Tenant',
+      editor: 'Éditeur',
+      contributor: 'Contributeur',
+      reader: 'Lecteur',
+    };
+    return roles[role] || role;
+  };
 
   const getPageName = (page: string): string => {
     const key = page as keyof typeof t.nav;
@@ -173,7 +192,7 @@ export function TopBar() {
                 className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
               >
                 <span onClick={() => setActivePage('dashboard')} className="flex items-center gap-1.5">
-                  {activeWorkspace?.name || 'TeamFlow'}
+                  {activeTenant?.name || 'ContentFlow'}
                   <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.15_160/0.12)] text-[oklch(0.55_0.15_160)] leading-none">
                     {t.topbar.pro}
                   </span>
@@ -294,7 +313,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Quick create dropdown - enhanced with teal ring on hover */}
+        {/* Quick create dropdown - CMS options */}
         <DropdownMenu>
           <TooltipProvider>
             <Tooltip>
@@ -320,24 +339,24 @@ export function TopBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setCreateTaskDialogOpen(true)}
+              onClick={() => setCreateContentDialogOpen(true)}
             >
-              <CheckSquare className="h-4 w-4 mr-2 text-[oklch(0.55_0.15_160)]" />
-              {t.topbar.newTask}
+              <FileText className="h-4 w-4 mr-2 text-[oklch(0.55_0.15_160)]" />
+              {t.topbar.newContent}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setCreateProjectDialogOpen(true)}
+              onClick={() => setActivePage('campaigns')}
             >
-              <FolderKanban className="h-4 w-4 mr-2 text-amber-500" />
-              {t.topbar.newProject}
+              <Target className="h-4 w-4 mr-2 text-amber-500" />
+              {t.topbar.newCampaign}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => setActivePage('meetings')}
+              onClick={() => setActivePage('scheduling')}
             >
-              <Video className="h-4 w-4 mr-2 text-rose-500" />
-              {t.topbar.scheduleMeeting}
+              <Clock className="h-4 w-4 mr-2 text-rose-500" />
+              {t.topbar.schedulePublish}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -345,7 +364,7 @@ export function TopBar() {
               onClick={() => setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t.sidebar.createWorkspace}
+              {t.sidebar.createTenant}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -492,7 +511,7 @@ export function TopBar() {
               <div className="relative">
                 <Avatar className="h-7 w-7">
                   <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                    {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                    {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                   </AvatarFallback>
                 </Avatar>
                 {/* Online status dot */}
@@ -500,10 +519,10 @@ export function TopBar() {
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight max-w-[120px] truncate">
-                  {currentUser?.name || 'Alex Thompson'}
+                  {currentUser?.name || 'Marie Dupont'}
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-tight">
-                  {currentUser?.role || t.topbar.admin}
+                  {currentUser?.role ? getRoleLabel(currentUser.role) : t.topbar.admin}
                 </span>
               </div>
             </Button>
@@ -512,12 +531,12 @@ export function TopBar() {
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Alex Thompson'}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'marie@globalcorp.com'}</p>
               </div>
             </div>
             <DropdownMenuSeparator />
@@ -546,7 +565,7 @@ export function TopBar() {
             <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-xs">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -555,12 +574,12 @@ export function TopBar() {
             <div className="px-2 py-1.5 flex items-center gap-3">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-[oklch(0.55_0.15_160)] text-white text-sm">
-                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                  {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'MD'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Alex Thompson'}</p>
-                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'marie@globalcorp.com'}</p>
               </div>
             </div>
             <DropdownMenuSeparator />

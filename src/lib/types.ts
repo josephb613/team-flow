@@ -1,148 +1,188 @@
 // ========================
-// Core Types for TeamFlow
+// Core Types for ContentFlow - SaaS CMS Multi-Tenant
 // ========================
 
 export type PageId =
+  // Communication
   | 'dashboard'
-  | 'tasks'
-  | 'projects'
-  | 'calendar'
-  | 'messages'
-  | 'meetings'
-  | 'files'
-  | 'wiki'
-  | 'activity'
-  | 'members'
-  | 'teams'
-  | 'reports'
+  | 'newsletters'
+  | 'articles'
+  | 'announcements'
+  | 'campaigns'
+  | 'editorial-calendar'
+  // Gestion de contenu
+  | 'library'
+  | 'media'
+  | 'templates'
+  | 'drafts'
+  | 'published'
+  | 'archive'
+  // Diffusion
+  | 'scheduling'
+  | 'publishing'
+  | 'channels'
   | 'automations'
-  | 'progress'
+  // Analyse
+  | 'statistics'
+  | 'reports'
+  // Administration
+  | 'users'
+  | 'roles'
+  | 'tenants'
+  | 'audit'
   | 'settings';
 
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
-export type MemberRole = 'admin' | 'member' | 'guest';
-export type MeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+// ─── Content Status (Editorial Workflow) ────────────────────────────────
+export type ContentStatus = 'draft' | 'review' | 'approved' | 'scheduled' | 'published' | 'archived';
+export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type ContentType = 'newsletter' | 'article' | 'announcement' | 'communique' | 'campaign';
 
-export interface Workspace {
+// ─── RBAC Roles ─────────────────────────────────────────────────────────
+export type UserRole = 'super_admin' | 'tenant_admin' | 'editor' | 'contributor' | 'reader';
+export type UserStatus = 'online' | 'away' | 'offline' | 'busy';
+
+// ─── Tenant ─────────────────────────────────────────────────────────────
+export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  type: 'country' | 'subsidiary' | 'organization' | 'brand' | 'department';
   color: string;
   icon: string;
+  country: string;
+  memberCount: number;
+  contentCount: number;
+  isActive: boolean;
   createdAt: string;
 }
 
-export interface User {
+// ─── User ───────────────────────────────────────────────────────────────
+export interface CMSUser {
   id: string;
   name: string;
   email: string;
   avatar: string;
-  role: MemberRole;
-  status: 'online' | 'away' | 'offline' | 'busy';
+  role: UserRole;
+  status: UserStatus;
+  tenantId: string;
+  tenantName: string;
+  lastActive: string;
+  contentCount: number;
 }
 
-export interface Project {
+// ─── Content Base ───────────────────────────────────────────────────────
+export interface ContentItem {
+  id: string;
+  type: ContentType;
+  title: string;
+  excerpt: string;
+  status: ContentStatus;
+  priority: ContentPriority;
+  authorId: string;
+  tenantId: string;
+  tags: string[];
+  featuredImage?: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  viewCount: number;
+  openRate?: number;
+  clickRate?: number;
+}
+
+// ─── Newsletter ─────────────────────────────────────────────────────────
+export interface Newsletter extends ContentItem {
+  type: 'newsletter';
+  subject: string;
+  recipientCount: number;
+  openRate: number;
+  clickRate: number;
+  bounceRate: number;
+  unsubscribeRate: number;
+  channelIds: string[];
+}
+
+// ─── Article ────────────────────────────────────────────────────────────
+export interface Article extends ContentItem {
+  type: 'article';
+  category: string;
+  readingTime: number;
+  commentCount: number;
+  likeCount: number;
+  shareCount: number;
+}
+
+// ─── Announcement ───────────────────────────────────────────────────────
+export interface Announcement extends ContentItem {
+  type: 'announcement';
+  urgency: 'info' | 'warning' | 'critical';
+  targetAudience: 'all' | 'tenant' | 'role';
+  acknowledgedCount: number;
+  totalRecipients: number;
+}
+
+// ─── Campaign ───────────────────────────────────────────────────────────
+export interface Campaign {
   id: string;
   name: string;
   description: string;
   color: string;
-  icon: string;
-  status: ProjectStatus;
-  progress: number;
-  members: string[];
-  taskCount: number;
-  completedTasks: number;
-  dueDate: string;
+  status: 'draft' | 'active' | 'paused' | 'completed';
+  startDate: string;
+  endDate: string;
+  tenantId: string;
+  contentCount: number;
+  publishedCount: number;
+  totalReach: number;
+  avgOpenRate: number;
+  avgClickRate: number;
+  channels: string[];
   createdAt: string;
 }
 
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  assigneeId: string;
-  projectId: string;
-  tags: string[];
-  dueDate: string;
-  createdAt: string;
-  subtasks: { id: string; title: string; completed: boolean }[];
-}
-
-export interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  channelId: string;
-  timestamp: string;
-  reactions: { emoji: string; users: string[] }[];
-  attachments: string[];
-}
-
-export interface Channel {
+// ─── Media ──────────────────────────────────────────────────────────────
+export interface MediaItem {
   id: string;
   name: string;
-  type: 'project' | 'direct' | 'team';
-  members: string[];
-  lastMessage?: Message;
-  unread: number;
-}
-
-export interface Meeting {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  duration: number;
-  attendees: string[];
-  status: MeetingStatus;
-  link?: string;
-  projectId?: string;
-}
-
-export interface FileItem {
-  id: string;
-  name: string;
-  type: 'document' | 'spreadsheet' | 'presentation' | 'image' | 'pdf' | 'other';
+  type: 'image' | 'video' | 'document' | 'audio' | 'other';
+  mimeType: string;
   size: number;
   url: string;
+  thumbnailUrl?: string;
   uploadedBy: string;
-  projectId?: string;
+  tenantId: string;
+  alt?: string;
+  width?: number;
+  height?: number;
   createdAt: string;
 }
 
-export interface WikiPage {
-  id: string;
-  title: string;
-  content: string;
-  parentId?: string;
-  lastEditedBy: string;
-  updatedAt: string;
-  icon: string;
-}
-
-export interface ActivityItem {
-  id: string;
-  type: 'task_created' | 'task_completed' | 'comment_added' | 'project_updated' | 'member_joined' | 'file_uploaded' | 'meeting_scheduled';
-  userId: string;
-  description: string;
-  targetId: string;
-  targetType: string;
-  timestamp: string;
-}
-
-export interface Team {
+// ─── Template ───────────────────────────────────────────────────────────
+export interface ContentTemplate {
   id: string;
   name: string;
   description: string;
-  color: string;
-  members: string[];
-  projects: string[];
+  type: ContentType;
+  thumbnail: string;
+  category: string;
+  isPremium: boolean;
+  usageCount: number;
+  createdAt: string;
 }
 
+// ─── Distribution Channel ───────────────────────────────────────────────
+export interface DistributionChannel {
+  id: string;
+  name: string;
+  type: 'email' | 'web' | 'intranet' | 'social' | 'push' | 'sms';
+  icon: string;
+  subscriberCount: number;
+  isActive: boolean;
+  lastSentAt?: string;
+}
+
+// ─── Automation ─────────────────────────────────────────────────────────
 export interface Automation {
   id: string;
   name: string;
@@ -151,11 +191,13 @@ export interface Automation {
   enabled: boolean;
   lastRun?: string;
   runCount: number;
+  tenantId: string;
 }
 
+// ─── Notification ───────────────────────────────────────────────────────
 export interface Notification {
   id: string;
-  type: 'mention' | 'assignment' | 'comment' | 'deadline' | 'invitation' | 'system';
+  type: 'validation_requested' | 'content_approved' | 'content_published' | 'send_failed' | 'new_assignment' | 'comment_mention' | 'system';
   title: string;
   message: string;
   read: boolean;
@@ -163,12 +205,37 @@ export interface Notification {
   actionUrl?: string;
 }
 
+// ─── Audit Log ──────────────────────────────────────────────────────────
+export interface AuditLogEntry {
+  id: string;
+  action: 'create' | 'update' | 'delete' | 'validate' | 'publish' | 'login' | 'logout' | 'permission_change';
+  entityType: string;
+  entityId: string;
+  userId: string;
+  tenantId: string;
+  details: string;
+  timestamp: string;
+}
+
+// ─── Calendar Event ─────────────────────────────────────────────────────
 export interface CalendarEvent {
   id: string;
   title: string;
   date: string;
   endDate?: string;
-  type: 'deadline' | 'meeting' | 'milestone' | 'reminder';
+  type: 'deadline' | 'publication' | 'review' | 'meeting' | 'campaign';
   color: string;
-  projectId?: string;
+  contentId?: string;
+  tenantId?: string;
+}
+
+// ─── Content Version ────────────────────────────────────────────────────
+export interface ContentVersion {
+  id: string;
+  contentId: string;
+  version: number;
+  content: string;
+  authorId: string;
+  createdAt: string;
+  changeNote?: string;
 }

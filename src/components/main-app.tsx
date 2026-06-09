@@ -4,25 +4,33 @@ import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DashboardView } from '@/components/views/dashboard-view';
-import { TasksView } from '@/components/views/tasks-view';
-import { ProjectsView } from '@/components/views/projects-view';
-import { CalendarView } from '@/components/views/calendar-view';
-import { MessagesView } from '@/components/views/messages-view';
-import { MeetingsView } from '@/components/views/meetings-view';
-import { FilesView } from '@/components/views/files-view';
-import { WikiView } from '@/components/views/wiki-view';
-import { ActivityView } from '@/components/views/activity-view';
-import { MembersView } from '@/components/views/members-view';
-import { TeamsView } from '@/components/views/teams-view';
-import { ReportsView } from '@/components/views/reports-view';
 import { AutomationsView } from '@/components/views/automations-view';
-import { ProgressBoard } from '@/components/views/progress-board';
+import { ReportsView } from '@/components/views/reports-view';
 import { SettingsView } from '@/components/views/settings-view';
+import {
+  NewslettersView,
+  ArticlesView,
+  AnnouncementsView,
+  CampaignsView,
+  EditorialCalendarView,
+  LibraryView,
+  MediaView,
+  TemplatesView,
+  DraftsView,
+  PublishedView,
+  ArchiveView,
+  SchedulingView,
+  PublishingView,
+  ChannelsView,
+  StatisticsView,
+  UsersView,
+  RolesView,
+  TenantsView,
+  AuditView,
+} from '@/components/views/stubs';
 import { TopBar } from '@/components/top-bar';
 import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
-import { CreateTaskDialog } from '@/components/create-task-dialog';
-import { CreateProjectDialog } from '@/components/create-project-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
@@ -32,25 +40,33 @@ import { Toaster } from '@/components/ui/sonner';
 import { AiChatWidget } from '@/components/ai-chat-widget';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ArrowUp, Plus, CheckSquare, FolderKanban, Video } from 'lucide-react';
+import { Heart, ArrowUp, Plus, FileText, Target, Clock } from 'lucide-react';
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { PageTransition } from '@/components/page-transition';
 
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
-  tasks: TasksView,
-  projects: ProjectsView,
-  calendar: CalendarView,
-  messages: MessagesView,
-  meetings: MeetingsView,
-  files: FilesView,
-  wiki: WikiView,
-  activity: ActivityView,
-  members: MembersView,
-  teams: TeamsView,
-  reports: ReportsView,
+  newsletters: NewslettersView,
+  articles: ArticlesView,
+  announcements: AnnouncementsView,
+  campaigns: CampaignsView,
+  'editorial-calendar': EditorialCalendarView,
+  library: LibraryView,
+  media: MediaView,
+  templates: TemplatesView,
+  drafts: DraftsView,
+  published: PublishedView,
+  archive: ArchiveView,
+  scheduling: SchedulingView,
+  publishing: PublishingView,
+  channels: ChannelsView,
   automations: AutomationsView,
-  progress: ProgressBoard,
+  statistics: StatisticsView,
+  reports: ReportsView,
+  users: UsersView,
+  roles: RolesView,
+  tenants: TenantsView,
+  audit: AuditView,
   settings: SettingsView,
 };
 
@@ -81,7 +97,7 @@ function AppFooter() {
       {/* Gradient top border */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
       <div className="flex items-center gap-3">
-        <span className="font-medium text-foreground/60">TeamFlow</span>
+        <span className="font-medium text-foreground/60">ContentFlow</span>
         <span className="text-muted-foreground/40">{t.footer.version}</span>
         <span className="hidden sm:inline text-muted-foreground/40">•</span>
         <span className="hidden sm:inline">{t.footer.rights}</span>
@@ -176,33 +192,33 @@ function MobileFAB() {
           >
             <button
               onClick={() => {
-                useAppStore.getState().setCreateTaskDialogOpen(true);
+                useAppStore.getState().setCreateContentDialogOpen(true);
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <CheckSquare className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
-              <span>{t.sidebar.quickTask}</span>
+              <FileText className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />
+              <span>{t.topbar.newContent}</span>
             </button>
             <button
               onClick={() => {
-                useAppStore.getState().setCreateProjectDialogOpen(true);
+                useAppStore.getState().setActivePage('campaigns');
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <FolderKanban className="h-4 w-4 text-amber-500" />
-              <span>{t.sidebar.quickProject}</span>
+              <Target className="h-4 w-4 text-amber-500" />
+              <span>{t.topbar.newCampaign}</span>
             </button>
             <button
               onClick={() => {
-                useAppStore.getState().setActivePage('meetings');
+                useAppStore.getState().setActivePage('scheduling');
                 setOpen(false);
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
             >
-              <Video className="h-4 w-4 text-rose-500" />
-              <span>{t.sidebar.quickMeeting}</span>
+              <Clock className="h-4 w-4 text-rose-500" />
+              <span>{t.topbar.schedulePublish}</span>
             </button>
           </motion.div>
         )}
@@ -278,12 +294,6 @@ export function MainApp() {
 
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog />
-
-      {/* Create Task Dialog */}
-      <CreateTaskDialog />
-
-      {/* Create Project Dialog */}
-      <CreateProjectDialog />
 
       {/* Keyboard Shortcuts Dialog (legacy, triggered by ?) */}
       <ShortcutsDialog />

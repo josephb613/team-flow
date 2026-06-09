@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { mockTasks, mockProjects, mockUsers, mockActivities, mockMeetings } from '@/lib/mock-data';
+import { mockTasks, mockProjects, mockUsers, mockAuditLogs, mockCalendarEvents } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/store';
 
 interface DashboardStats {
@@ -73,8 +73,8 @@ export function useDashboardData(): DashboardData {
       setProjects(fetchedProjects.length > 0 ? fetchedProjects : mockProjects as unknown as DataRecord[]);
       setUsers(fetchedUsers.length > 0 ? fetchedUsers : mockUsers as unknown as DataRecord[]);
       // Activities and meetings still use mock data (no API endpoint)
-      setActivities(mockActivities as unknown as DataRecord[]);
-      setMeetings(mockMeetings as unknown as DataRecord[]);
+      setActivities(mockAuditLogs as unknown as DataRecord[]);
+      setMeetings(mockCalendarEvents as unknown as DataRecord[]);
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -82,8 +82,8 @@ export function useDashboardData(): DashboardData {
       setTasks(mockTasks as unknown as DataRecord[]);
       setProjects(mockProjects as unknown as DataRecord[]);
       setUsers(mockUsers as unknown as DataRecord[]);
-      setActivities(mockActivities as unknown as DataRecord[]);
-      setMeetings(mockMeetings as unknown as DataRecord[]);
+      setActivities(mockAuditLogs as unknown as DataRecord[]);
+      setMeetings(mockCalendarEvents as unknown as DataRecord[]);
     } finally {
       setIsLoading(false);
       useAppStore.getState().setApiLoading(false);

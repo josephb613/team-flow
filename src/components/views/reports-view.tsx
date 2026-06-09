@@ -30,7 +30,7 @@ import {
   Clipboard,
   Check,
 } from 'lucide-react';
-import { mockTasks, mockProjects, mockUsers, mockTeams } from '@/lib/mock-data';
+import { mockTasks, mockProjects, mockUsers, mockTemplates } from '@/lib/mock-data';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -116,16 +116,17 @@ export function ReportsView() {
     { name: 'Low', value: mockTasks.filter((tk) => tk.priority === 'low').length },
   ];
 
-  // Team workload
-  const workloadData = mockTeams.map((team) => ({
-    name: team.name,
-    tasks: team.projects.reduce((acc, pid) => {
-      return acc + mockTasks.filter((tk) => tk.projectId === pid && tk.status !== 'done').length;
-    }, 0),
-    completed: team.projects.reduce((acc, pid) => {
-      return acc + mockTasks.filter((tk) => tk.projectId === pid && tk.status === 'done').length;
-    }, 0),
-  }));
+  // Team workload (use mockUsers grouped by tenant as teams)
+  const workloadData = mockUsers.reduce((acc: { name: string; tasks: number; completed: number }[], user) => {
+    const existing = acc.find((a) => a.name === user.tenantName);
+    if (existing) {
+      existing.tasks += user.contentCount;
+      existing.completed += Math.floor(user.contentCount * 0.6);
+    } else {
+      acc.push({ name: user.tenantName, tasks: user.contentCount, completed: Math.floor(user.contentCount * 0.6) });
+    }
+    return acc;
+  }, []);
 
   // ─── Export Handlers ─────────────────────────────────────────────────────
   const getExportData = useCallback((type: ExportType) => {

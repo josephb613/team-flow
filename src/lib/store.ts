@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PageId, Workspace, Notification, TaskStatus } from './types';
+import type { PageId, Tenant, Notification, UserRole } from './types';
 import type { Locale } from './i18n';
 
 interface AppState {
@@ -7,11 +7,11 @@ interface AppState {
   activePage: PageId;
   setActivePage: (page: PageId) => void;
 
-  // Workspace
-  workspaces: Workspace[];
-  activeWorkspaceId: string;
-  setActiveWorkspace: (id: string) => void;
-  addWorkspace: (workspace: Workspace) => void;
+  // Tenant (Multi-Tenant)
+  tenants: Tenant[];
+  activeTenantId: string;
+  setActiveTenant: (id: string) => void;
+  addTenant: (tenant: Tenant) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -25,8 +25,6 @@ interface AppState {
 
   // Notifications
   notifications: Notification[];
-  notificationCenterOpen: boolean;
-  setNotificationCenterOpen: (open: boolean) => void;
   notificationPanelOpen: boolean;
   setNotificationPanelOpen: (open: boolean) => void;
   markAllNotificationsRead: () => void;
@@ -37,38 +35,21 @@ interface AppState {
   favorites: string[];
   toggleFavorite: (pageId: string) => void;
 
-  // Task view mode
-  taskViewMode: 'list' | 'kanban' | 'my_tasks';
-  setTaskViewMode: (mode: 'list' | 'kanban' | 'my_tasks') => void;
+  // Content detail drawer
+  contentDetailOpen: boolean;
+  setContentDetailOpen: (open: boolean) => void;
+  selectedContent: Record<string, unknown> | null;
+  setSelectedContent: (content: Record<string, unknown> | null) => void;
 
-  // i18n / Locale
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-
-  // Task detail drawer
-  taskDetailOpen: boolean;
-  setTaskDetailOpen: (open: boolean) => void;
-  selectedTask: Record<string, unknown> | null;
-  setSelectedTask: (task: Record<string, unknown> | null) => void;
-  updateTaskStatus: (taskId: string, status: TaskStatus) => void;
-
-  // Create workspace dialog
-  createWorkspaceDialogOpen: boolean;
-  setCreateWorkspaceDialogOpen: (open: boolean) => void;
-
-  // Create task dialog
-  createTaskDialogOpen: boolean;
-  setCreateTaskDialogOpen: (open: boolean) => void;
-
-  // Create project dialog
-  createProjectDialogOpen: boolean;
-  setCreateProjectDialogOpen: (open: boolean) => void;
+  // Create content dialog
+  createContentDialogOpen: boolean;
+  setCreateContentDialogOpen: (open: boolean) => void;
+  createContentType: string;
+  setCreateContentType: (type: string) => void;
 
   // Shortcuts help dialog
   shortcutsHelpOpen: boolean;
   setShortcutsHelpOpen: (open: boolean) => void;
-
-  // Keyboard shortcuts dialog
   keyboardShortcutsOpen: boolean;
   setKeyboardShortcutsOpen: (open: boolean) => void;
 
@@ -90,29 +71,9 @@ interface AppState {
   toggleAiChat: () => void;
   setAiChatOpen: (open: boolean) => void;
 
-  // Time Tracker
-  timeTracker: {
-    isTracking: boolean;
-    isPaused: boolean;
-    activeTaskId: string | null;
-    activeTaskName: string | null;
-    activeProjectColor: string | null;
-    elapsedSeconds: number;
-    todayTotal: number;
-    todayTasksCount: number;
-    timeEntries: {
-      id: string;
-      taskName: string;
-      projectColor: string;
-      duration: number;
-      date: string;
-    }[];
-  };
-  startTracking: (taskId: string, taskName: string, projectColor: string) => void;
-  stopTracking: () => void;
-  pauseTracking: () => void;
-  resumeTracking: () => void;
-  tickTimer: () => void;
+  // i18n / Locale
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
 
   // Auth
   isAuthenticated: boolean;
@@ -121,7 +82,9 @@ interface AppState {
     name: string;
     email: string;
     avatar: string;
-    role: string;
+    role: UserRole;
+    tenantId: string;
+    tenantName: string;
   } | null;
   login: (email: string, password: string) => void;
   logout: () => void;
@@ -132,36 +95,64 @@ export const useAppStore = create<AppState>((set) => ({
   activePage: 'dashboard',
   setActivePage: (page) => set({ activePage: page }),
 
-  // Workspace
-  workspaces: [
+  // Tenant (Multi-Tenant)
+  tenants: [
     {
-      id: 'ws-1',
-      name: 'Acme Corp',
-      slug: 'acme-corp',
+      id: 't-1',
+      name: 'Global Corp France',
+      slug: 'global-corp-france',
+      type: 'country',
       color: '#10b981',
-      icon: '🏢',
+      icon: '🇫🇷',
+      country: 'France',
+      memberCount: 24,
+      contentCount: 156,
+      isActive: true,
       createdAt: '2024-01-15',
     },
     {
-      id: 'ws-2',
-      name: 'Design Team',
-      slug: 'design-team',
+      id: 't-2',
+      name: 'Global Corp RDC',
+      slug: 'global-corp-rdc',
+      type: 'subsidiary',
       color: '#f59e0b',
-      icon: '🎨',
+      icon: '🇨🇩',
+      country: 'RD Congo',
+      memberCount: 12,
+      contentCount: 67,
+      isActive: true,
       createdAt: '2024-03-20',
     },
     {
-      id: 'ws-3',
-      name: 'Side Project',
-      slug: 'side-project',
+      id: 't-3',
+      name: 'TechBrand',
+      slug: 'techbrand',
+      type: 'brand',
       color: '#ef4444',
-      icon: '🚀',
+      icon: '🏢',
+      country: 'France',
+      memberCount: 8,
+      contentCount: 42,
+      isActive: true,
       createdAt: '2024-06-10',
     },
+    {
+      id: 't-4',
+      name: 'Marketing Dept',
+      slug: 'marketing-dept',
+      type: 'department',
+      color: '#8b5cf6',
+      icon: '📣',
+      country: 'France',
+      memberCount: 6,
+      contentCount: 89,
+      isActive: true,
+      createdAt: '2024-08-01',
+    },
   ],
-  activeWorkspaceId: 'ws-1',
-  setActiveWorkspace: (id) => set({ activeWorkspaceId: id, activePage: 'dashboard' }),
-  addWorkspace: (workspace) => set((s) => ({ workspaces: [...s.workspaces, workspace] })),
+  activeTenantId: 't-1',
+  setActiveTenant: (id) => set({ activeTenantId: id, activePage: 'dashboard' }),
+  addTenant: (tenant) => set((s) => ({ tenants: [...s.tenants, tenant] })),
 
   // Sidebar
   sidebarCollapsed: false,
@@ -177,87 +168,69 @@ export const useAppStore = create<AppState>((set) => ({
   notifications: [
     {
       id: 'n1',
-      type: 'assignment',
-      title: 'New task assigned',
-      message: 'You have been assigned "Design homepage mockup"',
+      type: 'validation_requested',
+      title: 'Validation demandée',
+      message: 'L\'article "Résultats Q2 2025" attend votre validation',
       read: false,
-      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     },
     {
       id: 'n2',
-      type: 'comment',
-      title: 'New comment',
-      message: 'Sarah commented on "API Integration"',
+      type: 'content_approved',
+      title: 'Contenu approuvé',
+      message: 'La newsletter "Flash Info Juin" a été approuvée',
       read: false,
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n3',
-      type: 'deadline',
-      title: 'Deadline approaching',
-      message: 'Sprint 4 ends in 2 days',
+      type: 'content_published',
+      title: 'Publication effectuée',
+      message: 'L\'annonce "Mise à jour système" a été publiée',
       read: false,
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n4',
-      type: 'mention',
-      title: 'Mentioned in discussion',
-      message: '@you in #general channel',
+      type: 'send_failed',
+      title: 'Échec d\'envoi',
+      message: 'L\'envoi de la newsletter "Weekly Digest" a échoué',
+      read: false,
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: 'n5',
+      type: 'new_assignment',
+      title: 'Nouvelle attribution',
+      message: 'Vous avez été assigné à l\'article "Guide interne"',
       read: true,
       timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
     },
     {
-      id: 'n5',
-      type: 'invitation',
-      title: 'Workspace invitation',
-      message: 'You were invited to join "Marketing Team"',
-      read: false,
+      id: 'n6',
+      type: 'comment_mention',
+      title: 'Mention dans un commentaire',
+      message: '@vous dans "Stratégie contenu Q3"',
+      read: true,
       timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
     },
     {
-      id: 'n6',
-      type: 'system',
-      title: 'System update',
-      message: 'TeamFlow v2.4 is now available with new features',
-      read: true,
-      timestamp: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
-    },
-    {
       id: 'n7',
-      type: 'assignment',
-      title: 'New task assigned',
-      message: 'You have been assigned "Review pull request #142"',
+      type: 'system',
+      title: 'Mise à jour système',
+      message: 'ContentFlow v3.2 est disponible',
       read: true,
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: 'n8',
-      type: 'comment',
-      title: 'Reply to your comment',
-      message: 'Mike replied to your comment on "Database migration"',
-      read: true,
-      timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n9',
-      type: 'deadline',
-      title: 'Overdue task',
-      message: 'Task "Write unit tests" is 1 day overdue',
+      type: 'validation_requested',
+      title: 'Validation demandée',
+      message: 'Le communiqué "Partenariat stratégique" attend validation',
       read: false,
-      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n10',
-      type: 'mention',
-      title: 'Mentioned in wiki',
-      message: '@you in "Architecture Decisions" page',
-      read: true,
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
     },
   ],
-  notificationCenterOpen: false,
-  setNotificationCenterOpen: (open) => set({ notificationCenterOpen: open }),
   notificationPanelOpen: false,
   setNotificationPanelOpen: (open) => set({ notificationPanelOpen: open }),
   markAllNotificationsRead: () =>
@@ -276,7 +249,7 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   // Favorites
-  favorites: ['dashboard', 'tasks', 'messages'],
+  favorites: ['dashboard', 'newsletters', 'articles'],
   toggleFavorite: (pageId) =>
     set((s) => ({
       favorites: s.favorites.includes(pageId)
@@ -284,49 +257,26 @@ export const useAppStore = create<AppState>((set) => ({
         : [...s.favorites, pageId],
     })),
 
-  // Task view mode
-  taskViewMode: 'kanban',
-  setTaskViewMode: (mode) => set({ taskViewMode: mode }),
+  // Content detail drawer
+  contentDetailOpen: false,
+  setContentDetailOpen: (open) => set({ contentDetailOpen: open }),
+  selectedContent: null,
+  setSelectedContent: (content) => set({ selectedContent: content, contentDetailOpen: content !== null }),
 
-  // i18n / Locale
-  locale: 'fr',
-  setLocale: (locale) => set({ locale }),
-
-  // Task detail drawer
-  taskDetailOpen: false,
-  setTaskDetailOpen: (open) => set({ taskDetailOpen: open }),
-  selectedTask: null,
-  setSelectedTask: (task) => set({ selectedTask: task, taskDetailOpen: task !== null }),
-  updateTaskStatus: (taskId, status) =>
-    set((s) => {
-      if (!s.selectedTask) return s;
-      const task = s.selectedTask as Record<string, unknown> & { id: string; status: TaskStatus };
-      if (task.id !== taskId) return s;
-      return { selectedTask: { ...task, status } };
-    }),
-
-  // Create workspace dialog
-  createWorkspaceDialogOpen: false,
-  setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
-
-  // Create task dialog
-  createTaskDialogOpen: false,
-  setCreateTaskDialogOpen: (open) => set({ createTaskDialogOpen: open }),
-
-  // Create project dialog
-  createProjectDialogOpen: false,
-  setCreateProjectDialogOpen: (open) => set({ createProjectDialogOpen: open }),
+  // Create content dialog
+  createContentDialogOpen: false,
+  setCreateContentDialogOpen: (open) => set({ createContentDialogOpen: open }),
+  createContentType: 'article',
+  setCreateContentType: (type) => set({ createContentType: type }),
 
   // Shortcuts help dialog
   shortcutsHelpOpen: false,
   setShortcutsHelpOpen: (open) => set({ shortcutsHelpOpen: open }),
-
-  // Keyboard shortcuts dialog
   keyboardShortcutsOpen: false,
   setKeyboardShortcutsOpen: (open) => set({ keyboardShortcutsOpen: open }),
 
   // Recent items
-  recentItems: ['dashboard', 'tasks', 'messages'],
+  recentItems: ['dashboard', 'newsletters', 'articles'],
   addRecentItem: (pageId) =>
     set((s) => {
       const filtered = s.recentItems.filter((id) => id !== pageId);
@@ -347,78 +297,9 @@ export const useAppStore = create<AppState>((set) => ({
   toggleAiChat: () => set((s) => ({ aiChatOpen: !s.aiChatOpen })),
   setAiChatOpen: (open) => set({ aiChatOpen: open }),
 
-  // Time Tracker
-  timeTracker: {
-    isTracking: false,
-    isPaused: false,
-    activeTaskId: null,
-    activeTaskName: null,
-    activeProjectColor: null,
-    elapsedSeconds: 0,
-    todayTotal: 5420, // 1h 30m 20s pre-populated
-    todayTasksCount: 3,
-    timeEntries: [
-      { id: 'te-1', taskName: 'Design homepage hero section', projectColor: '#10b981', duration: 2400, date: new Date().toISOString() },
-      { id: 'te-2', taskName: 'API integration review', projectColor: '#f59e0b', duration: 1800, date: new Date().toISOString() },
-      { id: 'te-3', taskName: 'Sprint planning notes', projectColor: '#06b6d4', duration: 1220, date: new Date().toISOString() },
-    ],
-  },
-  startTracking: (taskId, taskName, projectColor) =>
-    set((s) => ({
-      timeTracker: {
-        ...s.timeTracker,
-        isTracking: true,
-        isPaused: false,
-        activeTaskId: taskId,
-        activeTaskName: taskName,
-        activeProjectColor: projectColor,
-        elapsedSeconds: 0,
-      },
-    })),
-  stopTracking: () =>
-    set((s) => {
-      const entry = s.timeTracker.activeTaskId
-        ? [{
-            id: `te-${Date.now()}`,
-            taskName: s.timeTracker.activeTaskName || 'Unknown task',
-            projectColor: s.timeTracker.activeProjectColor || '#10b981',
-            duration: s.timeTracker.elapsedSeconds,
-            date: new Date().toISOString(),
-          }]
-        : [];
-      return {
-        timeTracker: {
-          ...s.timeTracker,
-          isTracking: false,
-          isPaused: false,
-          activeTaskId: null,
-          activeTaskName: null,
-          activeProjectColor: null,
-          elapsedSeconds: 0,
-          todayTotal: s.timeTracker.todayTotal + s.timeTracker.elapsedSeconds,
-          todayTasksCount: s.timeTracker.todayTasksCount + (s.timeTracker.activeTaskId ? 1 : 0),
-          timeEntries: [...entry, ...s.timeTracker.timeEntries].slice(0, 10),
-        },
-      };
-    }),
-  pauseTracking: () =>
-    set((s) => ({
-      timeTracker: { ...s.timeTracker, isPaused: true },
-    })),
-  resumeTracking: () =>
-    set((s) => ({
-      timeTracker: { ...s.timeTracker, isPaused: false },
-    })),
-  tickTimer: () =>
-    set((s) => {
-      if (!s.timeTracker.isTracking || s.timeTracker.isPaused) return s;
-      return {
-        timeTracker: {
-          ...s.timeTracker,
-          elapsedSeconds: s.timeTracker.elapsedSeconds + 1,
-        },
-      };
-    }),
+  // i18n / Locale
+  locale: 'fr',
+  setLocale: (locale) => set({ locale }),
 
   // Auth
   isAuthenticated: false,
@@ -428,10 +309,12 @@ export const useAppStore = create<AppState>((set) => ({
       isAuthenticated: true,
       currentUser: {
         id: 'u-1',
-        name: 'Alex Thompson',
-        email: 'alex@acmecorp.com',
+        name: 'Marie Dupont',
+        email: 'marie@globalcorp.com',
         avatar: '',
-        role: 'Admin',
+        role: 'tenant_admin' as UserRole,
+        tenantId: 't-1',
+        tenantName: 'Global Corp France',
       },
     }),
   logout: () => set({ isAuthenticated: false, currentUser: null }),

@@ -1,257 +1,182 @@
+// ========================
+// Mock Data for ContentFlow - SaaS CMS Multi-Tenant
+// ========================
+
 import type {
-  User,
-  Project,
-  Task,
-  Channel,
-  Message,
-  Meeting,
-  FileItem,
-  WikiPage,
-  ActivityItem,
-  Team,
-  Automation,
-  CalendarEvent,
+  Newsletter, Article, Announcement, Campaign,
+  CMSUser, MediaItem, ContentTemplate, DistributionChannel,
+  Automation, AuditLogEntry, CalendarEvent,
 } from './types';
 
-export const mockUsers: User[] = [
-  { id: 'u-1', name: 'Alex Thompson', email: 'alex@acmecorp.com', avatar: '', role: 'admin', status: 'online' },
-  { id: 'u-2', name: 'Sarah Chen', email: 'sarah@acmecorp.com', avatar: '', role: 'member', status: 'online' },
-  { id: 'u-3', name: 'Marcus Rivera', email: 'marcus@acmecorp.com', avatar: '', role: 'member', status: 'away' },
-  { id: 'u-4', name: 'Emily Watson', email: 'emily@acmecorp.com', avatar: '', role: 'member', status: 'offline' },
-  { id: 'u-5', name: 'David Kim', email: 'david@acmecorp.com', avatar: '', role: 'guest', status: 'online' },
-  { id: 'u-6', name: 'Lisa Park', email: 'lisa@acmecorp.com', avatar: '', role: 'member', status: 'busy' },
-  { id: 'u-7', name: 'James Wilson', email: 'james@acmecorp.com', avatar: '', role: 'member', status: 'online' },
-  { id: 'u-8', name: 'Nina Patel', email: 'nina@acmecorp.com', avatar: '', role: 'admin', status: 'away' },
+// ─── Users ──────────────────────────────────────────────────────────────
+export const mockUsers: CMSUser[] = [
+  { id: 'u-1', name: 'Marie Dupont', email: 'marie@globalcorp.com', avatar: '', role: 'tenant_admin', status: 'online', tenantId: 't-1', tenantName: 'Global Corp France', lastActive: new Date().toISOString(), contentCount: 34 },
+  { id: 'u-2', name: 'Jean-Pierre Martin', email: 'jp.martin@globalcorp.com', avatar: '', role: 'editor', status: 'online', tenantId: 't-1', tenantName: 'Global Corp France', lastActive: new Date().toISOString(), contentCount: 28 },
+  { id: 'u-3', name: 'Sophie Laurent', email: 'sophie.l@globalcorp.com', avatar: '', role: 'editor', status: 'away', tenantId: 't-1', tenantName: 'Global Corp France', lastActive: new Date(Date.now() - 30 * 60000).toISOString(), contentCount: 22 },
+  { id: 'u-4', name: 'Patrick Mbeki', email: 'patrick@globalcorp-rdc.com', avatar: '', role: 'tenant_admin', status: 'online', tenantId: 't-2', tenantName: 'Global Corp RDC', lastActive: new Date().toISOString(), contentCount: 15 },
+  { id: 'u-5', name: 'Aminata Diallo', email: 'aminata@globalcorp-rdc.com', avatar: '', role: 'contributor', status: 'offline', tenantId: 't-2', tenantName: 'Global Corp RDC', lastActive: new Date(Date.now() - 2 * 3600000).toISOString(), contentCount: 8 },
+  { id: 'u-6', name: 'Lucas Bernard', email: 'lucas@techbrand.com', avatar: '', role: 'editor', status: 'busy', tenantId: 't-3', tenantName: 'TechBrand', lastActive: new Date(Date.now() - 10 * 60000).toISOString(), contentCount: 19 },
+  { id: 'u-7', name: 'Claire Moreau', email: 'claire@globalcorp.com', avatar: '', role: 'contributor', status: 'online', tenantId: 't-1', tenantName: 'Global Corp France', lastActive: new Date().toISOString(), contentCount: 12 },
+  { id: 'u-8', name: 'David Koffi', email: 'david@globalcorp-rdc.com', avatar: '', role: 'reader', status: 'offline', tenantId: 't-2', tenantName: 'Global Corp RDC', lastActive: new Date(Date.now() - 24 * 3600000).toISOString(), contentCount: 3 },
 ];
 
-export const mockProjects: Project[] = [
-  {
-    id: 'p-1', name: 'Website Redesign', description: 'Complete redesign of the company website with modern UI/UX',
-    color: '#10b981', icon: '🌐', status: 'active', progress: 65, members: ['u-1', 'u-2', 'u-3'],
-    taskCount: 24, completedTasks: 16, dueDate: '2025-03-15', createdAt: '2024-11-01',
-  },
-  {
-    id: 'p-2', name: 'Mobile App V2', description: 'Second version of our mobile application',
-    color: '#f59e0b', icon: '📱', status: 'active', progress: 40, members: ['u-2', 'u-4', 'u-5'],
-    taskCount: 32, completedTasks: 13, dueDate: '2025-04-30', createdAt: '2024-12-01',
-  },
-  {
-    id: 'p-3', name: 'API Integration', description: 'Third-party API integrations and microservices',
-    color: '#ef4444', icon: '⚡', status: 'active', progress: 80, members: ['u-1', 'u-3', 'u-6'],
-    taskCount: 18, completedTasks: 14, dueDate: '2025-02-28', createdAt: '2024-10-15',
-  },
-  {
-    id: 'p-4', name: 'Marketing Campaign', description: 'Q1 2025 marketing campaign planning and execution',
-    color: '#8b5cf6', icon: '📢', status: 'on_hold', progress: 25, members: ['u-4', 'u-7'],
-    taskCount: 15, completedTasks: 4, dueDate: '2025-05-01', createdAt: '2025-01-01',
-  },
-  {
-    id: 'p-5', name: 'Data Analytics Dashboard', description: 'Real-time analytics dashboard for business insights',
-    color: '#06b6d4', icon: '📊', status: 'active', progress: 55, members: ['u-1', 'u-6', 'u-8'],
-    taskCount: 20, completedTasks: 11, dueDate: '2025-03-31', createdAt: '2024-11-15',
-  },
-  {
-    id: 'p-6', name: 'Security Audit', description: 'Annual security audit and compliance review',
-    color: '#ec4899', icon: '🔒', status: 'completed', progress: 100, members: ['u-3', 'u-8'],
-    taskCount: 12, completedTasks: 12, dueDate: '2025-01-15', createdAt: '2024-09-01',
-  },
+// ─── Newsletters ────────────────────────────────────────────────────────
+export const mockNewsletters: Newsletter[] = [
+  { id: 'nl-1', type: 'newsletter', title: 'Flash Info Juin 2025', subject: 'Flash Info - Toutes les actualités du mois', excerpt: 'Récapitulatif des actualités importantes du mois de juin', status: 'published', priority: 'high', authorId: 'u-2', tenantId: 't-1', tags: ['mensuel', 'interne'], scheduledAt: '2025-06-01T09:00:00Z', publishedAt: '2025-06-01T09:05:00Z', createdAt: '2025-05-28T14:00:00Z', updatedAt: '2025-06-01T09:05:00Z', viewCount: 342, openRate: 68.5, clickRate: 24.3, bounceRate: 2.1, unsubscribeRate: 0.5, recipientCount: 450, channelIds: ['ch-1', 'ch-2'] },
+  { id: 'nl-2', type: 'newsletter', title: 'Weekly Digest #24', subject: 'Votre résumé hebdomadaire', excerpt: 'Les temps forts de la semaine du 2 au 6 juin', status: 'scheduled', priority: 'medium', authorId: 'u-3', tenantId: 't-1', tags: ['hebdomadaire', 'externe'], scheduledAt: '2025-06-09T08:00:00Z', createdAt: '2025-06-05T10:00:00Z', updatedAt: '2025-06-06T16:00:00Z', viewCount: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubscribeRate: 0, recipientCount: 520, channelIds: ['ch-1'] },
+  { id: 'nl-3', type: 'newsletter', title: 'Lettre aux partenaires', subject: 'Partenaires - Avancées et perspectives', excerpt: 'Informations destinées à nos partenaires stratégiques', status: 'review', priority: 'high', authorId: 'u-1', tenantId: 't-1', tags: ['partenaires', 'externe'], createdAt: '2025-06-04T11:00:00Z', updatedAt: '2025-06-06T15:00:00Z', viewCount: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubscribeRate: 0, recipientCount: 85, channelIds: ['ch-3'] },
+  { id: 'nl-4', type: 'newsletter', title: 'Bulletin RDC - Juin', subject: 'Actualités de Global Corp RDC', excerpt: 'Nouvelles de la filiale congolaise', status: 'draft', priority: 'medium', authorId: 'u-4', tenantId: 't-2', tags: ['mensuel', 'filiale'], createdAt: '2025-06-06T09:00:00Z', updatedAt: '2025-06-06T14:00:00Z', viewCount: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubscribeRate: 0, recipientCount: 120, channelIds: ['ch-1'] },
+  { id: 'nl-5', type: 'newsletter', title: 'Newsletter TechBrand #12', subject: 'TechBrand - Innovations et produits', excerpt: 'Dernières innovations de TechBrand', status: 'approved', priority: 'medium', authorId: 'u-6', tenantId: 't-3', tags: ['produit', 'externe'], createdAt: '2025-06-03T08:00:00Z', updatedAt: '2025-06-05T17:00:00Z', viewCount: 0, openRate: 0, clickRate: 0, bounceRate: 0, unsubscribeRate: 0, recipientCount: 2100, channelIds: ['ch-2', 'ch-4'] },
+  { id: 'nl-6', type: 'newsletter', title: 'Rapports Q1 2025', subject: 'Vos résultats du premier trimestre', excerpt: 'Bilan financier et opérationnel du Q1', status: 'archived', priority: 'low', authorId: 'u-1', tenantId: 't-1', tags: ['trimestriel', 'interne'], publishedAt: '2025-04-15T10:00:00Z', createdAt: '2025-04-10T09:00:00Z', updatedAt: '2025-04-15T10:00:00Z', viewCount: 892, openRate: 72.1, clickRate: 18.7, bounceRate: 1.8, unsubscribeRate: 0.3, recipientCount: 380, channelIds: ['ch-1'] },
 ];
 
-export const mockTasks: Task[] = [
-  {
-    id: 't-1', title: 'Design homepage hero section', description: 'Create a visually striking hero section with animations',
-    status: 'in_progress', priority: 'high', assigneeId: 'u-2', projectId: 'p-1',
-    tags: ['design', 'frontend'], dueDate: '2025-01-25', createdAt: '2025-01-15',
-    subtasks: [
-      { id: 'st-1', title: 'Create wireframes', completed: true },
-      { id: 'st-2', title: 'Design mockup in Figma', completed: true },
-      { id: 'st-3', title: 'Implement responsive layout', completed: false },
-    ],
-  },
-  {
-    id: 't-2', title: 'Set up authentication flow', description: 'Implement OAuth2 with Google and GitHub providers',
-    status: 'todo', priority: 'urgent', assigneeId: 'u-1', projectId: 'p-1',
-    tags: ['backend', 'security'], dueDate: '2025-01-22', createdAt: '2025-01-10',
-    subtasks: [
-      { id: 'st-4', title: 'Configure OAuth providers', completed: false },
-      { id: 'st-5', title: 'Build login UI', completed: false },
-    ],
-  },
-  {
-    id: 't-3', title: 'Create onboarding screens', description: 'Design and implement mobile onboarding flow',
-    status: 'review', priority: 'medium', assigneeId: 'u-4', projectId: 'p-2',
-    tags: ['design', 'mobile'], dueDate: '2025-01-28', createdAt: '2025-01-12',
-    subtasks: [
-      { id: 'st-6', title: 'Design screens', completed: true },
-      { id: 'st-7', title: 'Add animations', completed: false },
-    ],
-  },
-  {
-    id: 't-4', title: 'Implement payment API', description: 'Stripe payment integration for subscriptions',
-    status: 'in_progress', priority: 'high', assigneeId: 'u-3', projectId: 'p-2',
-    tags: ['backend', 'payments'], dueDate: '2025-01-30', createdAt: '2025-01-08',
-    subtasks: [
-      { id: 'st-8', title: 'Set up Stripe account', completed: true },
-      { id: 'st-9', title: 'Create webhook handlers', completed: true },
-      { id: 'st-10', title: 'Test payment flow', completed: false },
-    ],
-  },
-  {
-    id: 't-5', title: 'Write API documentation', description: 'Complete OpenAPI spec for all endpoints',
-    status: 'todo', priority: 'low', assigneeId: 'u-6', projectId: 'p-3',
-    tags: ['documentation'], dueDate: '2025-02-05', createdAt: '2025-01-14',
-    subtasks: [],
-  },
-  {
-    id: 't-6', title: 'Database migration script', description: 'Create migration scripts for the new schema',
-    status: 'done', priority: 'high', assigneeId: 'u-1', projectId: 'p-3',
-    tags: ['backend', 'database'], dueDate: '2025-01-20', createdAt: '2025-01-05',
-    subtasks: [
-      { id: 'st-11', title: 'Write migration SQL', completed: true },
-      { id: 'st-12', title: 'Test on staging', completed: true },
-    ],
-  },
-  {
-    id: 't-7', title: 'Performance optimization', description: 'Optimize bundle size and loading times',
-    status: 'in_progress', priority: 'medium', assigneeId: 'u-7', projectId: 'p-1',
-    tags: ['frontend', 'performance'], dueDate: '2025-02-01', createdAt: '2025-01-18',
-    subtasks: [
-      { id: 'st-13', title: 'Analyze bundle', completed: true },
-      { id: 'st-14', title: 'Implement code splitting', completed: false },
-    ],
-  },
-  {
-    id: 't-8', title: 'Design email templates', description: 'Create transactional email templates',
-    status: 'todo', priority: 'medium', assigneeId: 'u-4', projectId: 'p-4',
-    tags: ['design', 'email'], dueDate: '2025-02-10', createdAt: '2025-01-16',
-    subtasks: [],
-  },
-  {
-    id: 't-9', title: 'Setup CI/CD pipeline', description: 'Configure GitHub Actions for automated deployments',
-    status: 'review', priority: 'high', assigneeId: 'u-3', projectId: 'p-3',
-    tags: ['devops'], dueDate: '2025-01-24', createdAt: '2025-01-11',
-    subtasks: [
-      { id: 'st-15', title: 'Configure build pipeline', completed: true },
-      { id: 'st-16', title: 'Add deployment scripts', completed: true },
-      { id: 'st-17', title: 'Setup monitoring', completed: false },
-    ],
-  },
-  {
-    id: 't-10', title: 'User analytics dashboard', description: 'Build real-time user analytics with charts',
-    status: 'in_progress', priority: 'high', assigneeId: 'u-6', projectId: 'p-5',
-    tags: ['frontend', 'analytics'], dueDate: '2025-02-08', createdAt: '2025-01-13',
-    subtasks: [
-      { id: 'st-18', title: 'Design dashboard layout', completed: true },
-      { id: 'st-19', title: 'Implement charts', completed: false },
-      { id: 'st-20', title: 'Add filtering', completed: false },
-    ],
-  },
-  {
-    id: 't-11', title: 'Mobile push notifications', description: 'Implement Firebase push notifications',
-    status: 'todo', priority: 'medium', assigneeId: 'u-5', projectId: 'p-2',
-    tags: ['mobile', 'backend'], dueDate: '2025-02-15', createdAt: '2025-01-19',
-    subtasks: [],
-  },
-  {
-    id: 't-12', title: 'Security vulnerability scan', description: 'Run automated security scan and fix issues',
-    status: 'done', priority: 'urgent', assigneeId: 'u-8', projectId: 'p-6',
-    tags: ['security'], dueDate: '2025-01-18', createdAt: '2025-01-02',
-    subtasks: [
-      { id: 'st-21', title: 'Run OWASP scan', completed: true },
-      { id: 'st-22', title: 'Fix critical issues', completed: true },
-    ],
-  },
+// ─── Articles ───────────────────────────────────────────────────────────
+export const mockArticles: Article[] = [
+  { id: 'ar-1', type: 'article', title: 'Stratégie de communication 2025', excerpt: 'Notre nouvelle approche pour les communications internes et externes', status: 'published', priority: 'high', authorId: 'u-1', tenantId: 't-1', tags: ['stratégie', 'communication'], publishedAt: '2025-05-20T10:00:00Z', createdAt: '2025-05-15T14:00:00Z', updatedAt: '2025-05-20T10:00:00Z', viewCount: 567, category: 'Stratégie', readingTime: 8, commentCount: 12, likeCount: 34, shareCount: 8, clickRate: 12.5, openRate: 0 },
+  { id: 'ar-2', type: 'article', title: 'Guide du contributeur - Meilleures pratiques', excerpt: 'Comment rédiger des contenus efficaces pour notre plateforme', status: 'published', priority: 'medium', authorId: 'u-2', tenantId: 't-1', tags: ['guide', 'rédaction'], publishedAt: '2025-05-10T09:00:00Z', createdAt: '2025-05-01T11:00:00Z', updatedAt: '2025-05-10T09:00:00Z', viewCount: 324, category: 'Guide', readingTime: 12, commentCount: 8, likeCount: 21, shareCount: 5, clickRate: 8.2, openRate: 0 },
+  { id: 'ar-3', type: 'article', title: 'Résultats financiers Q2 2025', excerpt: 'Analyse des performances du deuxième trimestre', status: 'review', priority: 'urgent', authorId: 'u-3', tenantId: 't-1', tags: ['finance', 'rapport'], createdAt: '2025-06-05T08:00:00Z', updatedAt: '2025-06-06T16:00:00Z', viewCount: 0, category: 'Finance', readingTime: 15, commentCount: 3, likeCount: 0, shareCount: 0, clickRate: 0, openRate: 0 },
+  { id: 'ar-4', type: 'article', title: 'Nouvelles directives RGPD', excerpt: 'Mise à jour des procédures de conformité au RGPD', status: 'draft', priority: 'high', authorId: 'u-7', tenantId: 't-1', tags: ['rgpd', 'conformité'], createdAt: '2025-06-06T10:00:00Z', updatedAt: '2025-06-06T14:00:00Z', viewCount: 0, category: 'Conformité', readingTime: 6, commentCount: 0, likeCount: 0, shareCount: 0, clickRate: 0, openRate: 0 },
+  { id: 'ar-5', type: 'article', title: 'Inauguration bureau Kinshasa', excerpt: 'Ouverture de notre nouvelle succursale en RDC', status: 'approved', priority: 'medium', authorId: 'u-4', tenantId: 't-2', tags: ['inauguration', 'filiale'], createdAt: '2025-06-02T09:00:00Z', updatedAt: '2025-06-04T11:00:00Z', viewCount: 0, category: 'Événement', readingTime: 4, commentCount: 2, likeCount: 0, shareCount: 0, clickRate: 0, openRate: 0 },
+  { id: 'ar-6', type: 'article', title: 'Lancement produit TechFlow Pro', excerpt: 'Présentation de notre nouvelle solution TechFlow Pro', status: 'scheduled', priority: 'high', authorId: 'u-6', tenantId: 't-3', tags: ['produit', 'lancement'], scheduledAt: '2025-06-15T10:00:00Z', createdAt: '2025-06-01T08:00:00Z', updatedAt: '2025-06-06T09:00:00Z', viewCount: 0, category: 'Produit', readingTime: 7, commentCount: 5, likeCount: 2, shareCount: 1, clickRate: 0, openRate: 0 },
 ];
 
-export const mockChannels: Channel[] = [
-  { id: 'ch-1', name: 'general', type: 'team', members: ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'], unread: 3 },
-  { id: 'ch-2', name: 'website-redesign', type: 'project', members: ['u-1', 'u-2', 'u-3'], unread: 0 },
-  { id: 'ch-3', name: 'mobile-app', type: 'project', members: ['u-2', 'u-4', 'u-5'], unread: 5 },
-  { id: 'ch-4', name: 'engineering', type: 'team', members: ['u-1', 'u-3', 'u-6', 'u-7', 'u-8'], unread: 1 },
-  { id: 'ch-5', name: 'design', type: 'team', members: ['u-2', 'u-4'], unread: 0 },
-  { id: 'ch-6', name: 'Alex Thompson', type: 'direct', members: ['u-1', 'u-2'], unread: 2 },
-  { id: 'ch-7', name: 'Emily Watson', type: 'direct', members: ['u-1', 'u-4'], unread: 0 },
+// ─── Announcements ──────────────────────────────────────────────────────
+export const mockAnnouncements: Announcement[] = [
+  { id: 'an-1', type: 'announcement', title: 'Mise à jour système prévue', excerpt: 'Maintenance planifiée le 15 juin de 22h à 2h', status: 'published', priority: 'urgent', authorId: 'u-1', tenantId: 't-1', tags: ['maintenance', 'système'], publishedAt: '2025-06-06T08:00:00Z', createdAt: '2025-06-05T14:00:00Z', updatedAt: '2025-06-06T08:00:00Z', viewCount: 189, urgency: 'critical', targetAudience: 'all', acknowledgedCount: 156, totalRecipients: 200, openRate: 0, clickRate: 0 },
+  { id: 'an-2', type: 'announcement', title: 'Nouveau processus de validation', excerpt: 'Modification du workflow de validation des contenus', status: 'published', priority: 'medium', authorId: 'u-2', tenantId: 't-1', tags: ['processus', 'workflow'], publishedAt: '2025-06-04T10:00:00Z', createdAt: '2025-06-03T09:00:00Z', updatedAt: '2025-06-04T10:00:00Z', viewCount: 134, urgency: 'info', targetAudience: 'tenant', acknowledgedCount: 98, totalRecipients: 120, openRate: 0, clickRate: 0 },
+  { id: 'an-3', type: 'announcement', title: 'Politique de télétravail mise à jour', excerpt: 'Nouvelle politique hybride à partir de juillet', status: 'review', priority: 'high', authorId: 'u-1', tenantId: 't-1', tags: ['rh', 'télétravail'], createdAt: '2025-06-06T11:00:00Z', updatedAt: '2025-06-06T15:00:00Z', viewCount: 0, urgency: 'warning', targetAudience: 'all', acknowledgedCount: 0, totalRecipients: 200, openRate: 0, clickRate: 0 },
+  { id: 'an-4', type: 'announcement', title: 'Fermeture bureaux - Fête nationale', excerpt: 'Bureaux fermés le 30 juin pour la fête nationale', status: 'draft', priority: 'low', authorId: 'u-4', tenantId: 't-2', tags: ['fermeture', 'férié'], createdAt: '2025-06-06T08:00:00Z', updatedAt: '2025-06-06T10:00:00Z', viewCount: 0, urgency: 'info', targetAudience: 'tenant', acknowledgedCount: 0, totalRecipients: 120, openRate: 0, clickRate: 0 },
 ];
 
-export const mockMessages: Record<string, Message[]> = {
-  'ch-1': [
-    { id: 'm-1', content: 'Hey team! Just pushed the latest changes to staging. Can someone review?', senderId: 'u-1', channelId: 'ch-1', timestamp: '2025-01-20T09:00:00Z', reactions: [{ emoji: '👍', users: ['u-2', 'u-3'] }], attachments: [] },
-    { id: 'm-2', content: 'On it! I\'ll review the API changes this afternoon.', senderId: 'u-3', channelId: 'ch-1', timestamp: '2025-01-20T09:05:00Z', reactions: [], attachments: [] },
-    { id: 'm-3', content: 'The new dashboard looks amazing! Great work on the charts 🎉', senderId: 'u-2', channelId: 'ch-1', timestamp: '2025-01-20T09:15:00Z', reactions: [{ emoji: '🔥', users: ['u-1', 'u-4'] }], attachments: [] },
-    { id: 'm-4', content: 'Thanks! I used Recharts for the data visualization. Let me know if you want to add more chart types.', senderId: 'u-1', channelId: 'ch-1', timestamp: '2025-01-20T09:20:00Z', reactions: [], attachments: [] },
-    { id: 'm-5', content: 'Can we schedule a quick sync about the mobile app timeline?', senderId: 'u-4', channelId: 'ch-1', timestamp: '2025-01-20T10:00:00Z', reactions: [], attachments: [] },
-  ],
-  'ch-2': [
-    { id: 'm-6', content: 'Homepage mockup is ready for review. Check the Figma link.', senderId: 'u-2', channelId: 'ch-2', timestamp: '2025-01-20T08:30:00Z', reactions: [{ emoji: '👀', users: ['u-1'] }], attachments: [] },
-    { id: 'm-7', content: 'Looking at it now. The hero section is 🔥', senderId: 'u-1', channelId: 'ch-2', timestamp: '2025-01-20T08:45:00Z', reactions: [], attachments: [] },
-  ],
+// ─── Campaigns ──────────────────────────────────────────────────────────
+export const mockCampaigns: Campaign[] = [
+  { id: 'cp-1', name: 'Campagne Rentrée 2025', description: 'Communication de rentrée pour tous les collaborateurs', color: '#10b981', status: 'active', startDate: '2025-06-01', endDate: '2025-06-30', tenantId: 't-1', contentCount: 12, publishedCount: 8, totalReach: 2500, avgOpenRate: 65.2, avgClickRate: 22.1, channels: ['ch-1', 'ch-2', 'ch-3'], createdAt: '2025-05-20T10:00:00Z' },
+  { id: 'cp-2', name: 'Lancement TechFlow Pro', description: 'Campagne de lancement du nouveau produit', color: '#f59e0b', status: 'active', startDate: '2025-06-10', endDate: '2025-07-10', tenantId: 't-3', contentCount: 8, publishedCount: 3, totalReach: 5000, avgOpenRate: 58.7, avgClickRate: 31.4, channels: ['ch-2', 'ch-4'], createdAt: '2025-06-01T08:00:00Z' },
+  { id: 'cp-3', name: 'Engagement interne Q2', description: 'Renforcer l\'engagement des collaborateurs', color: '#06b6d4', status: 'draft', startDate: '2025-07-01', endDate: '2025-07-31', tenantId: 't-1', contentCount: 5, publishedCount: 0, totalReach: 0, avgOpenRate: 0, avgClickRate: 0, channels: ['ch-1'], createdAt: '2025-06-05T14:00:00Z' },
+  { id: 'cp-4', name: 'Expansion RDC', description: 'Communication autour de l\'expansion en RDC', color: '#ef4444', status: 'paused', startDate: '2025-05-15', endDate: '2025-06-15', tenantId: 't-2', contentCount: 6, publishedCount: 4, totalReach: 800, avgOpenRate: 54.3, avgClickRate: 18.9, channels: ['ch-1', 'ch-3'], createdAt: '2025-05-10T09:00:00Z' },
+  { id: 'cp-5', name: 'Anniversaire 10 ans', description: 'Célébration des 10 ans de Global Corp', color: '#8b5cf6', status: 'completed', startDate: '2025-04-01', endDate: '2025-04-30', tenantId: 't-1', contentCount: 15, publishedCount: 15, totalReach: 3200, avgOpenRate: 71.5, avgClickRate: 28.3, channels: ['ch-1', 'ch-2', 'ch-3', 'ch-4'], createdAt: '2025-03-20T10:00:00Z' },
+];
+
+// ─── Media ──────────────────────────────────────────────────────────────
+export const mockMedia: MediaItem[] = [
+  { id: 'm-1', name: 'banner-rentree-2025.jpg', type: 'image', mimeType: 'image/jpeg', size: 2400000, url: '#', thumbnailUrl: '#', uploadedBy: 'u-2', tenantId: 't-1', alt: 'Bannière Rentrée 2025', width: 1920, height: 600, createdAt: '2025-05-20T10:00:00Z' },
+  { id: 'm-2', name: 'rapport-q1-2025.pdf', type: 'document', mimeType: 'application/pdf', size: 5400000, url: '#', uploadedBy: 'u-1', tenantId: 't-1', createdAt: '2025-04-15T09:00:00Z' },
+  { id: 'm-3', name: 'presentation-techflow.mp4', type: 'video', mimeType: 'video/mp4', size: 52000000, url: '#', thumbnailUrl: '#', uploadedBy: 'u-6', tenantId: 't-3', width: 1920, height: 1080, createdAt: '2025-06-01T08:00:00Z' },
+  { id: 'm-4', name: 'logo-globalcorp.svg', type: 'image', mimeType: 'image/svg+xml', size: 45000, url: '#', thumbnailUrl: '#', uploadedBy: 'u-2', tenantId: 't-1', alt: 'Logo Global Corp', width: 400, height: 120, createdAt: '2025-01-10T10:00:00Z' },
+  { id: 'm-5', name: 'guide-contributeur.docx', type: 'document', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', size: 890000, url: '#', uploadedBy: 'u-2', tenantId: 't-1', createdAt: '2025-05-01T11:00:00Z' },
+  { id: 'm-6', name: 'photo-equipes.jpg', type: 'image', mimeType: 'image/jpeg', size: 3100000, url: '#', thumbnailUrl: '#', uploadedBy: 'u-7', tenantId: 't-1', alt: 'Photo des équipes', width: 2400, height: 1600, createdAt: '2025-06-03T14:00:00Z' },
+  { id: 'm-7', name: 'podcast-interne-ep3.mp3', type: 'audio', mimeType: 'audio/mpeg', size: 15000000, url: '#', uploadedBy: 'u-3', tenantId: 't-1', createdAt: '2025-06-05T16:00:00Z' },
+  { id: 'm-8', name: 'infographie-rgpd.png', type: 'image', mimeType: 'image/png', size: 1200000, url: '#', thumbnailUrl: '#', uploadedBy: 'u-7', tenantId: 't-1', alt: 'Infographie RGPD', width: 1200, height: 800, createdAt: '2025-06-06T10:00:00Z' },
+];
+
+// ─── Templates ──────────────────────────────────────────────────────────
+export const mockTemplates: ContentTemplate[] = [
+  { id: 'tp-1', name: 'Newsletter mensuelle', description: 'Template standard pour les newsletters mensuelles', type: 'newsletter', thumbnail: '📧', category: 'Newsletter', isPremium: false, usageCount: 45, createdAt: '2024-01-15T10:00:00Z' },
+  { id: 'tp-2', name: 'Article corporate', description: 'Template pour articles institutionnels', type: 'article', thumbnail: '📄', category: 'Article', isPremium: false, usageCount: 32, createdAt: '2024-02-10T10:00:00Z' },
+  { id: 'tp-3', name: 'Annonce urgente', description: 'Template pour annonces critiques', type: 'announcement', thumbnail: '🚨', category: 'Annonce', isPremium: false, usageCount: 18, createdAt: '2024-03-05T10:00:00Z' },
+  { id: 'tp-4', name: 'Communiqué de presse', description: 'Template professionnel pour communiqués', type: 'communique', thumbnail: '📰', category: 'Communiqué', isPremium: true, usageCount: 12, createdAt: '2024-04-20T10:00:00Z' },
+  { id: 'tp-5', name: 'Flash info', description: 'Template court pour flash d\'information', type: 'newsletter', thumbnail: '⚡', category: 'Newsletter', isPremium: false, usageCount: 67, createdAt: '2024-05-01T10:00:00Z' },
+  { id: 'tp-6', name: 'Rapport trimestriel', description: 'Template pour rapports financiers', type: 'article', thumbnail: '📊', category: 'Rapport', isPremium: true, usageCount: 8, createdAt: '2024-06-15T10:00:00Z' },
+];
+
+// ─── Distribution Channels ──────────────────────────────────────────────
+export const mockChannels: DistributionChannel[] = [
+  { id: 'ch-1', name: 'Email - Collaborateurs', type: 'email', icon: '📧', subscriberCount: 520, isActive: true, lastSentAt: '2025-06-06T09:00:00Z' },
+  { id: 'ch-2', name: 'Site Web Corporate', type: 'web', icon: '🌐', subscriberCount: 0, isActive: true, lastSentAt: '2025-06-05T14:00:00Z' },
+  { id: 'ch-3', name: 'Intranet Global', type: 'intranet', icon: '🏢', subscriberCount: 380, isActive: true, lastSentAt: '2025-06-04T10:00:00Z' },
+  { id: 'ch-4', name: 'Réseaux Sociaux', type: 'social', icon: '📱', subscriberCount: 12500, isActive: true, lastSentAt: '2025-06-06T08:00:00Z' },
+  { id: 'ch-5', name: 'Notifications Push', type: 'push', icon: '🔔', subscriberCount: 290, isActive: true, lastSentAt: '2025-06-06T07:00:00Z' },
+  { id: 'ch-6', name: 'SMS Urgences', type: 'sms', icon: '💬', subscriberCount: 150, isActive: false, lastSentAt: '2025-05-20T16:00:00Z' },
+];
+
+// ─── Automations ────────────────────────────────────────────────────────
+export const mockAutomations: Automation[] = [
+  { id: 'au-1', name: 'Rappel échéance 24h', trigger: 'Deadline approaching', action: 'Send notification', enabled: true, lastRun: '2025-06-06T08:00:00Z', runCount: 124, tenantId: 't-1' },
+  { id: 'au-2', name: 'Auto-approuver lectures', trigger: 'Content submitted', action: 'Auto-approve for readers', enabled: true, lastRun: '2025-06-06T07:00:00Z', runCount: 89, tenantId: 't-1' },
+  { id: 'au-3', name: 'Notifier valideurs', trigger: 'Content in review', action: 'Send notification to validators', enabled: true, lastRun: '2025-06-06T06:00:00Z', runCount: 56, tenantId: 't-1' },
+  { id: 'au-4', name: 'Archiver contenus > 1 an', trigger: 'Content age > 365 days', action: 'Move to archive', enabled: false, lastRun: '2025-05-01T00:00:00Z', runCount: 3, tenantId: 't-1' },
+  { id: 'au-5', name: 'Rapport hebdomadaire', trigger: 'Every Monday 9:00', action: 'Generate weekly report', enabled: true, lastRun: '2025-06-02T09:00:00Z', runCount: 22, tenantId: 't-1' },
+];
+
+// ─── Audit Logs ─────────────────────────────────────────────────────────
+export const mockAuditLogs: AuditLogEntry[] = [
+  { id: 'al-1', action: 'create', entityType: 'newsletter', entityId: 'nl-2', userId: 'u-3', tenantId: 't-1', details: 'Newsletter "Weekly Digest #24" créée', timestamp: '2025-06-06T16:00:00Z' },
+  { id: 'al-2', action: 'validate', entityType: 'newsletter', entityId: 'nl-5', userId: 'u-1', tenantId: 't-3', details: 'Newsletter "Newsletter TechBrand #12" approuvée', timestamp: '2025-06-05T17:00:00Z' },
+  { id: 'al-3', action: 'publish', entityType: 'announcement', entityId: 'an-1', userId: 'u-1', tenantId: 't-1', details: 'Annonce "Mise à jour système" publiée', timestamp: '2025-06-06T08:00:00Z' },
+  { id: 'al-4', action: 'update', entityType: 'article', entityId: 'ar-3', userId: 'u-3', tenantId: 't-1', details: 'Article "Résultats financiers Q2" modifié', timestamp: '2025-06-06T16:00:00Z' },
+  { id: 'al-5', action: 'login', entityType: 'user', entityId: 'u-1', userId: 'u-1', tenantId: 't-1', details: 'Connexion de Marie Dupont', timestamp: '2025-06-06T07:30:00Z' },
+  { id: 'al-6', action: 'permission_change', entityType: 'user', entityId: 'u-8', userId: 'u-4', tenantId: 't-2', details: 'Rôle de David Koffi changé en Lecteur', timestamp: '2025-06-05T14:00:00Z' },
+  { id: 'al-7', action: 'delete', entityType: 'article', entityId: 'ar-old', userId: 'u-2', tenantId: 't-1', details: 'Article obsolète supprimé', timestamp: '2025-06-04T11:00:00Z' },
+  { id: 'al-8', action: 'publish', entityType: 'newsletter', entityId: 'nl-1', userId: 'u-2', tenantId: 't-1', details: 'Newsletter "Flash Info Juin" envoyée', timestamp: '2025-06-01T09:05:00Z' },
+];
+
+// ─── Calendar Events ────────────────────────────────────────────────────
+export const mockCalendarEvents: CalendarEvent[] = [
+  { id: 'ce-1', title: 'Publication Flash Info', date: '2025-06-09', type: 'publication', color: '#10b981', contentId: 'nl-2', tenantId: 't-1' },
+  { id: 'ce-2', title: 'Revue article Q2', date: '2025-06-10', type: 'review', color: '#f59e0b', contentId: 'ar-3', tenantId: 't-1' },
+  { id: 'ce-3', title: 'Lancement TechFlow Pro', date: '2025-06-15', type: 'campaign', color: '#06b6d4', contentId: 'cp-2', tenantId: 't-3' },
+  { id: 'ce-4', title: 'Deadline campagne rentrée', date: '2025-06-30', type: 'deadline', color: '#ef4444', contentId: 'cp-1', tenantId: 't-1' },
+  { id: 'ce-5', title: 'Réunion éditoriale', date: '2025-06-12', type: 'meeting', color: '#8b5cf6', tenantId: 't-1' },
+  { id: 'ce-6', title: 'Publication article RGPD', date: '2025-06-20', type: 'publication', color: '#10b981', contentId: 'ar-4', tenantId: 't-1' },
+  { id: 'ce-7', title: 'Revue annuelle RDC', date: '2025-06-18', type: 'review', color: '#f59e0b', tenantId: 't-2' },
+  { id: 'ce-8', title: 'Fin campagne expansion RDC', date: '2025-06-15', type: 'campaign', color: '#ef4444', contentId: 'cp-4', tenantId: 't-2' },
+];
+
+// ─── Legacy mock data (kept for reports-view compatibility) ─────────────
+export const mockTasks = [
+  { id: 't-1', title: 'Rédiger newsletter juin', status: 'done', priority: 'high', projectId: 'p-1', assigneeId: 'u-2', dueDate: '2025-06-01', tags: ['newsletter'] },
+  { id: 't-2', title: 'Valider article Q2', status: 'in_progress', priority: 'urgent', projectId: 'p-1', assigneeId: 'u-1', dueDate: '2025-06-10', tags: ['validation'] },
+  { id: 't-3', title: 'Mettre à jour guide contributeur', status: 'todo', priority: 'medium', projectId: 'p-2', assigneeId: 'u-2', dueDate: '2025-06-15', tags: ['guide'] },
+  { id: 't-4', title: 'Préparer campagne rentrée', status: 'in_progress', priority: 'high', projectId: 'p-2', assigneeId: 'u-3', dueDate: '2025-06-20', tags: ['campagne'] },
+  { id: 't-5', title: 'Réviser contenu RGPD', status: 'review', priority: 'high', projectId: 'p-3', assigneeId: 'u-7', dueDate: '2025-06-08', tags: ['rgpd'] },
+  { id: 't-6', title: 'Publier annonce maintenance', status: 'done', priority: 'urgent', projectId: 'p-1', assigneeId: 'u-1', dueDate: '2025-06-06', tags: ['annonce'] },
+  { id: 't-7', title: 'Créer visuel campagne', status: 'todo', priority: 'medium', projectId: 'p-2', assigneeId: 'u-7', dueDate: '2025-06-12', tags: ['visuel'] },
+  { id: 't-8', title: 'Rédiger communiqué partenariat', status: 'draft', priority: 'low', projectId: 'p-3', assigneeId: 'u-3', dueDate: '2025-06-25', tags: ['communiqué'] },
+  { id: 't-9', title: 'Archiver contenus Q1', status: 'done', priority: 'low', projectId: 'p-1', assigneeId: 'u-2', dueDate: '2025-05-30', tags: ['archive'] },
+  { id: 't-10', title: 'Planifier envoi flash info', status: 'in_progress', priority: 'medium', projectId: 'p-2', assigneeId: 'u-3', dueDate: '2025-06-09', tags: ['planification'] },
+  { id: 't-11', title: 'Mettre à jour template newsletter', status: 'todo', priority: 'medium', projectId: 'p-3', assigneeId: 'u-6', dueDate: '2025-06-18', tags: ['template'] },
+  { id: 't-12', title: 'Relancer valideurs en retard', status: 'urgent', priority: 'high', projectId: 'p-1', assigneeId: 'u-1', dueDate: '2025-06-07', tags: ['relance'] },
+];
+
+export const mockProjects = [
+  { id: 'p-1', name: 'Communication Interne', color: '#10b981', status: 'active', progress: 72, memberCount: 4 },
+  { id: 'p-2', name: 'Campagne Rentrée 2025', color: '#f59e0b', status: 'active', progress: 45, memberCount: 3 },
+  { id: 'p-3', name: 'Conformité RGPD', color: '#06b6d4', status: 'active', progress: 30, memberCount: 2 },
+  { id: 'p-4', name: 'Lancement TechFlow Pro', color: '#ef4444', status: 'on_hold', progress: 60, memberCount: 2 },
+];
+
+// ─── Helper functions ───────────────────────────────────────────────────
+export function getUserName(id: string): string {
+  return mockUsers.find((u) => u.id === id)?.name || 'Inconnu';
+}
+
+export function getUserInitials(id: string): string {
+  const user = mockUsers.find((u) => u.id === id);
+  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
+}
+
+export function getTenantName(id: string): string {
+  return mockUsers.find((u) => u.id === id)?.tenantName || 'Inconnu';
+}
+
+export const contentStatusColors: Record<string, { bg: string; text: string; border: string }> = {
+  draft: { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/20' },
+  review: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
+  approved: { bg: 'bg-cyan-500/10', text: 'text-cyan-600', border: 'border-cyan-500/20' },
+  scheduled: { bg: 'bg-violet-500/10', text: 'text-violet-600', border: 'border-violet-500/20' },
+  published: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
+  archived: { bg: 'bg-slate-500/10', text: 'text-slate-500', border: 'border-slate-500/20' },
 };
 
-export const mockMeetings: Meeting[] = [
-  { id: 'mt-1', title: 'Sprint Planning', description: 'Plan tasks for Sprint 5', date: '2025-01-21T10:00:00Z', duration: 60, attendees: ['u-1', 'u-2', 'u-3', 'u-6'], status: 'scheduled', projectId: 'p-1' },
-  { id: 'mt-2', title: 'Design Review', description: 'Review homepage design mockups', date: '2025-01-21T14:00:00Z', duration: 45, attendees: ['u-1', 'u-2', 'u-4'], status: 'scheduled', projectId: 'p-1' },
-  { id: 'mt-3', title: 'Mobile App Sync', description: 'Weekly sync for mobile team', date: '2025-01-22T09:00:00Z', duration: 30, attendees: ['u-2', 'u-4', 'u-5'], status: 'scheduled', projectId: 'p-2' },
-  { id: 'mt-4', title: 'API Architecture Discussion', description: 'Discuss microservices architecture changes', date: '2025-01-22T15:00:00Z', duration: 90, attendees: ['u-1', 'u-3', 'u-6', 'u-7'], status: 'scheduled', projectId: 'p-3' },
-  { id: 'mt-5', title: 'All Hands Meeting', description: 'Monthly company update', date: '2025-01-24T11:00:00Z', duration: 60, attendees: ['u-1', 'u-2', 'u-3', 'u-4', 'u-5', 'u-6', 'u-7', 'u-8'], status: 'scheduled' },
-  { id: 'mt-6', title: 'Security Review', description: 'Review security audit findings', date: '2025-01-20T10:00:00Z', duration: 60, attendees: ['u-3', 'u-8'], status: 'completed', projectId: 'p-6' },
-];
+export const contentStatusLabels: Record<string, Record<string, string>> = {
+  fr: { draft: 'Brouillon', review: 'En révision', approved: 'Approuvé', scheduled: 'Planifié', published: 'Publié', archived: 'Archivé' },
+  en: { draft: 'Draft', review: 'In Review', approved: 'Approved', scheduled: 'Scheduled', published: 'Published', archived: 'Archived' },
+};
 
-export const mockFiles: FileItem[] = [
-  { id: 'f-1', name: 'Homepage_Mockup_v3.fig', type: 'other', size: 4500000, url: '#', uploadedBy: 'u-2', projectId: 'p-1', createdAt: '2025-01-20T08:30:00Z' },
-  { id: 'f-2', name: 'API_Documentation.pdf', type: 'pdf', size: 1200000, url: '#', uploadedBy: 'u-6', projectId: 'p-3', createdAt: '2025-01-19T14:20:00Z' },
-  { id: 'f-3', name: 'Brand_Guidelines_2025.pdf', type: 'pdf', size: 8900000, url: '#', uploadedBy: 'u-4', createdAt: '2025-01-18T10:00:00Z' },
-  { id: 'f-4', name: 'Sprint_Report_Jan.xlsx', type: 'spreadsheet', size: 340000, url: '#', uploadedBy: 'u-1', createdAt: '2025-01-17T16:45:00Z' },
-  { id: 'f-5', name: 'App_Screens_Onboarding.png', type: 'image', size: 2300000, url: '#', uploadedBy: 'u-4', projectId: 'p-2', createdAt: '2025-01-16T11:30:00Z' },
-  { id: 'f-6', name: 'Q4_Roadmap.pptx', type: 'presentation', size: 5600000, url: '#', uploadedBy: 'u-8', createdAt: '2025-01-15T09:00:00Z' },
-  { id: 'f-7', name: 'Database_Schema_v2.png', type: 'image', size: 780000, url: '#', uploadedBy: 'u-3', projectId: 'p-3', createdAt: '2025-01-14T13:20:00Z' },
-  { id: 'f-8', name: 'Meeting_Notes_Jan15.docx', type: 'document', size: 45000, url: '#', uploadedBy: 'u-7', createdAt: '2025-01-15T17:00:00Z' },
-];
-
-export const mockWikiPages: WikiPage[] = [
-  { id: 'w-1', title: 'Getting Started', content: '# Getting Started\n\nWelcome to the team wiki! Here you\'ll find everything you need to get up and running.', lastEditedBy: 'u-1', updatedAt: '2025-01-20T10:00:00Z', icon: '📖' },
-  { id: 'w-2', title: 'Development Setup', content: '# Development Setup\n\n## Prerequisites\n- Node.js 18+\n- Bun runtime\n- VS Code with recommended extensions', parentId: 'w-1', lastEditedBy: 'u-3', updatedAt: '2025-01-19T14:00:00Z', icon: '⚙️' },
-  { id: 'w-3', title: 'Coding Standards', content: '# Coding Standards\n\nWe follow strict TypeScript conventions and use ESLint + Prettier for code formatting.', parentId: 'w-1', lastEditedBy: 'u-1', updatedAt: '2025-01-18T09:30:00Z', icon: '✅' },
-  { id: 'w-4', title: 'API Conventions', content: '# API Conventions\n\nAll API endpoints follow RESTful conventions with consistent response formats.', parentId: 'w-1', lastEditedBy: 'u-6', updatedAt: '2025-01-17T11:00:00Z', icon: '🔌' },
-  { id: 'w-5', title: 'Product Roadmap 2025', content: '# Product Roadmap 2025\n\n## Q1\n- Website redesign launch\n- Mobile app v2 beta\n- API integrations complete', lastEditedBy: 'u-8', updatedAt: '2025-01-16T15:00:00Z', icon: '🗺️' },
-  { id: 'w-6', title: 'Deployment Guide', content: '# Deployment Guide\n\nWe use GitHub Actions for CI/CD and Vercel for hosting.', parentId: 'w-2', lastEditedBy: 'u-7', updatedAt: '2025-01-15T13:00:00Z', icon: '🚀' },
-  { id: 'w-7', title: 'Design System', content: '# Design System\n\nOur design system is built on top of shadcn/ui with custom theme tokens.', lastEditedBy: 'u-2', updatedAt: '2025-01-14T10:30:00Z', icon: '🎨' },
-];
-
-export const mockActivities: ActivityItem[] = [
-  { id: 'a-1', type: 'task_completed', userId: 'u-1', description: 'completed "Database migration script"', targetId: 't-6', targetType: 'task', timestamp: '2025-01-20T10:30:00Z' },
-  { id: 'a-2', type: 'comment_added', userId: 'u-2', description: 'commented on "Design homepage hero section"', targetId: 't-1', targetType: 'task', timestamp: '2025-01-20T10:15:00Z' },
-  { id: 'a-3', type: 'task_created', userId: 'u-1', description: 'created "Mobile push notifications"', targetId: 't-11', targetType: 'task', timestamp: '2025-01-20T09:45:00Z' },
-  { id: 'a-4', type: 'file_uploaded', userId: 'u-2', description: 'uploaded "Homepage_Mockup_v3.fig"', targetId: 'f-1', targetType: 'file', timestamp: '2025-01-20T08:30:00Z' },
-  { id: 'a-5', type: 'project_updated', userId: 'u-8', description: 'updated "Security Audit" status to completed', targetId: 'p-6', targetType: 'project', timestamp: '2025-01-20T08:00:00Z' },
-  { id: 'a-6', type: 'meeting_scheduled', userId: 'u-1', description: 'scheduled "Sprint Planning" for Jan 21', targetId: 'mt-1', targetType: 'meeting', timestamp: '2025-01-19T17:00:00Z' },
-  { id: 'a-7', type: 'member_joined', userId: 'u-5', description: 'joined the workspace', targetId: 'u-5', targetType: 'user', timestamp: '2025-01-19T14:00:00Z' },
-  { id: 'a-8', type: 'task_completed', userId: 'u-8', description: 'completed "Security vulnerability scan"', targetId: 't-12', targetType: 'task', timestamp: '2025-01-19T11:30:00Z' },
-  { id: 'a-9', type: 'comment_added', userId: 'u-3', description: 'commented on "Setup CI/CD pipeline"', targetId: 't-9', targetType: 'task', timestamp: '2025-01-19T10:00:00Z' },
-  { id: 'a-10', type: 'task_created', userId: 'u-4', description: 'created "Design email templates"', targetId: 't-8', targetType: 'task', timestamp: '2025-01-18T16:00:00Z' },
-];
-
-export const mockTeams: Team[] = [
-  { id: 'tm-1', name: 'Engineering', description: 'Core engineering team responsible for all development', color: '#10b981', members: ['u-1', 'u-3', 'u-6', 'u-7', 'u-8'], projects: ['p-1', 'p-2', 'p-3', 'p-5'] },
-  { id: 'tm-2', name: 'Design', description: 'UI/UX design and brand team', color: '#f59e0b', members: ['u-2', 'u-4'], projects: ['p-1', 'p-2'] },
-  { id: 'tm-3', name: 'Marketing', description: 'Marketing and growth team', color: '#ef4444', members: ['u-4', 'u-7'], projects: ['p-4'] },
-  { id: 'tm-4', name: 'Product', description: 'Product strategy and management', color: '#06b6d4', members: ['u-1', 'u-2', 'u-8'], projects: ['p-1', 'p-5'] },
-];
-
-export const mockAutomations: Automation[] = [
-  { id: 'auto-1', name: 'Auto-assign urgent tasks', trigger: 'When a task is marked urgent', action: 'Assign to project lead', enabled: true, lastRun: '2025-01-20T08:00:00Z', runCount: 15 },
-  { id: 'auto-2', name: 'Deadline reminder', trigger: 'When a task is due in 24 hours', action: 'Send notification to assignee', enabled: true, lastRun: '2025-01-20T09:00:00Z', runCount: 42 },
-  { id: 'auto-3', name: 'Welcome new members', trigger: 'When a new member joins workspace', action: 'Send onboarding message', enabled: true, lastRun: '2025-01-19T14:00:00Z', runCount: 8 },
-  { id: 'auto-4', name: 'Archive completed projects', trigger: 'When all tasks in a project are done', action: 'Move project to archived', enabled: false, runCount: 3 },
-  { id: 'auto-5', name: 'Sprint report generation', trigger: 'Every Friday at 5 PM', action: 'Generate and share sprint report', enabled: true, lastRun: '2025-01-17T17:00:00Z', runCount: 12 },
-];
-
-export const mockCalendarEvents: CalendarEvent[] = [
-  { id: 'ce-1', title: 'Sprint Planning', date: '2025-01-21T10:00:00Z', endDate: '2025-01-21T11:00:00Z', type: 'meeting', color: '#10b981', projectId: 'p-1' },
-  { id: 'ce-2', title: 'Design Review', date: '2025-01-21T14:00:00Z', endDate: '2025-01-21T14:45:00Z', type: 'meeting', color: '#f59e0b', projectId: 'p-1' },
-  { id: 'ce-3', title: 'Website Redesign Deadline', date: '2025-03-15', type: 'deadline', color: '#ef4444', projectId: 'p-1' },
-  { id: 'ce-4', title: 'Mobile App V2 Beta', date: '2025-02-15', type: 'milestone', color: '#8b5cf6', projectId: 'p-2' },
-  { id: 'ce-5', title: 'API Integration Complete', date: '2025-02-28', type: 'deadline', color: '#06b6d4', projectId: 'p-3' },
-  { id: 'ce-6', title: 'All Hands Meeting', date: '2025-01-24T11:00:00Z', endDate: '2025-01-24T12:00:00Z', type: 'meeting', color: '#10b981' },
-  { id: 'ce-7', title: 'Q1 Review', date: '2025-03-31', type: 'milestone', color: '#ec4899' },
-  { id: 'ce-8', title: 'Sprint 4 Ends', date: '2025-01-22', type: 'deadline', color: '#ef4444' },
-];
+export const roleColors: Record<string, { bg: string; text: string; border: string }> = {
+  super_admin: { bg: 'bg-rose-500/10', text: 'text-rose-600', border: 'border-rose-500/20' },
+  tenant_admin: { bg: 'bg-teal-500/10', text: 'text-teal-600', border: 'border-teal-500/20' },
+  editor: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
+  contributor: { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
+  reader: { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/20' },
+};

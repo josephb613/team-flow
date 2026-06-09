@@ -1,4 +1,4 @@
-# TeamFlow Project Worklog
+# TeamFlow / ContentFlow Project Worklog
 
 ---
 Task ID: 1
@@ -1416,3 +1416,102 @@ Stage Summary:
 - All new text fully i18n-ready (FR + EN)
 - 0 lint errors, 0 compilation errors
 - App compiling and serving successfully on port 3000
+
+---
+Task ID: M-1
+Agent: translations-updater
+Task: Update translations file for CMS multi-tenant SaaS application migration (TeamFlow → ContentFlow)
+
+Work Log:
+
+**Complete rewrite of `/home/z/my-project/src/lib/i18n/translations.ts`** from TeamFlow project management domain to ContentFlow CMS multi-tenant domain.
+
+### 1. Login page labels
+- Changed "TeamFlow" → "ContentFlow" throughout
+- Updated left panel titles: "Gérez vos projets" → "Créez du contenu", "Autonomisez vos équipes" → "Fédérez vos audiences"
+- Updated subtitle for CMS multi-tenant communication focus
+- Updated feature titles: "Collaboration en temps réel" → "Communication multi-canal", etc.
+- Updated testimonial text to be about content management and communication
+- Updated stats: "10K+ Organisations", "500K+ Contenus publiés", "99.9% Uptime", "50+ Pays"
+
+### 2. Sidebar labels
+- Replaced old sections (Épinglés, Principal, Collaborer, Canaux, Gérer) with new CMS sections:
+  - COMMUNICATION, GESTION DE CONTENU, DIFFUSION, ANALYSE, ADMINISTRATION
+- Updated quick action labels (quickContent, quickCampaign, quickNewsletter)
+
+### 3. Navigation labels
+- Complete replacement with 22 new page IDs: dashboard, newsletters, articles, announcements, campaigns, editorial-calendar, library, media, templates, drafts, published, archive, scheduling, publishing, channels, automations, statistics, reports, users, roles, tenants, audit, settings
+
+### 4. Dashboard labels
+- Updated to CMS domain: totalTasks → "Contenus publiés", activeProjects → "Campagnes actives", inProgress → "En révision", completionRate → "Taux d'ouverture"
+- Updated quick actions: "Nouveau contenu", "Nouvelle campagne", "Planifier envoi", "Ajouter un contributeur"
+- Updated AI suggestions to CMS domain
+
+### 5. New view translation sections (both FR and EN)
+- `newsletters`: title, search, newNewsletter, status labels (draft/review/approved/scheduled/published/archived), recipients, openRate, clickRate, subject, preview, etc.
+- `articles`: title, search, newArticle, category, readingTime, comments, likes, shares
+- `announcements`: title, search, newAnnouncement, urgency (info/warning/critical), targetAudience, acknowledged
+- `campaigns`: title, search, newCampaign, status (draft/active/paused/completed), reach, openRate, clickRate, startDate, endDate
+- `editorialCalendar`: title, today, legend, deadline, publication, review, meeting, campaign
+- `library`: title, search, filter, allContent, recent, favorites
+- `media`: title, upload, images, videos, documents, audio, storageUsage
+- `templates`: title, search, useTemplate, category, premium
+- `drafts`: title, search, continueWriting, discardDraft
+- `published`: title, search, viewCount, engagement
+- `archive`: title, search, restore, delete
+- `scheduling`: title, calendar, queue, scheduleSend
+- `publishing`: title, publishNow, schedule, cancel
+- `distributionChannels`: title, email, web, intranet, social, push, sms, subscribers, lastSent
+- `statistics`: title, contentPublished, newslettersSent, openRate, clickRate, conversionRate, engagement, audience
+- `users`: title, inviteUser, searchUsers, role, tenant, lastActive, contentCount (with superAdmin, tenantAdmin, editor, contributor, reader)
+- `roles`: title, superAdmin, tenantAdmin, editor, contributor, reader, permissions, save
+- `tenants`: title, createTenant, name, type, country, members, content, isActive
+- `audit`: title, action, entity, user, tenant, timestamp, details, create/update/delete/validate/publish/login
+
+### 6. Updated common/shared sections
+- `createTask` → `createContent` with CMS-appropriate labels (contentTitle, campaign, contentType: newsletter/article/announcement)
+- `taskDetail` → `contentDetail` with CMS labels (campaign, sections instead of subtasks)
+- `search` → updated categories (newsletters, articles, announcements, media, users instead of tasks/projects/members)
+- `toast` → updated messages (contentCreated, campaignCreated, newsletterSent, contentPublished, contentArchived, userInvited)
+- `shortcuts` → updated page shortcuts (newsletters, articles, campaigns, media, statistics)
+- `footer` → changed "TeamFlow" to "ContentFlow"
+- `aiChat` → updated welcome message and quick actions for CMS domain (summarizeContent, createContent, campaignStatus)
+- `settings` → updated notification labels (contentAssignments instead of taskAssignments, campaignUpdates instead of projectUpdates)
+- `reports` → updated for CMS domain (contentTrend, contentByType, activeContributors, campaignHealth)
+- `automations` → updated triggers/actions for CMS domain (triggerContentCreated, actionMoveContent, moveApprovedToQueue, weeklyContentReport, autoPublishScheduled)
+
+### 7. Removed old sections
+- Removed: tasks, projects, meetings, wiki, teams, progressBoard, timeTracker (all project management specific)
+- Removed old sidebar keys: pinned, main, collaborate, channels, manage
+- Removed old nav keys: tasks, projects, calendar, messages, meetings, files, wiki, activity, members, teams, progress
+
+### Technical
+- File structure preserved: `export type Locale = 'fr' | 'en'; export const translations = { fr: { ... }, en: { ... } }`
+- Export type at bottom preserved: `export type TranslationKey = typeof translations.fr;`
+- 0 lint errors
+- App compiles and serves successfully
+
+Stage Summary:
+- Complete migration of translations from TeamFlow (project management) to ContentFlow (CMS multi-tenant)
+- All 18 new view sections added with full FR and EN translations
+- All shared sections updated for CMS domain
+- Old project management sections removed
+- Both FR and EN fully in sync
+- 0 lint errors
+
+---
+Task ID: M-2
+Agent: main
+Task: Update sidebar and main-app for CMS multi-tenant navigation (TeamFlow to ContentFlow)
+
+Work Log:
+- Updated translations.ts: New CMS nav keys (sidebar sections, nav items, topbar quick creates), renamed TeamFlow to ContentFlow
+- Rewrote app-sidebar.tsx: Tenant switcher, 5 CMS sections (Communication, Gestion de contenu, Diffusion, Analyse, Administration), removed old Channels/Online users/Messages sections
+- Created stubs.tsx: 18 stub view components with Framer Motion animations
+- Updated main-app.tsx: New viewMap with 23 CMS entries, reused AutomationsView/ReportsView/SettingsView, updated MobileFAB and AppFooter to ContentFlow
+- Updated top-bar.tsx: CMS quick creates (New Content, New Campaign, Schedule Publish), CMS role labels, tenant breadcrumb
+- Fixed compatibility: Added mockTasks/mockProjects to mock-data.ts, fixed reports-view and use-dashboard-data imports
+
+Stage Summary:
+- Complete CMS multi-tenant navigation migration
+- 0 lint errors, app running on port 3000

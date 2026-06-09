@@ -23,35 +23,41 @@ import {
 } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  CheckSquare,
-  FolderKanban,
-  Calendar,
-  MessageSquare,
-  Video,
+  Mail,
   FileText,
+  Megaphone,
+  Target,
+  Calendar,
   BookOpen,
-  Activity,
-  Users,
-  UserCircle,
-  BarChart3,
+  ImageIcon,
+  LayoutTemplate,
+  FilePen,
+  CheckCircle,
+  Archive,
+  Clock,
+  Send,
+  Radio,
   Zap,
+  BarChart3,
+  PieChart,
+  Users,
+  Shield,
+  Building2,
+  ScrollText,
   Settings,
   Search,
   Star,
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
   Plus,
-  Hash,
   LogOut,
   X,
   Keyboard,
-  Clock,
-  CalendarClock,
   ListChecks,
+  CalendarClock,
+  Globe,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
-import { mockChannels, mockUsers } from '@/lib/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 
@@ -150,68 +156,86 @@ function NavItem({ icon, label, pageId, badge, active, collapsed, isFavorite, on
   return content;
 }
 
-function SectionLabel({ children, collapsed, onClick, chevron }: { children: React.ReactNode; collapsed?: boolean; onClick?: () => void; chevron?: boolean }) {
+function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
   if (collapsed) return null;
   return (
     <div className="px-3 pt-4 pb-1">
-      <button
-        onClick={onClick}
-        className={cn(
-          'text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/30 flex items-center gap-1 w-full',
-          onClick && 'hover:text-sidebar-foreground/50 transition-colors'
-        )}
-      >
-        <span>{children}</span>
-        {chevron && (
-          <ChevronRight className={cn(
-            'h-3 w-3 transition-transform duration-200',
-          )} />
-        )}
-      </button>
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/30 flex items-center gap-1">
+        {children}
+      </span>
     </div>
   );
 }
 
-const allNavItems: NavItemConfig[] = [
+// CMS Navigation items grouped by section
+const communicationItems: NavItemConfig[] = [
   { icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', pageId: 'dashboard' },
-  { icon: <CheckSquare className="h-4 w-4" />, label: 'Tasks', pageId: 'tasks', badge: 5 },
-  { icon: <FolderKanban className="h-4 w-4" />, label: 'Projects', pageId: 'projects', badge: 6 },
-  { icon: <Calendar className="h-4 w-4" />, label: 'Calendar', pageId: 'calendar' },
-  { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages', badge: 11 },
-  { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings', badge: 4 },
-  { icon: <FileText className="h-4 w-4" />, label: 'Files', pageId: 'files' },
-  { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki', pageId: 'wiki' },
-  { icon: <Activity className="h-4 w-4" />, label: 'Activity', pageId: 'activity' },
-  { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
-  { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
-  { icon: <BarChart3 className="h-4 w-4" />, label: 'Reports', pageId: 'reports' },
-  { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
-  { icon: <BarChart3 className="h-4 w-4" />, label: 'Progress Board', pageId: 'progress' },
+  { icon: <Mail className="h-4 w-4" />, label: 'Newsletters', pageId: 'newsletters', badge: 3 },
+  { icon: <FileText className="h-4 w-4" />, label: 'Articles', pageId: 'articles', badge: 7 },
+  { icon: <Megaphone className="h-4 w-4" />, label: 'Announcements', pageId: 'announcements' },
+  { icon: <Target className="h-4 w-4" />, label: 'Campaigns', pageId: 'campaigns', badge: 2 },
+  { icon: <Calendar className="h-4 w-4" />, label: 'Editorial Calendar', pageId: 'editorial-calendar' },
 ];
 
-const mainPageIds: Set<string> = new Set(['dashboard', 'tasks', 'projects', 'calendar']);
-const collabPageIds: Set<string> = new Set(['messages', 'meetings', 'files', 'wiki']);
-const managePageIds: Set<string> = new Set(['activity', 'members', 'teams', 'reports', 'automations', 'progress']);
+const contentManagementItems: NavItemConfig[] = [
+  { icon: <BookOpen className="h-4 w-4" />, label: 'Library', pageId: 'library' },
+  { icon: <ImageIcon className="h-4 w-4" />, label: 'Media', pageId: 'media' },
+  { icon: <LayoutTemplate className="h-4 w-4" />, label: 'Templates', pageId: 'templates' },
+  { icon: <FilePen className="h-4 w-4" />, label: 'Drafts', pageId: 'drafts', badge: 5 },
+  { icon: <CheckCircle className="h-4 w-4" />, label: 'Published', pageId: 'published' },
+  { icon: <Archive className="h-4 w-4" />, label: 'Archive', pageId: 'archive' },
+];
+
+const distributionItems: NavItemConfig[] = [
+  { icon: <Clock className="h-4 w-4" />, label: 'Scheduling', pageId: 'scheduling', badge: 1 },
+  { icon: <Send className="h-4 w-4" />, label: 'Publishing', pageId: 'publishing' },
+  { icon: <Radio className="h-4 w-4" />, label: 'Channels', pageId: 'channels' },
+  { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
+];
+
+const analysisItems: NavItemConfig[] = [
+  { icon: <BarChart3 className="h-4 w-4" />, label: 'Statistics', pageId: 'statistics' },
+  { icon: <PieChart className="h-4 w-4" />, label: 'Reports', pageId: 'reports' },
+];
+
+const administrationItems: NavItemConfig[] = [
+  { icon: <Users className="h-4 w-4" />, label: 'Users', pageId: 'users' },
+  { icon: <Shield className="h-4 w-4" />, label: 'Roles & Permissions', pageId: 'roles' },
+  { icon: <Building2 className="h-4 w-4" />, label: 'Tenants', pageId: 'tenants' },
+  { icon: <ScrollText className="h-4 w-4" />, label: 'Audit Log', pageId: 'audit' },
+  { icon: <Settings className="h-4 w-4" />, label: 'Settings', pageId: 'settings' },
+];
+
+const allNavItems: NavItemConfig[] = [
+  ...communicationItems,
+  ...contentManagementItems,
+  ...distributionItems,
+  ...analysisItems,
+  ...administrationItems,
+];
+
+const communicationPageIds: Set<string> = new Set(communicationItems.map(i => i.pageId));
+const contentManagementPageIds: Set<string> = new Set(contentManagementItems.map(i => i.pageId));
+const distributionPageIds: Set<string> = new Set(distributionItems.map(i => i.pageId));
+const analysisPageIds: Set<string> = new Set(analysisItems.map(i => i.pageId));
+const administrationPageIds: Set<string> = new Set(administrationItems.map(i => i.pageId));
 
 export function AppSidebar() {
   const {
     activePage,
     setActivePage,
-    workspaces,
-    activeWorkspaceId,
-    setActiveWorkspace,
+    tenants,
+    activeTenantId,
+    setActiveTenant,
     sidebarCollapsed,
     favorites,
     mobileSidebarOpen,
     setMobileSidebarOpen,
     recentItems,
-    setCreateTaskDialogOpen,
-    setCreateProjectDialogOpen,
   } = useAppStore();
   const { t } = useTranslation();
 
-  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
-  const [channelsCollapsed, setChannelsCollapsed] = useState(false);
+  const activeTenant = tenants.find((t) => t.id === activeTenantId);
 
   // Helper to get translated nav label by pageId
   const getNavLabel = (pageId: string): string => {
@@ -220,15 +244,12 @@ export function AppSidebar() {
   };
 
   // Filter out favorited items from section listings to avoid duplication
-  const mainItems = allNavItems.filter((i) => mainPageIds.has(i.pageId) && !favorites.includes(i.pageId));
-  const collabItems = allNavItems.filter((i) => collabPageIds.has(i.pageId) && !favorites.includes(i.pageId));
-  const manageItems = allNavItems.filter((i) => managePageIds.has(i.pageId) && !favorites.includes(i.pageId));
+  const commItems = communicationItems.filter((i) => !favorites.includes(i.pageId));
+  const contentItems = contentManagementItems.filter((i) => !favorites.includes(i.pageId));
+  const distItems = distributionItems.filter((i) => !favorites.includes(i.pageId));
+  const anaItems = analysisItems.filter((i) => !favorites.includes(i.pageId));
+  const adminItems = administrationItems.filter((i) => !favorites.includes(i.pageId));
   const favoriteItems = allNavItems.filter((i) => favorites.includes(i.pageId));
-
-  const channels = mockChannels.slice(0, 4);
-  const onlineUsers = mockUsers.filter((u) => u.status === 'online');
-  const awayUsers = mockUsers.filter((u) => u.status === 'away');
-  const extraOnlineCount = onlineUsers.length > 5 ? onlineUsers.length - 5 : 0;
 
   // Recent items (last 3, matching nav items)
   const recentNavItems = recentItems
@@ -244,7 +265,7 @@ export function AppSidebar() {
 
   const sidebarContent = (
     <div className="flex flex-col h-screen bg-sidebar text-sidebar-foreground">
-      {/* Workspace Switcher - with gradient background */}
+      {/* Tenant Switcher - with gradient background */}
       <div className="px-3 py-3 flex-shrink-0 bg-gradient-to-b from-sidebar-accent/50 to-transparent">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -260,25 +281,28 @@ export function AppSidebar() {
                   sidebarCollapsed && 'ring-2 ring-offset-1 ring-offset-sidebar'
                 )}
                 style={{
-                  backgroundColor: activeWorkspace?.color || '#10b981',
-                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeWorkspace?.color || '#10b981'}40` } : {}),
+                  backgroundColor: activeTenant?.color || '#10b981',
+                  ...(sidebarCollapsed ? { boxShadow: `0 0 0 2px var(--sidebar-background), 0 0 0 4px ${activeTenant?.color || '#10b981'}40` } : {}),
                 }}
               >
-                {activeWorkspace?.icon || '🏢'}
+                {activeTenant?.icon || '🏢'}
               </div>
               {!sidebarCollapsed && (
                 <>
                   <div className="flex-1 text-left min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold truncate">
-                        {activeWorkspace?.name || 'Workspace'}
+                        {activeTenant?.name || 'Tenant'}
                       </span>
                       <span className="inline-flex items-center px-1.5 py-0 rounded-full text-[9px] font-semibold bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)]">
                         {t.topbar.pro}
                       </span>
                     </div>
-                    <div className="text-[10px] text-sidebar-foreground/40">
-                      {mockUsers.length} {t.sidebar.members}
+                    <div className="flex items-center gap-1.5 text-[10px] text-sidebar-foreground/40">
+                      <Globe className="h-2.5 w-2.5" />
+                      {activeTenant?.country || 'France'}
+                      <span className="text-sidebar-foreground/20">·</span>
+                      {activeTenant?.memberCount || 0} {t.sidebar.members}
                     </div>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
@@ -287,21 +311,24 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-56">
-            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">{t.sidebar.workspaces}</div>
-            {workspaces.map((ws) => (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">{t.sidebar.tenants}</div>
+            {tenants.map((tenant) => (
               <DropdownMenuItem
-                key={ws.id}
-                onClick={() => setActiveWorkspace(ws.id)}
+                key={tenant.id}
+                onClick={() => setActiveTenant(tenant.id)}
                 className="flex items-center gap-2.5 cursor-pointer"
               >
                 <div
                   className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: ws.color }}
+                  style={{ backgroundColor: tenant.color }}
                 >
-                  {ws.icon}
+                  {tenant.icon}
                 </div>
-                <span className="flex-1">{ws.name}</span>
-                {ws.id === activeWorkspaceId && (
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block">{tenant.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{tenant.country}</span>
+                </div>
+                {tenant.id === activeTenantId && (
                   <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.15_160)]" />
                 )}
               </DropdownMenuItem>
@@ -312,17 +339,17 @@ export function AppSidebar() {
               onClick={() => useAppStore.getState().setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t.sidebar.createWorkspace}
+              {t.sidebar.createTenant}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-[oklch(0.55_0.15_160)]">
               <LogOut className="h-4 w-4 mr-2" />
-              {t.sidebar.joinWorkspace}
+              {t.sidebar.createTenant}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Gradient border under workspace switcher */}
+      {/* Gradient border under tenant switcher */}
       <div className="bg-gradient-to-r from-[oklch(0.55_0.15_160/0.3)] via-[oklch(0.55_0.15_160/0.1)] to-transparent h-px" />
 
       {/* Quick Stats mini-section */}
@@ -335,7 +362,7 @@ export function AppSidebar() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-sidebar-foreground">5</span>
-                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.tasksDueToday}</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.contentDueToday}</span>
               </div>
             </div>
             <div className="w-px h-5 bg-sidebar-border/30" />
@@ -345,7 +372,7 @@ export function AppSidebar() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-semibold text-sidebar-foreground">2</span>
-                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.meetingsToday}</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.schedulingToday}</span>
               </div>
             </div>
           </div>
@@ -378,13 +405,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.1)] border border-sidebar-border/20"
-                    onClick={() => setCreateTaskDialogOpen(true)}
+                    onClick={() => useAppStore.getState().setCreateContentDialogOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
-                    {t.sidebar.quickTask}
+                    {t.sidebar.quickContent}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickTask}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickContent}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -394,13 +421,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-amber-500 hover:bg-amber-500/10 border border-sidebar-border/20"
-                    onClick={() => setCreateProjectDialogOpen(true)}
+                    onClick={() => setActivePage('campaigns')}
                   >
                     <Plus className="h-3 w-3" />
-                    {t.sidebar.quickProject}
+                    {t.sidebar.quickCampaign}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickProject}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickCampaign}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -410,13 +437,13 @@ export function AppSidebar() {
                     variant="ghost"
                     size="sm"
                     className="flex-1 h-8 text-[10px] gap-1 text-sidebar-foreground/50 hover:text-rose-500 hover:bg-rose-500/10 border border-sidebar-border/20"
-                    onClick={() => setActivePage('meetings')}
+                    onClick={() => setActivePage('scheduling')}
                   >
                     <Plus className="h-3 w-3" />
-                    {t.sidebar.quickMeeting}
+                    {t.sidebar.quickSchedule}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickMeeting}</TooltipContent>
+                <TooltipContent side="right" sideOffset={8}>+ {t.sidebar.quickSchedule}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -482,12 +509,12 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Main Navigation */}
-        {mainItems.length > 0 && (
+        {/* Communication Section */}
+        {commItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.main}</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.communication}</SectionLabel>
             <div className="space-y-0.5">
-              {mainItems.map((item) => (
+              {commItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
@@ -503,12 +530,12 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Collaboration */}
-        {collabItems.length > 0 && (
+        {/* Content Management Section */}
+        {contentItems.length > 0 && (
           <>
-            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.collaborate}</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.contentManagement}</SectionLabel>
             <div className="space-y-0.5">
-              {collabItems.map((item) => (
+              {contentItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
@@ -524,84 +551,60 @@ export function AppSidebar() {
           </>
         )}
 
-        {/* Channels (collapsible) */}
-        {!sidebarCollapsed && (
+        {/* Distribution Section */}
+        {distItems.length > 0 && (
           <>
-            <SectionLabel
-              chevron
-              onClick={() => setChannelsCollapsed(!channelsCollapsed)}
-            >
-              <span className="flex items-center gap-1.5">
-                {t.sidebar.channels}
-                <ChevronDown className={cn(
-                  'h-3 w-3 transition-transform duration-200',
-                  channelsCollapsed && '-rotate-90'
-                )} />
-              </span>
-            </SectionLabel>
-            <AnimatePresence initial={false}>
-              {!channelsCollapsed && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-0.5">
-                    {channels.map((ch) => (
-                      <button
-                        key={ch.id}
-                        onClick={() => handleNavClick('messages')}
-                        className={cn(
-                          'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 group min-h-[36px]',
-                          'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                        )}
-                      >
-                        <span className="relative">
-                          <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
-                          <span className="absolute -right-0.5 -top-0.5 w-1 h-1 rounded-full bg-[oklch(0.55_0.15_160/0)] group-hover:bg-[oklch(0.55_0.15_160/0.6)] transition-colors duration-200" />
-                        </span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="flex-1 text-left truncate">{ch.name}</span>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" sideOffset={8}>{ch.name}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        {ch.unread > 0 && (
-                          <Badge className="h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
-                            {ch.unread}
-                          </Badge>
-                        )}
-                      </button>
-                    ))}
-                    {/* New channel button */}
-                    <button
-                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs transition-colors text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/50 min-h-[36px]"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span className="truncate">{t.sidebar.newChannel}</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
-
-        {/* Management */}
-        {manageItems.length > 0 && (
-          <>
-            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.manage}</SectionLabel>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.distribution}</SectionLabel>
             <div className="space-y-0.5">
-              {manageItems.map((item) => (
+              {distItems.map((item) => (
                 <NavItem
                   key={item.pageId}
                   icon={item.icon}
                   label={getNavLabel(item.pageId)}
                   pageId={item.pageId}
+                  badge={item.badge}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Analysis Section */}
+        {anaItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.analysis}</SectionLabel>
+            <div className="space-y-0.5">
+              {anaItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={getNavLabel(item.pageId)}
+                  pageId={item.pageId}
+                  badge={item.badge}
+                  active={activePage === item.pageId}
+                  collapsed={sidebarCollapsed}
+                  onClick={() => handleNavClick(item.pageId)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Administration Section */}
+        {adminItems.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.administration}</SectionLabel>
+            <div className="space-y-0.5">
+              {adminItems.map((item) => (
+                <NavItem
+                  key={item.pageId}
+                  icon={item.icon}
+                  label={getNavLabel(item.pageId)}
+                  pageId={item.pageId}
+                  badge={item.badge}
                   active={activePage === item.pageId}
                   collapsed={sidebarCollapsed}
                   onClick={() => handleNavClick(item.pageId)}
@@ -613,21 +616,6 @@ export function AppSidebar() {
       </ScrollArea>
 
       <Separator className="bg-sidebar-border/50" />
-
-      {/* Gradient separator before Settings */}
-      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
-
-      {/* Settings */}
-      <div className="px-2 py-2 flex-shrink-0">
-        <NavItem
-          icon={<Settings className="h-4 w-4" />}
-          label={t.nav.settings}
-          pageId="settings"
-          active={activePage === 'settings'}
-          collapsed={sidebarCollapsed}
-          onClick={() => handleNavClick('settings')}
-        />
-      </div>
 
       {/* Separator above shortcuts hint */}
       <div className="mx-3 border-t border-sidebar-border/30" />
@@ -657,53 +645,6 @@ export function AppSidebar() {
           </Tooltip>
         </TooltipProvider>
       </div>
-
-      <Separator className="bg-sidebar-border/50" />
-
-      {/* Online users indicator with status text */}
-      {!sidebarCollapsed && (
-        <div className="px-3 pb-3 pt-2">
-          <div className="flex items-center">
-            {/* Stacked avatars with overlap */}
-            <div className="flex items-center">
-              {onlineUsers.slice(0, 5).map((user, idx) => (
-                <TooltipProvider key={user.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative" style={{ marginLeft: idx === 0 ? 0 : '-6px', zIndex: 5 - idx }}>
-                        <Avatar className="h-6 w-6 border-2 border-sidebar">
-                          <AvatarFallback className="text-[8px] bg-sidebar-accent text-sidebar-foreground">
-                            {user.name.split(' ').map((n) => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{user.name}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
-              {/* +N indicator for more users */}
-              {extraOnlineCount > 0 && (
-                <div
-                  className="relative flex items-center justify-center h-6 w-6 rounded-full bg-sidebar-accent text-[9px] font-medium text-sidebar-foreground/60 border-2 border-sidebar"
-                  style={{ marginLeft: '-6px', zIndex: 0 }}
-                >
-                  +{extraOnlineCount}
-                </div>
-              )}
-            </div>
-            <span className="text-[10px] text-sidebar-foreground/40 ml-2 flex items-center gap-1.5">
-              {/* Pulsing green dot */}
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              {onlineUsers.length} {t.sidebar.onlineCount}{awayUsers.length} {t.sidebar.awayCount}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Collapse sidebar button */}
       {!sidebarCollapsed && (
