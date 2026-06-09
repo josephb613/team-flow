@@ -39,6 +39,7 @@ import {
   Search,
   Star,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Plus,
   Hash,
@@ -46,6 +47,8 @@ import {
   X,
   Keyboard,
   Clock,
+  CalendarClock,
+  ListChecks,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { mockChannels, mockUsers } from '@/lib/mock-data';
@@ -321,6 +324,33 @@ export function AppSidebar() {
       {/* Gradient border under workspace switcher */}
       <div className="bg-gradient-to-r from-[oklch(0.55_0.15_160/0.3)] via-[oklch(0.55_0.15_160/0.1)] to-transparent h-px" />
 
+      {/* Quick Stats mini-section */}
+      {!sidebarCollapsed && (
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/20">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <div className="p-1.5 rounded-md bg-amber-500/10">
+                <ListChecks className="h-3 w-3 text-amber-600" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-sidebar-foreground">5</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.tasksDueToday}</span>
+              </div>
+            </div>
+            <div className="w-px h-5 bg-sidebar-border/30" />
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <div className="p-1.5 rounded-md bg-cyan-500/10">
+                <CalendarClock className="h-3 w-3 text-cyan-600" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-sidebar-foreground">2</span>
+                <span className="text-[10px] text-sidebar-foreground/50 ml-1 truncate">{t.sidebar.meetingsToday}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search (in sidebar) */}
       {!sidebarCollapsed && (
         <div className="px-3 py-2">
@@ -393,6 +423,9 @@ export function AppSidebar() {
       )}
 
       <Separator className="bg-sidebar-border/50" />
+
+      {/* Gradient separator line between sections */}
+      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
 
       {/* Scrollable Navigation */}
       <ScrollArea className="flex-1 px-2 py-1">
@@ -528,7 +561,14 @@ export function AppSidebar() {
                           <Hash className="h-3.5 w-3.5 text-sidebar-foreground/30" />
                           <span className="absolute -right-0.5 -top-0.5 w-1 h-1 rounded-full bg-[oklch(0.55_0.15_160/0)] group-hover:bg-[oklch(0.55_0.15_160/0.6)] transition-colors duration-200" />
                         </span>
-                        <span className="flex-1 text-left truncate">{ch.name}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex-1 text-left truncate">{ch.name}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" sideOffset={8}>{ch.name}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         {ch.unread > 0 && (
                           <Badge className="h-4 min-w-[16px] px-1 text-[9px] bg-[oklch(0.55_0.15_160)] text-white">
                             {ch.unread}
@@ -572,6 +612,9 @@ export function AppSidebar() {
       </ScrollArea>
 
       <Separator className="bg-sidebar-border/50" />
+
+      {/* Gradient separator before Settings */}
+      <div className="mx-3 h-px bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent" />
 
       {/* Settings */}
       <div className="px-2 py-2 flex-shrink-0">
@@ -658,6 +701,19 @@ export function AppSidebar() {
               {onlineUsers.length} {t.sidebar.onlineCount}{awayUsers.length} {t.sidebar.awayCount}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Collapse sidebar button */}
+      {!sidebarCollapsed && (
+        <div className="px-3 pb-3 pt-1">
+          <button
+            onClick={() => useAppStore.getState().setSidebarCollapsed(true)}
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground/70 transition-colors min-h-[36px]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            <span>{t.sidebar.collapseSidebar}</span>
+          </button>
         </div>
       )}
     </div>

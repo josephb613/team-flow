@@ -32,6 +32,11 @@ export const translations = {
       statTasks: 'Tâches terminées',
       statUptime: 'Disponibilité',
       statCountries: 'Pays',
+      sslSecured: 'SSL Sécurisé',
+      soc2Compliant: 'SOC 2 Conforme',
+      gdprReady: 'RGPD Prêt',
+      forgotPasswordLink: 'Mot de passe oublié ?',
+      signUpLink: "Pas de compte ? S'inscrire",
     },
 
     // Sidebar
@@ -56,6 +61,9 @@ export const translations = {
       onlineCount: 'en ligne, ',
       awayCount: 'absents',
       newChannel: 'Nouveau canal',
+      tasksDueToday: 'tâches dues aujourd\'hui',
+      meetingsToday: 'réunions',
+      collapseSidebar: 'Réduire',
     },
 
     // Navigation
@@ -96,6 +104,8 @@ export const translations = {
       pro: 'Pro',
       whatsNew: 'Nouveautés',
       whatsNewTooltip: 'TeamFlow v2.4 — Voir les nouveautés',
+      focusMode: 'Mode Focus',
+      focusModeTooltip: 'Réduire les distractions',
     },
 
     // Dashboard
@@ -125,6 +135,15 @@ export const translations = {
       errorLoading: 'Échec du chargement des données du tableau de bord',
       retry: 'Réessayer',
       activeProjectsCount: 'projets actifs',
+      welcomeGreeting: 'Bon retour, Alex !',
+      motivationalMessage: 'Prêt à accomplir de grandes choses aujourd\'hui',
+      quickActionNewTask: 'Nouvelle tâche',
+      quickActionNewProject: 'Nouveau projet',
+      quickActionScheduleMeeting: 'Planifier réunion',
+      quickActionInviteMember: 'Inviter membre',
+      teamActivityHeatmap: 'Activité d\'équipe',
+      heatmapLess: 'Moins',
+      heatmapMore: 'Plus',
     },
 
     // Tasks
@@ -644,6 +663,34 @@ export const translations = {
       shortcuts: 'Raccourcis',
       backToTop: 'Retour en haut',
     },
+
+    // AI Chat Widget
+    aiChat: {
+      title: 'TeamFlow IA',
+      online: 'En ligne',
+      welcomeMessage: 'Salut Alex ! 👋 Je suis votre assistant TeamFlow IA. Je peux vous aider à gérer vos tâches, trouver des informations et rester productif. Comment puis-je vous aider ?',
+      placeholder: 'Posez une question...',
+      summarizeTasks: 'Résumer mes tâches',
+      createTask: 'Créer une tâche',
+      findDeadlines: 'Trouver les échéances',
+      teamStatus: 'Statut de l\'équipe',
+      thinking: 'L\'IA réfléchit...',
+    },
+
+    // Time Tracker
+    timeTracker: {
+      title: 'Suivi du temps',
+      noActiveTimer: 'Aucun minuteur actif',
+      startTimer: 'Démarrer',
+      pause: 'Pause',
+      resume: 'Reprendre',
+      stop: 'Arrêter',
+      todayTotal: 'Total aujourd\'hui',
+      tasksWorked: 'tâches travaillées',
+      recentEntries: 'Entrées récentes',
+      tracking: 'Suivi en cours',
+      paused: 'En pause',
+    },
   },
 
   en: {
@@ -676,6 +723,11 @@ export const translations = {
       statTasks: 'Tasks Completed',
       statUptime: 'Uptime',
       statCountries: 'Countries',
+      sslSecured: 'SSL Secured',
+      soc2Compliant: 'SOC 2 Compliant',
+      gdprReady: 'GDPR Ready',
+      forgotPasswordLink: 'Forgot password?',
+      signUpLink: "Don't have an account? Sign up",
     },
     sidebar: {
       pinned: 'Pinned',
@@ -698,6 +750,9 @@ export const translations = {
       onlineCount: 'online, ',
       awayCount: 'away',
       newChannel: 'New channel',
+      tasksDueToday: 'tasks due today',
+      meetingsToday: 'meetings',
+      collapseSidebar: 'Collapse',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -734,6 +789,8 @@ export const translations = {
       pro: 'Pro',
       whatsNew: 'What\'s new',
       whatsNewTooltip: 'TeamFlow v2.4 — See what\'s new',
+      focusMode: 'Focus Mode',
+      focusModeTooltip: 'Minimize distractions',
     },
     dashboard: {
       title: 'Dashboard',
@@ -761,6 +818,15 @@ export const translations = {
       errorLoading: 'Failed to load dashboard data',
       retry: 'Retry',
       activeProjectsCount: 'active projects',
+      welcomeGreeting: 'Welcome back, Alex!',
+      motivationalMessage: 'Ready to accomplish great things today',
+      quickActionNewTask: 'New Task',
+      quickActionNewProject: 'New Project',
+      quickActionScheduleMeeting: 'Schedule Meeting',
+      quickActionInviteMember: 'Invite Member',
+      teamActivityHeatmap: 'Team Activity',
+      heatmapLess: 'Less',
+      heatmapMore: 'More',
     },
     tasks: {
       title: 'Tasks',
@@ -1239,6 +1305,34 @@ export const translations = {
       byTeam: 'by the TeamFlow team',
       shortcuts: 'Shortcuts',
       backToTop: 'Back to top',
+    },
+
+    // AI Chat Widget
+    aiChat: {
+      title: 'TeamFlow AI',
+      online: 'Online',
+      welcomeMessage: 'Hi Alex! 👋 I\'m your TeamFlow AI assistant. I can help you manage tasks, find information, and stay productive. What can I help you with?',
+      placeholder: 'Ask a question...',
+      summarizeTasks: 'Summarize my tasks',
+      createTask: 'Create a task',
+      findDeadlines: 'Find deadlines',
+      teamStatus: 'Team status',
+      thinking: 'AI is thinking...',
+    },
+
+    // Time Tracker
+    timeTracker: {
+      title: 'Time Tracker',
+      noActiveTimer: 'No active timer',
+      startTimer: 'Start',
+      pause: 'Pause',
+      resume: 'Resume',
+      stop: 'Stop',
+      todayTotal: 'Today\'s total',
+      tasksWorked: 'tasks worked on',
+      recentEntries: 'Recent entries',
+      tracking: 'Tracking',
+      paused: 'Paused',
     },
   },
 } as const;

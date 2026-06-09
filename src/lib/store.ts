@@ -80,6 +80,40 @@ interface AppState {
   isApiLoading: boolean;
   setApiLoading: (loading: boolean) => void;
 
+  // Focus mode
+  focusMode: boolean;
+  setFocusMode: (focus: boolean) => void;
+  toggleFocusMode: () => void;
+
+  // AI Chat Widget
+  aiChatOpen: boolean;
+  toggleAiChat: () => void;
+  setAiChatOpen: (open: boolean) => void;
+
+  // Time Tracker
+  timeTracker: {
+    isTracking: boolean;
+    isPaused: boolean;
+    activeTaskId: string | null;
+    activeTaskName: string | null;
+    activeProjectColor: string | null;
+    elapsedSeconds: number;
+    todayTotal: number;
+    todayTasksCount: number;
+    timeEntries: {
+      id: string;
+      taskName: string;
+      projectColor: string;
+      duration: number;
+      date: string;
+    }[];
+  };
+  startTracking: (taskId: string, taskName: string, projectColor: string) => void;
+  stopTracking: () => void;
+  pauseTracking: () => void;
+  resumeTracking: () => void;
+  tickTimer: () => void;
+
   // Auth
   isAuthenticated: boolean;
   currentUser: {
@@ -302,6 +336,89 @@ export const useAppStore = create<AppState>((set) => ({
   // Global API loading indicator
   isApiLoading: false,
   setApiLoading: (loading) => set({ isApiLoading: loading }),
+
+  // Focus mode
+  focusMode: false,
+  setFocusMode: (focus) => set({ focusMode: focus }),
+  toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+
+  // AI Chat Widget
+  aiChatOpen: false,
+  toggleAiChat: () => set((s) => ({ aiChatOpen: !s.aiChatOpen })),
+  setAiChatOpen: (open) => set({ aiChatOpen: open }),
+
+  // Time Tracker
+  timeTracker: {
+    isTracking: false,
+    isPaused: false,
+    activeTaskId: null,
+    activeTaskName: null,
+    activeProjectColor: null,
+    elapsedSeconds: 0,
+    todayTotal: 5420, // 1h 30m 20s pre-populated
+    todayTasksCount: 3,
+    timeEntries: [
+      { id: 'te-1', taskName: 'Design homepage hero section', projectColor: '#10b981', duration: 2400, date: new Date().toISOString() },
+      { id: 'te-2', taskName: 'API integration review', projectColor: '#f59e0b', duration: 1800, date: new Date().toISOString() },
+      { id: 'te-3', taskName: 'Sprint planning notes', projectColor: '#06b6d4', duration: 1220, date: new Date().toISOString() },
+    ],
+  },
+  startTracking: (taskId, taskName, projectColor) =>
+    set((s) => ({
+      timeTracker: {
+        ...s.timeTracker,
+        isTracking: true,
+        isPaused: false,
+        activeTaskId: taskId,
+        activeTaskName: taskName,
+        activeProjectColor: projectColor,
+        elapsedSeconds: 0,
+      },
+    })),
+  stopTracking: () =>
+    set((s) => {
+      const entry = s.timeTracker.activeTaskId
+        ? [{
+            id: `te-${Date.now()}`,
+            taskName: s.timeTracker.activeTaskName || 'Unknown task',
+            projectColor: s.timeTracker.activeProjectColor || '#10b981',
+            duration: s.timeTracker.elapsedSeconds,
+            date: new Date().toISOString(),
+          }]
+        : [];
+      return {
+        timeTracker: {
+          ...s.timeTracker,
+          isTracking: false,
+          isPaused: false,
+          activeTaskId: null,
+          activeTaskName: null,
+          activeProjectColor: null,
+          elapsedSeconds: 0,
+          todayTotal: s.timeTracker.todayTotal + s.timeTracker.elapsedSeconds,
+          todayTasksCount: s.timeTracker.todayTasksCount + (s.timeTracker.activeTaskId ? 1 : 0),
+          timeEntries: [...entry, ...s.timeTracker.timeEntries].slice(0, 10),
+        },
+      };
+    }),
+  pauseTracking: () =>
+    set((s) => ({
+      timeTracker: { ...s.timeTracker, isPaused: true },
+    })),
+  resumeTracking: () =>
+    set((s) => ({
+      timeTracker: { ...s.timeTracker, isPaused: false },
+    })),
+  tickTimer: () =>
+    set((s) => {
+      if (!s.timeTracker.isTracking || s.timeTracker.isPaused) return s;
+      return {
+        timeTracker: {
+          ...s.timeTracker,
+          elapsedSeconds: s.timeTracker.elapsedSeconds + 1,
+        },
+      };
+    }),
 
   // Auth
   isAuthenticated: false,

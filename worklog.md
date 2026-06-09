@@ -1182,3 +1182,140 @@ Stage Summary:
 - 76+ new i18n keys added for both FR and EN
 - All text uses useTranslation() for i18n
 - Consistent teal/emerald accent color scheme (no blue/indigo)
+
+---
+Task ID: 4-a
+Agent: Styling Improvement Agent
+Task: Dramatically improve styling across login, sidebar, dashboard, top bar
+
+Work Log:
+
+**Login Page (`src/components/login-page.tsx`):**
+- Added animated floating particle/dot background on left panel: 20 particles with Framer Motion y/opacity animation, randomized positions/sizes/delays
+- Added Trust Badges row below testimonial: "🔒 SSL Secured", "✓ SOC 2 Compliant", "🛡️ GDPR Ready" with pill styling (bg-white/[0.06], border-white/[0.08], backdrop-blur)
+- Added footer links below sign-in button: "Forgot password?" (teal accent) and "Don't have an account? Sign up" (muted foreground)
+- Added shimmer/glow animation on "Se connecter" button: gradient shimmer overlay (3s animation) + hover glow effect (blur-md gradient behind button)
+- Added i18n keys: login.sslSecured, login.soc2Compliant, login.gdprReady, login.forgotPasswordLink, login.signUpLink (FR and EN)
+
+**Sidebar (`src/components/app-sidebar.tsx`):**
+- Added Quick Stats mini-section between workspace switcher and search: compact card with "5 tasks due today" (amber icon) and "2 meetings" (cyan icon), divider between stats
+- Added hover tooltip on truncated channel names: TooltipProvider wrapping channel name span, showing full channel name on hover
+- Added gradient separator lines between sidebar sections: `bg-gradient-to-r from-transparent via-[oklch(0.55_0.15_160/0.2)] to-transparent` between navigation, before settings, and after separator
+- Added "Collapse sidebar" button at bottom with ChevronLeft icon, using t.sidebar.collapseSidebar i18n key
+- Added i18n keys: sidebar.tasksDueToday, sidebar.meetingsToday, sidebar.collapseSidebar (FR and EN)
+
+**Dashboard (`src/components/views/dashboard-view.tsx`):**
+- Added "Welcome back, Alex!" greeting section at top with current date (locale-aware formatting) and motivational message in teal accent
+- Added Quick Actions row below greeting: 4 icon buttons (New Task=emerald, New Project=amber, Schedule Meeting=rose, Invite Member=cyan) with teal accent borders, Framer Motion scale animations, wired to store actions
+- Added Team Activity Heatmap: 7x4 grid (28 cells) showing simulated activity levels with green intensity squares using oklch color, legend with Less/More labels, day-of-week labels, staggered entrance animation, hover scale effect
+- Added i18n keys: dashboard.welcomeGreeting, dashboard.motivationalMessage, dashboard.quickActionNewTask, dashboard.quickActionNewProject, dashboard.quickActionScheduleMeeting, dashboard.quickActionInviteMember, dashboard.teamActivityHeatmap, dashboard.heatmapLess, dashboard.heatmapMore (FR and EN)
+
+**Top Bar (`src/components/top-bar.tsx`):**
+- Added Focus Mode toggle button: Eye/EyeOff icon, teal accent when active (bg/15 ring), tooltip showing "Focus Mode"/"Mode Focus"
+- Focus Mode dims sidebar to opacity-30 with pointer-events-none (implemented in main-app.tsx)
+- Improved notification bell bounce: enhanced animation with rotate [-12, 12, -8, 8, 0] + y [-3, 0, -2, 0] bounce, 0.8s duration, 5s repeat delay
+- Added i18n keys: topbar.focusMode, topbar.focusModeTooltip (FR and EN)
+
+**Store (`src/lib/store.ts`):**
+- Added focusMode boolean state, setFocusMode action, toggleFocusMode action
+
+**Main App (`src/components/main-app.tsx`):**
+- Focus Mode integration: sidebar wrapped in div that applies opacity-30 and pointer-events-none when focusMode is active, with transition-opacity for smooth dimming
+
+Stage Summary:
+- 4 components dramatically improved with new visual features and interactions
+- Login: particle background, trust badges, footer links, shimmer button
+- Sidebar: quick stats, channel tooltips, gradient separators, collapse button
+- Dashboard: welcome greeting, quick actions, activity heatmap
+- Top Bar: focus mode toggle, enhanced notification bounce
+- All new text uses useTranslation() with FR and EN translations
+- 0 lint errors in modified files (pre-existing errors in page-transition.tsx are unrelated)
+- App compiling and serving successfully on port 3000
+
+---
+Task ID: 5-a
+Agent: Feature Addition Agent
+Task: Add AI Chat Assistant Widget and Time Tracker features
+
+Work Log:
+- Updated Zustand store (src/lib/store.ts): Added aiChatOpen/toggleAiChat/setAiChatOpen state for AI chat widget; Added timeTracker slice with isTracking/isPaused/activeTaskId/activeTaskName/activeProjectColor/elapsedSeconds/todayTotal/todayTasksCount/timeEntries; Added startTracking/stopTracking/pauseTracking/resumeTracking/tickTimer actions; Pre-populated with 3 mock time entries and todayTotal of 5420s
+- Updated i18n translations (src/lib/i18n/translations.ts): Added aiChat section (title/online/welcomeMessage/placeholder/summarizeTasks/createTask/findDeadlines/teamStatus/thinking) in both FR and EN; Added timeTracker section (title/noActiveTimer/startTimer/pause/resume/stop/todayTotal/tasksWorked/recentEntries/tracking/paused) in both FR and EN
+- Created AI Chat Assistant Widget (src/components/ai-chat-widget.tsx): Floating teal/emerald circular button with Sparkles icon and pulse ring animation; Slide-up chat panel (480x520px) with Framer Motion spring animation; Header with gradient background, Bot icon, online indicator, close button; Scrollable messages area with AI (teal bg, left-aligned) and user (muted bg, right-aligned) message bubbles; Quick action chips: Summarize tasks, Create a task, Find deadlines, Team status; Input area with Paperclip/Mic/Send icons, teal Send button; Pre-populated welcome message; Simulated AI responses with 1s delay based on keyword matching (task/deadline/meeting/team/default); Typing indicator with animated bouncing dots
+- Created Time Tracker Widget (src/components/time-tracker-widget.tsx): Card component with teal gradient header and Timer icon; Active timer display with task name, project color dot, elapsed time (hh:mm:ss), tracking/paused status badges; Start/Pause/Resume/Stop buttons with proper states (green Play, amber Pause, red Stop); No active timer state with Start button; Today summary row with total time and tasks count; Recent time entries (last 3) with task name, duration, project color; Timer ticks every second via useEffect interval
+- Added AI Chat Widget to main-app.tsx: Imported and rendered AiChatWidget component alongside other overlays
+- Added Time Tracker Widget to dashboard-view.tsx: Imported TimeTrackerWidget and rendered in new grid section between charts and bottom row
+- Fixed pre-existing lint error in page-transition.tsx: Ref access during render replaced with useEffect + useState pattern to avoid react-hooks/refs violation
+- All lint errors resolved: bun run lint passes with 0 errors
+- App compiles and serves successfully on port 3000
+
+Stage Summary:
+- AI Chat Assistant Widget: Floating chat bubble with contextual AI responses, quick actions, typing indicators, Framer Motion animations
+- Time Tracker Widget: Full timer with start/pause/stop, today summary, recent entries, 1-second tick interval
+- Both widgets use teal/emerald color scheme, useTranslation() for all text, full FR/EN i18n support
+- Zustand store extended with aiChat and timeTracker slices
+- 0 lint errors, app compiling and serving on port 3000
+
+---
+Task ID: 11
+Agent: Main (Cron Review)
+Task: QA testing, bug fixes, styling improvements, and new features
+
+Work Log:
+- Read worklog.md and assessed current project status (14 views, backend, styling all in place)
+- Verified lint passes (0 errors) and dev server running (port 3000, chat service port 3003)
+- QA tested via agent-browser with VLM analysis:
+  - Login page: 7/10 - functional, good design
+  - Dashboard: Initially 6/10 - needed improvements
+  - Tasks view: Initially 2/10 - BLANK due to page transition bug
+- Fixed critical PageTransition bug: AnimatePresence mode="wait" with useState direction caused opacity:0 stuck state. Simplified to direct ref-based direction calculation
+- Fixed React hydration errors:
+  - Login page particles using Math.random() in useRef caused server/client mismatch. Made particles client-only with mounted state
+  - Dashboard heatmap using Math.random() during render. Switched to deterministic pseudo-random based on index
+  - Dashboard date formatting (new Date().toLocaleDateString) rendered server-side. Added mounted guard
+- Fixed toggleSidebar undefined error in app-sidebar.tsx: Replaced with useAppStore.getState().setSidebarCollapsed(true)
+- Styling improvements (via subagent):
+  - Login: Animated floating particles, trust badges (SSL/SOC2/GDPR), footer links, shimmer button
+  - Sidebar: Quick stats card (5 tasks due, 2 meetings), channel tooltips, gradient separators, collapse button
+  - Dashboard: Welcome greeting with date, quick actions row (4 buttons), team activity heatmap (7x4 grid)
+  - Top Bar: Focus mode toggle (Eye icon), enhanced notification bounce animation
+- New features (via subagent):
+  - AI Chat Assistant Widget: Floating chat bubble with contextual AI responses, quick action chips, typing indicators
+  - Time Tracker Widget: Timer with start/pause/stop, today summary, recent entries, 1-second tick
+- Final QA results:
+  - Dashboard: 7/10 - all elements visible (greeting, quick actions, stat cards, charts, time tracker, AI chat button, sidebar)
+  - Tasks View: 8/10 - Kanban board working with task cards, columns, drag-and-drop
+  - AI Chat: Functional with messages, quick actions, input field
+  - No hydration errors, no runtime errors, 0 lint errors
+
+Stage Summary:
+- 3 critical bugs fixed (page transition, hydration, toggleSidebar)
+- 4 components received styling improvements
+- 2 new feature components added (AI Chat, Time Tracker)
+- All QA tests passing with scores 7-8/10
+- App stable, 0 errors, running on ports 3000 and 3003
+
+---
+# Cron Review Round — Current Status
+
+## Project Status Assessment
+TeamFlow is a fully-featured collaborative project management web app. All 14 views are implemented and functional. The app includes a login page, sidebar navigation, dashboard with charts, AI chat assistant, time tracker, and real-time WebSocket chat. The color scheme uses teal/emerald accents consistently. Both the Next.js dev server (port 3000) and the chat service (port 3003) are running without errors.
+
+## Completed Modifications
+1. **Bug Fixes**: PageTransition animation stuck (opacity:0), React hydration errors (Math.random, Date formatting), toggleSidebar undefined reference
+2. **Styling**: Login page particles/trust badges/footer links/shimmer, Sidebar quick stats/tooltips/separators/collapse, Dashboard greeting/quick actions/heatmap, Top Bar focus mode
+3. **New Features**: AI Chat Assistant Widget (floating, contextual responses), Time Tracker Widget (timer, today summary, recent entries)
+
+## Unresolved Issues / Risks
+1. **Agent-browser form filling**: The `agent-browser fill` command doesn't properly trigger React state updates in some cases; had to use JS dispatch as workaround
+2. **Activity Heatmap**: Uses deterministic pseudo-random; should eventually use real data from API
+3. **AI Chat responses**: Currently simulated with keyword matching; should integrate with LLM API for real AI responses
+4. **Mobile responsiveness**: Some views may need fine-tuning for smaller screens
+5. **Data persistence**: Most views still use mock data; should connect more views to the Prisma database
+
+## Priority Recommendations for Next Phase
+1. **Integrate LLM API** for AI Chat Assistant (using z-ai-web-dev-sdk)
+2. **Connect more views to database** (tasks, projects, etc.) instead of mock data
+3. **Mobile responsive improvements** — fine-tune all views for smaller screens
+4. **File upload functionality** in Files view
+5. **Real-time notifications** via WebSocket push
+6. **Keyboard shortcuts** — expand keyboard navigation throughout the app

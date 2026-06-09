@@ -29,9 +29,13 @@ import {
   RefreshCw,
   Flame,
   PartyPopper,
+  Plus,
+  UserPlus,
 } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useTranslation } from '@/lib/i18n';
+import { useAppStore } from '@/lib/store';
+import { TimeTrackerWidget } from '@/components/time-tracker-widget';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
@@ -232,7 +236,10 @@ type DataRecord = Record<string, unknown>;
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function DashboardView() {
   const { t } = useTranslation();
+  const { setCreateTaskDialogOpen, setCreateProjectDialogOpen, setActivePage, locale } = useAppStore();
   const { stats, tasks, projects, users, activities, meetings, isLoading, error, refetch, lastUpdated } = useDashboardData();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const totalTasks = stats.totalTasks;
   const completedTasks = tasks.filter((task: DataRecord) => task.status === 'done').length;
@@ -434,6 +441,61 @@ export function DashboardView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Welcome Greeting Section ────────────────────────────────────── */}
+      <motion.div variants={item} className="flex items-start justify-between gap-4">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-2xl sm:text-3xl font-bold tracking-tight"
+          >
+            {t.dashboard.welcomeGreeting}
+          </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="flex items-center gap-2 mt-1"
+          >
+            <span className="text-sm text-muted-foreground">
+              {mounted ? new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+            </span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="text-sm text-[oklch(0.55_0.15_160)] font-medium">
+              {t.dashboard.motivationalMessage}
+            </span>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* ─── Quick Actions Row ───────────────────────────────────────────── */}
+      <motion.div
+        variants={item}
+        className="flex items-center gap-2 flex-wrap"
+      >
+        {[
+          { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateTaskDialogOpen(true), color: 'text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/30' },
+          { icon: FolderKanban, label: t.dashboard.quickActionNewProject, onClick: () => setCreateProjectDialogOpen(true), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
+          { icon: Video, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('meetings'), color: 'text-rose-600 hover:bg-rose-500/10 hover:border-rose-500/30' },
+          { icon: UserPlus, label: t.dashboard.quickActionInviteMember, onClick: () => setActivePage('members'), color: 'text-cyan-600 hover:bg-cyan-500/10 hover:border-cyan-500/30' },
+        ].map((action, i) => (
+          <motion.button
+            key={i}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 + i * 0.05 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={action.onClick}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border/50 text-xs font-medium transition-all duration-200 ${action.color}`}
+          >
+            <action.icon className="h-3.5 w-3.5" />
+            {action.label}
+          </motion.button>
+        ))}
+      </motion.div>
 
       {/* ─── Dashboard Header: Refresh + Last Updated + Streak ──────────── */}
       <motion.div variants={item} className="flex items-center justify-between">
@@ -710,6 +772,68 @@ export function DashboardView() {
             </CardContent>
           </Card>
         </motion.div>
+      </div>
+
+      {/* ─── Team Activity Heatmap ────────────────────────────────────────── */}
+      <motion.div variants={item}>
+        <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
+                  <Activity className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold">{t.dashboard.teamActivityHeatmap}</CardTitle>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <span>{t.dashboard.heatmapLess}</span>
+                <div className="flex gap-0.5">
+                  {[0.1, 0.25, 0.5, 0.75, 1].map((opacity, i) => (
+                    <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: `oklch(0.55 0.15 160 / ${opacity})` }} />
+                  ))}
+                </div>
+                <span>{t.dashboard.heatmapMore}</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-1" style={{ gridTemplateRows: 'repeat(4, 1fr)' }}>
+              {Array.from({ length: 28 }).map((_, i) => {
+                // Use deterministic pseudo-random based on index to avoid hydration mismatch
+                const level = mounted ? ((Math.sin(i * 127.1 + 311.7) * 43758.5453) % 1 + 1) % 1 : 0.5;
+                const opacity = level < 0.15 ? 0.05 : level < 0.35 ? 0.15 : level < 0.55 ? 0.3 : level < 0.75 ? 0.55 : 0.85;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.02 * i, duration: 0.2 }}
+                    whileHover={{ scale: 1.3, borderRadius: '4px' }}
+                    className="aspect-square rounded-sm cursor-pointer transition-all"
+                    style={{ backgroundColor: `oklch(0.55 0.15 160 / ${opacity})` }}
+                    title={`${Math.round(level * 10)} activities`}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex gap-3 text-[10px] text-muted-foreground">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                  <span key={day} className="w-6 text-center">{day}</span>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ─── Time Tracker Widget ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-1">
+          <TimeTrackerWidget />
+        </div>
       </div>
 
       {/* ─── Bottom Row: Active Tasks + Activity + Upcoming ──────────────── */}

@@ -28,6 +28,7 @@ import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog'
 import { ConnectionStatus } from '@/components/connection-status';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
+import { AiChatWidget } from '@/components/ai-chat-widget';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ArrowUp, Plus, CheckSquare, FolderKanban, Video } from 'lucide-react';
@@ -193,6 +194,7 @@ function MobileFAB() {
 export function MainApp() {
   const activePage = useAppStore((s) => s.activePage);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const focusMode = useAppStore((s) => s.focusMode);
 
   useKeyboardShortcuts();
 
@@ -203,7 +205,9 @@ export function MainApp() {
     <ConnectionStatus />
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <AppSidebar />
+      <div className={cn('transition-opacity duration-300', focusMode ? 'opacity-30 pointer-events-none' : 'opacity-100')}>
+        <AppSidebar />
+      </div>
 
       {/* Main content */}
       <div
@@ -256,6 +260,9 @@ export function MainApp() {
 
       {/* Toast Notifications */}
       <Toaster />
+
+      {/* AI Chat Widget (floating) */}
+      <AiChatWidget />
     </div>
     </>
   );

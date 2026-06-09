@@ -30,30 +30,6 @@ function getDirection(from: PageId | null, to: PageId): number {
   return toIdx > fromIdx ? 1 : -1;
 }
 
-const variants = {
-  enter: (direction: number) => ({
-    opacity: 0,
-    x: direction * 40,
-    y: 4,
-  }),
-  center: {
-    opacity: 1,
-    x: 0,
-    y: 0,
-  },
-  exit: (direction: number) => ({
-    opacity: 0,
-    x: direction * -40,
-    y: -4,
-  }),
-};
-
-const transition = {
-  type: 'tween',
-  ease: [0.25, 0.46, 0.45, 0.94],
-  duration: 0.2,
-};
-
 interface PageTransitionProps {
   pageId: PageId;
   children: React.ReactNode;
@@ -64,31 +40,25 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
   const [direction, setDirection] = useState(0);
 
   useEffect(() => {
-    const prevPage = prevPageRef.current;
+    const dir = getDirection(prevPageRef.current, pageId);
+    setDirection(dir);
     prevPageRef.current = pageId;
-    setDirection(getDirection(prevPage, pageId));
   }, [pageId]);
 
   return (
-    <AnimatePresence mode="wait" custom={direction}>
+    <AnimatePresence mode="wait">
       <motion.div
         key={pageId}
-        custom={direction}
-        variants={variants}
-        initial="enter"
-        animate="center"
-        exit="exit"
-        transition={transition}
-        className="will-change-transform"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{
+          type: 'tween',
+          ease: [0.25, 0.46, 0.45, 0.94],
+          duration: 0.15,
+        }}
       >
-        {/* Content-ready subtle fade-in overlay */}
-        <motion.div
-          initial={{ opacity: 0.6 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.15, delay: 0.05 }}
-        >
-          {children}
-        </motion.div>
+        {children}
       </motion.div>
     </AnimatePresence>
   );

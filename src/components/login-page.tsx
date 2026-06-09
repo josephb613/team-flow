@@ -45,6 +45,26 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
   );
 }
 
+// Floating particle for the left panel background
+function Particle({ delay, x, y, size }: { delay: number; x: number; y: number; size: number }) {
+  return (
+    <motion.div
+      className="absolute rounded-full bg-white/10"
+      style={{ left: `${x}%`, top: `${y}%`, width: size, height: size }}
+      animate={{
+        y: [0, -30, 0],
+        opacity: [0.15, 0.4, 0.15],
+      }}
+      transition={{
+        duration: 6 + Math.random() * 4,
+        delay,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+    />
+  );
+}
+
 export function LoginPage() {
   const login = useAppStore((s) => s.login);
   const { locale, setLocale } = useAppStore();
@@ -81,6 +101,22 @@ export function LoginPage() {
     { value: 150, suffix: '+', label: t.login.statCountries },
   ];
 
+  // Client-only mounting to avoid hydration mismatch with Math.random
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Generate particles for the left panel (client-only to avoid hydration mismatch)
+  const particles = useRef<{ id: number; delay: number; x: number; y: number; size: number }[] | null>(null);
+  if (mounted && !particles.current) {
+    particles.current = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      delay: Math.random() * 5,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 2 + Math.random() * 4,
+    }));
+  }
+
   return (
     <div className="min-h-screen flex relative overflow-hidden">
       {/* Language toggle */}
@@ -100,6 +136,11 @@ export function LoginPage() {
           <div className="absolute bottom-1/4 right-10 w-96 h-96 rounded-full bg-[oklch(0.55_0.15_160/0.07)] blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-[oklch(0.65_0.15_80/0.08)] blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
+
+        {/* Animated floating particles */}
+        {mounted && particles.current?.map((p) => (
+          <Particle key={p.id} delay={p.delay} x={p.x} y={p.y} size={p.size} />
+        ))}
 
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -218,6 +259,28 @@ export function LoginPage() {
                 </div>
               </motion.div>
             </motion.div>
+
+            {/* Trust Badges Row */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.5 }}
+              className="mt-5 flex items-center gap-2 flex-wrap"
+            >
+              {[
+                { label: t.login.sslSecured, icon: '🔒' },
+                { label: t.login.soc2Compliant, icon: '✓' },
+                { label: t.login.gdprReady, icon: '🛡️' },
+              ].map((badge, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] text-white/50 font-medium backdrop-blur-sm"
+                >
+                  <span className="text-xs">{badge.icon}</span>
+                  {badge.label}
+                </span>
+              ))}
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -316,23 +379,51 @@ export function LoginPage() {
               )}
             </AnimatePresence>
 
-            <Button
-              type="submit"
-              className="w-full h-11 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white font-medium"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {t.login.signingIn}
+            {/* Sign In button with shimmer/glow animation */}
+            <div className="relative group">
+              {/* Glow effect behind button */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] via-[oklch(0.65_0.15_100)] to-[oklch(0.55_0.15_160)] rounded-lg opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-500" />
+              <Button
+                type="submit"
+                className="relative w-full h-11 bg-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.48_0.15_160)] text-white font-medium overflow-hidden"
+                disabled={isLoading}
+              >
+                {/* Shimmer overlay */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 55%, transparent 60%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer-move 3s ease-in-out infinite',
+                    }}
+                  />
                 </div>
-              ) : (
-                t.login.signIn
-              )}
-            </Button>
+                <span className="relative z-10">
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t.login.signingIn}
+                    </div>
+                  ) : (
+                    t.login.signIn
+                  )}
+                </span>
+              </Button>
+            </div>
           </form>
 
-          <div className="mt-6">
+          {/* Footer links below sign-in button */}
+          <div className="mt-4 flex items-center justify-between text-xs">
+            <button type="button" className="text-[oklch(0.55_0.15_160)] hover:text-[oklch(0.45_0.15_160)] font-medium transition-colors">
+              {t.login.forgotPasswordLink}
+            </button>
+            <button type="button" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
+              {t.login.signUpLink}
+            </button>
+          </div>
+
+          <div className="mt-5">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t" />

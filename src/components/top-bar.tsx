@@ -56,6 +56,8 @@ import {
   Mail,
   AlertTriangle,
   Globe,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { MessageSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -94,6 +96,8 @@ export function TopBar() {
     setLocale,
     setActivePage,
     isApiLoading,
+    focusMode,
+    toggleFocusMode,
   } = useAppStore();
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
@@ -213,6 +217,30 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {/* Focus Mode toggle */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-9 w-9 transition-all',
+                  focusMode ? 'bg-[oklch(0.55_0.15_160/0.15)] text-[oklch(0.55_0.15_160)] hover:bg-[oklch(0.55_0.15_160/0.25)]' : 'hover:bg-muted'
+                )}
+                onClick={toggleFocusMode}
+              >
+                {focusMode ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t.topbar.focusMode}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         {/* Search bar - wider with animated focus ring */}
         <motion.div
           animate={{
@@ -376,12 +404,13 @@ export function TopBar() {
             >
               <motion.div
                 animate={unreadCount > 0 ? {
-                  rotate: [0, -8, 8, -4, 4, 0],
-                } : { rotate: 0 }}
+                  rotate: [0, -12, 12, -8, 8, 0],
+                  y: [0, -3, 0, -2, 0],
+                } : { rotate: 0, y: 0 }}
                 transition={unreadCount > 0 ? {
-                  duration: 0.6,
+                  duration: 0.8,
                   repeat: Infinity,
-                  repeatDelay: 4,
+                  repeatDelay: 5,
                   ease: 'easeInOut',
                 } : undefined}
               >
