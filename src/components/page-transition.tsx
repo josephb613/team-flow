@@ -1,34 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PageId } from '@/lib/types';
-
-// Navigation order for determining direction
-const PAGE_ORDER: PageId[] = [
-  'dashboard',
-  'tasks',
-  'projects',
-  'calendar',
-  'messages',
-  'meetings',
-  'files',
-  'wiki',
-  'activity',
-  'members',
-  'teams',
-  'reports',
-  'automations',
-  'settings',
-];
-
-function getDirection(from: PageId | null, to: PageId): number {
-  if (!from) return 0;
-  const fromIdx = PAGE_ORDER.indexOf(from);
-  const toIdx = PAGE_ORDER.indexOf(to);
-  if (fromIdx === -1 || toIdx === -1) return 0;
-  return toIdx > fromIdx ? 1 : -1;
-}
 
 interface PageTransitionProps {
   pageId: PageId;
@@ -36,30 +9,62 @@ interface PageTransitionProps {
 }
 
 export function PageTransition({ pageId, children }: PageTransitionProps) {
-  const prevPageRef = useRef<PageId | null>(null);
-  const [direction, setDirection] = useState(0);
-
-  useEffect(() => {
-    const dir = getDirection(prevPageRef.current, pageId);
-    setDirection(dir);
-    prevPageRef.current = pageId;
-  }, [pageId]);
-
   return (
-    <AnimatePresence mode="wait">
+    <div className="relative">
+      {/* NProgress-style loading indicator — key change triggers fresh animation per page */}
       <motion.div
-        key={pageId}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{
-          type: 'tween',
-          ease: [0.25, 0.46, 0.45, 0.94],
-          duration: 0.15,
+        key={`bar-${pageId}`}
+        className="absolute top-0 left-0 h-0.5 bg-blue-500 z-50 rounded-r-full"
+        initial={{ width: '0%', opacity: 1 }}
+        animate={{
+          width: ['0%', '70%', '100%'],
+          opacity: [1, 1, 0],
         }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+        transition={{
+          duration: 0.5,
+          times: [0, 0.6, 1],
+          ease: 'easeOut',
+        }}
+      />
+
+      {/* Page transition with AnimatePresence */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={pageId}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            transition: {
+              type: 'tween',
+              ease: [0.25, 0.46, 0.45, 0.94],
+              duration: 0.2, // enter: 0.2s
+            },
+          }}
+          exit={{
+            opacity: 0,
+            y: -8,
+            transition: {
+              type: 'tween',
+              ease: [0.25, 0.46, 0.45, 0.94],
+              duration: 0.15, // exit: 0.15s
+            },
+          }}
+        >
+          {/* Staggered content entrance wrapper */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.25,
+              ease: 'easeOut',
+              delay: 0.05,
+            }}
+          >
+            {children}
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }

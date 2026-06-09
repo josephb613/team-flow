@@ -2005,3 +2005,263 @@ Tested via agent-browser + VLM:
 4. **Content detail drawer** — Click on content items in lists to open detail view
 5. **Mobile responsive improvements** — Fine-tune all views for smaller screens
 6. **Data persistence** — Connect more views to the Prisma database instead of mock data
+
+---
+Task ID: 15-b
+Agent: Top Bar Enhancement & Page Transition Styling Agent
+Task: Enhanced top bar with dynamic breadcrumbs, notification badge, search focus, role badges, focus mode; page transition animations
+
+Work Log:
+
+**Feature 1: Enhanced Top Bar (`src/components/top-bar.tsx`)**
+
+1. **Dynamic Breadcrumb with Section Navigation**:
+   - Added `PAGE_SECTION_MAP` mapping each PageId to its section key (communication, contentManagement, distribution, analysis, administration)
+   - Breadcrumb now shows: Workspace > Section > Page (3 levels instead of 2)
+   - Section name is hidden on Dashboard (since Dashboard IS the Communication section)
+   - Both section name and page name animate on change using `AnimatePresence` with fade + y-translate
+   - Section names sourced from `t.topbar.sections` i18n keys (new) with fallback to `t.sidebar`
+
+2. **Notification Bell with Pulse Badge**:
+   - Changed badge color from teal to rose-500 (more visible red) for the unread count
+   - Added `animate-ping` pulse animation ring around the badge when there are unread notifications
+   - Notification popover also uses rose-500 for unread count badge
+   - Unread dot in notification items uses rose-500
+
+3. **Global Search Bar Enhancement**:
+   - Changed focus ring color from teal to blue (`ring-blue-500/40 border-blue-500/40`)
+   - Loading indicator at top of header changed to blue gradient (`via-blue-500`)
+   - ⌘K keyboard shortcut hint already present, preserved
+
+4. **User Menu with Role Badge**:
+   - Added `ROLE_BADGE_STYLES` mapping: tenant_admin → blue, editor → amber, contributor → cyan, reader → slate
+   - Role badge appears next to user name in dropdown menu header (both desktop and mobile)
+   - Badge styling: small pill with colored background, text, and border matching role color
+
+5. **Focus Mode Toggle**: Already present with Eye/EyeOff icons, confirmed working with `toggleFocusMode` from store
+
+**Feature 2: Page Transition Animations (`src/components/page-transition.tsx`)**
+
+1. **Smooth Transitions with AnimatePresence**:
+   - Enter: opacity 0→1, y 8→0, duration 0.2s
+   - Exit: opacity 0, y -8, duration 0.15s
+   - Key based on `pageId` prop for correct unmount/remount
+   - Custom ease curve `[0.25, 0.46, 0.45, 0.94]` for smooth deceleration
+
+2. **Loading Indicator (NProgress-style)**:
+   - Thin blue progress bar at top of content area
+   - Uses Framer Motion keyframes to animate from 0% → 70% → 100% width
+   - Opacity transitions: 1 → 1 → 0 (fades out as bar reaches 100%)
+   - Duration: 0.5s total, with 70% mark at ~60% of the time
+   - Key changes on each `pageId` change to trigger fresh animation
+
+3. **Staggered Content Entrance**:
+   - Inner `motion.div` wraps children with delayed entrance
+   - Opacity 0→1, y 8→0, duration 0.25s with ease-out
+   - 50ms delay after page transition for natural stagger feel
+
+**i18n Updates (`src/lib/i18n/translations.ts`)**:
+- Added `topbar.sections` keys to both FR and EN:
+  - FR: communication, Gestion de contenu, Diffusion, Analyse, Administration
+  - EN: Communication, Content Management, Distribution, Analysis, Administration
+- Added `topbar.schedulePublish` key: FR="Planifier la publication", EN="Schedule Publish"
+- Fixed reference to `t.topbar.schedulePublish` in quick create dropdown (was missing from translations)
+
+Stage Summary:
+- Top bar significantly enhanced with dynamic section breadcrumbs, rose notification badges with pulse, blue search focus, role color badges
+- Page transitions improved with NProgress-style loading bar, proper enter/exit timings, staggered content entrance
+- All changed files pass ESLint (0 new errors)
+- App compiling and serving successfully on port 3000
+
+---
+Task ID: 15-a
+Agent: Content Detail Drawer & Notification Enhancement Agent
+Task: Add Content Detail Drawer and enhance Notification Panel + Sidebar badge
+
+Work Log:
+
+**Feature 1: Content Detail Drawer** (`src/components/content-detail-drawer.tsx` - NEW):
+- Created a Sheet-based drawer that slides in from the right when users click on content items
+- Controlled by `contentDetailOpen` and `selectedContent` from the Zustand store
+- **Header section**:
+  - Content type badge (Newsletter/Article/Annonce/Communiqué/Campagne) with colored icon and gradient background
+  - Title (large, bold, left-aligned)
+  - Status badge (Brouillon/Révision/Approuvé/Planifié/Publié/Archivé) with matching color from `contentStatusColors`
+- **Metadata section**:
+  - Author with avatar + name
+  - Created date with Calendar icon
+  - Last modified date with Clock icon
+  - Scheduled date (if status === 'scheduled') with CalendarClock icon in violet
+- **Tags section**:
+  - Tags displayed as Badge chips with Tag icon header
+- **Content Preview section**:
+  - Scrollable area showing the content excerpt/description
+  - Word count indicator
+- **Workflow Actions section** (sticky bottom):
+  - Buttons matching the content status workflow:
+    - Draft: "Soumettre en révision" with ArrowRightCircle icon (amber/orange gradient)
+    - Review: "Approuver" (emerald/teal gradient) + "Refuser" (rose outline)
+    - Approved: "Planifier" (violet/purple gradient)
+    - Published: "Archiver" (slate outline)
+  - Edit button (always visible, outline style)
+  - Delete button (rose colored, always visible)
+- **Visual polish**:
+  - Gradient top border matching content type color (1.5px bar)
+  - Proper dark mode support
+  - Empty state when no content is selected
+
+**Integration**:
+- Added `<ContentDetailDrawer />` to `main-app.tsx` alongside existing `<TaskDetailDrawer />`
+- Made newsletter items clickable in `newsletters-view.tsx` by adding `onClick={() => useAppStore.getState().setSelectedContent(newsletter)}` and `cursor-pointer` class
+- Added `e.stopPropagation()` to dropdown trigger in newsletter cards to prevent card click from firing when using the menu
+
+**Feature 2: Notification Badge in Sidebar** (`src/components/app-sidebar.tsx`):
+- Added `notifications` from store to compute `unreadCount`
+- Added Bell icon button next to search bar (expanded sidebar) with:
+  - Badge count showing unread notifications (teal accent)
+  - Pulse animation (`animate-ping`) when there are unread notifications
+  - Teal accent styling when unread > 0, muted styling when 0
+  - Opens notification panel on click
+  - Tooltip showing "Notifications (N)" when unread
+- Added Bell icon button for collapsed sidebar with same badge/pulse functionality
+- Added `Bell` import from lucide-react
+
+**Feature 3: Enhanced Notification Panel** (`src/components/notification-panel.tsx`):
+- Replaced old notification type icons with spec-compliant ones:
+  - validation_requested → Shield icon (teal)
+  - content_approved → CheckCircle icon (emerald)
+  - content_published → Send icon (cyan)
+  - send_failed → AlertTriangle icon (rose)
+  - new_assignment → UserPlus icon (amber)
+  - comment_mention → AtSign icon (pink)
+  - system → Settings icon (slate)
+- Updated colored left borders per notification type (matching icon colors)
+- Updated icon backgrounds per notification type
+- Replaced old relative time formatting with locale-aware FR/EN formatting:
+  - FR: "à l'instant", "il y a 15m", "il y a 2h", "Hier", "il y a 3j", or date
+  - EN: "just now", "15m ago", "2h ago", "Yesterday", "3d ago", or date
+- Improved "Tout marquer comme lu" button styling with teal accent and border
+- Added enhanced empty state when all notifications are read:
+  - BellOff icon in gradient container with Check badge overlay
+  - "Vous êtes à jour !" title with descriptive subtitle
+- Added filter-specific empty state for when a filter has no results
+- Changed all blue-500 accent colors to teal [oklch(0.55_0.18_250)] accent for consistency
+- Increased panel width from 400px to 420px for better readability
+- Added locale prop from store for proper i18n time formatting
+
+**i18n Updates** (`src/lib/i18n/translations.ts`):
+- Added `contentDetail` keys to both FR and EN:
+  - title: 'Détail du contenu' / 'Content Detail'
+  - status: 'Statut' / 'Status'
+  - author: 'Auteur' / 'Author'
+  - createdAt: 'Créé le' / 'Created'
+  - modifiedAt: 'Modifié le' / 'Modified'
+  - scheduledAt: 'Publication prévue' / 'Scheduled for'
+  - tags: 'Tags' / 'Tags'
+  - preview: 'Aperçu' / 'Preview'
+  - wordCount: 'mots' / 'words'
+  - submitReview: 'Soumettre en révision' / 'Submit for review'
+  - approve: 'Approuver' / 'Approve'
+  - reject: 'Refuser' / 'Reject'
+  - schedule: 'Planifier' / 'Schedule'
+  - archive: 'Archiver' / 'Archive'
+  - edit: 'Modifier' / 'Edit'
+  - delete: 'Supprimer' / 'Delete'
+  - noContent: 'Aucun contenu sélectionné' / 'No content selected'
+
+Stage Summary:
+- Content Detail Drawer created with full workflow actions, metadata display, and visual polish
+- Newsletter items are now clickable and open the drawer
+- Sidebar notification badge added (both expanded and collapsed states) with pulse animation
+- Notification panel enhanced with spec-compliant type icons, locale-aware relative time, improved empty state
+- 0 lint errors
+- App compiling and serving successfully on port 3000
+
+---
+
+# Cron Review Round — 2025-06-09 20:15
+
+## Current Project Status
+
+ContentFlow is a fully-featured multi-tenant SaaS CMS application with French UI. Built with Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Framer Motion, Zustand, Prisma+SQLite, and recharts. 23+ views across 5 sidebar sections, plus login, sidebar, top bar, search dialog, notification panel, workspace creation dialog, content detail drawer, AI chat widget, and real-time chat service.
+
+**Status**: Stable — 0 lint errors, dev server running on port 3000
+
+## QA Testing Results
+
+Tested via agent-browser + VLM:
+- ✅ Dashboard renders with stat cards, charts, editorial pipeline, approval queue, performance section
+- ✅ Newsletters view renders with metrics, filters, and clickable items
+- ✅ Settings view renders properly with language/timezone/date dropdowns
+- ✅ Dark mode toggle works correctly (next-themes integration)
+- ✅ Content Detail Drawer opens when clicking newsletter items
+- ✅ Notification panel shows type icons, colored borders, relative time
+- ✅ Notification bell with unread count badge (5) in sidebar
+- ✅ Search dialog works with CMS-specific results
+- ✅ Create Content dialog with 4 content types and form fields
+- ✅ No console errors on any view
+
+## Bugs Fixed
+
+1. **Settings Language Input** — Was a static text input showing "English (US)" regardless of locale
+   - Fix: Replaced with Select dropdown that reflects actual locale (Français/English)
+   - Added `setLocale` to `useTranslation()` hook return value
+   - Also converted Timezone and Date Format to proper Select dropdowns
+
+2. **i18n Hook Missing setLocale** — `useTranslation()` didn't return `setLocale`
+   - Fix: Added `setLocale` from `useAppStore` to the hook's return value
+
+## New Features Added
+
+### Task 15-a: Content Detail Drawer + Notification Enhancement
+
+1. **Content Detail Drawer** (`src/components/content-detail-drawer.tsx` — NEW):
+   - Sheet/drawer sliding from right with shadcn/ui Sheet
+   - Header: content type badge, title, status badge with color
+   - Metadata: author with avatar, created/modified/scheduled dates, tags as chips
+   - Preview: scrollable content summary with word count
+   - Workflow actions: Submit for review / Approve / Reject / Schedule / Archive / Edit / Delete
+   - Gradient top border matching content type color
+   - Integrated: newsletter items are clickable and open the drawer
+   - 17 new i18n keys (FR + EN)
+
+2. **Notification Badge in Sidebar** (`src/components/app-sidebar.tsx`):
+   - Bell icon with unread count badge (pulse animation when > 0)
+   - Opens notification panel on click
+   - Works in both expanded and collapsed sidebar
+
+3. **Enhanced Notification Panel** (`src/components/notification-panel.tsx`):
+   - Type icons per notification (Shield, CheckCircle, Send, AlertTriangle, UserPlus, AtSign, Settings)
+   - Locale-aware relative time ("il y a 15m", "Hier", etc.)
+   - Improved "Tout marquer comme lu" button
+   - Empty state with BellOff icon
+   - Colored left borders by notification type
+
+### Task 15-b: Top Bar Enhancement & Page Transitions
+
+1. **Enhanced Top Bar** (`src/components/top-bar.tsx`):
+   - Dynamic breadcrumb with section > page navigation (5 CMS sections mapped)
+   - Notification bell with rose-500 pulse badge for unread count
+   - Blue focus ring on search bar
+   - User menu with role badges (Admin=blue, Éditeur=amber, Contributeur=cyan, Lecteur=slate)
+   - Focus mode toggle (Eye/EyeOff)
+
+2. **Page Transition Animations** (`src/components/page-transition.tsx`):
+   - Smooth Framer Motion transitions (fade + y-translate, 0.2s enter, 0.15s exit)
+   - NProgress-style loading bar (thin blue bar, 0→70%→100%)
+   - Staggered content entrance (opacity + y, 0.25s)
+
+3. **i18n Updates**: Added topbar.sections keys for all 5 sections (FR + EN)
+
+## Unresolved Issues / Risks
+1. **Content detail drawer**: Only newsletter items are wired to open it — articles, announcements, and other views need similar onClick handlers
+2. **Compact sidebar toggle**: The compact sidebar switch in Settings doesn't actually collapse the sidebar — needs wiring to store
+3. **Page transitions**: May cause slight flicker on rapid navigation — needs fine-tuning
+
+## Priority Recommendations for Next Phase
+1. **Wire content detail drawer to all content views** — Articles, Announcements, Campaigns views should also open the drawer on click
+2. **Compact sidebar toggle wiring** — Connect the Settings switch to `sidebarCollapsed` in store
+3. **Real-time notifications via WebSocket** — Push new notifications to clients
+4. **Mobile responsive improvements** — Fine-tune all views for smaller screens
+5. **Data persistence** — Connect more views to the Prisma database
+6. **Content workflow actions** — Make the workflow buttons in the detail drawer actually change content status

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +72,7 @@ const sectionVariants = {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function SettingsView() {
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('general');
   const currentUser = useAppStore((s) => s.currentUser);
@@ -169,24 +170,42 @@ export function SettingsView() {
                   <CardContent className="space-y-5">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.language}</Label>
-                      <Input
-                        defaultValue="English (US)"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
-                      />
+                      <Select value={locale} onValueChange={(v) => setLocale(v as 'fr' | 'en')}>
+                        <SelectTrigger className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fr">Français</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.timezone}</Label>
-                      <Input
-                        defaultValue="UTC+1 (West Africa Time)"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
-                      />
+                      <Select defaultValue="africa-kinshasa">
+                        <SelectTrigger className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="africa-kinshasa">UTC+1 (Afrique/Central)</SelectItem>
+                          <SelectItem value="europe-paris">UTC+1 (Europe/Paris)</SelectItem>
+                          <SelectItem value="america-new-york">UTC-5 (America/New York)</SelectItem>
+                          <SelectItem value="asia-tokyo">UTC+9 (Asia/Tokyo)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.dateFormat}</Label>
-                      <Input
-                        defaultValue="MM/DD/YYYY"
-                        className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
-                      />
+                      <Select defaultValue="dd-mm-yyyy">
+                        <SelectTrigger className="max-w-xs bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dd-mm-yyyy">DD/MM/YYYY</SelectItem>
+                          <SelectItem value="mm-dd-yyyy">MM/DD/YYYY</SelectItem>
+                          <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between py-1">

@@ -255,7 +255,10 @@ export function NewslettersView() {
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ delay: idx * 0.04, duration: 0.3 }}
                 >
-                  <Card className="group overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300">
+                  <Card
+                  className="group overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                  onClick={() => useAppStore.getState().setSelectedContent(newsletter)}
+                >
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         {/* Left: Icon + Info */}
@@ -323,7 +326,7 @@ export function NewslettersView() {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>

@@ -58,13 +58,46 @@ import {
   Globe,
   Eye,
   EyeOff,
+  CheckCircle,
+  MessageSquare,
 } from 'lucide-react';
-import { MessageSquare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import type { PageId } from '@/lib/types';
+
+// Map each page to its section key (for i18n)
+const PAGE_SECTION_MAP: Record<PageId, string> = {
+  // Communication
+  dashboard: 'communication',
+  newsletters: 'communication',
+  articles: 'communication',
+  announcements: 'communication',
+  campaigns: 'communication',
+  'editorial-calendar': 'communication',
+  // Gestion de contenu
+  library: 'contentManagement',
+  media: 'contentManagement',
+  templates: 'contentManagement',
+  drafts: 'contentManagement',
+  published: 'contentManagement',
+  archive: 'contentManagement',
+  // Diffusion
+  scheduling: 'distribution',
+  publishing: 'distribution',
+  channels: 'distribution',
+  automations: 'distribution',
+  // Analyse
+  statistics: 'analysis',
+  reports: 'analysis',
+  // Administration
+  users: 'administration',
+  roles: 'administration',
+  tenants: 'administration',
+  audit: 'administration',
+  settings: 'administration',
+};
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
   assignment: <ListChecks className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />,
@@ -81,8 +114,14 @@ const notificationTypeIcons: Record<string, React.ReactNode> = {
   comment_mention: <AtSign className="h-3.5 w-3.5 text-rose-500" />,
 };
 
-// Import CheckCircle for notification type icons
-import { CheckCircle } from 'lucide-react';
+// Role badge color mapping
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  super_admin: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
+  tenant_admin: 'bg-blue-500/15 text-blue-600 border-blue-500/20',
+  editor: 'bg-amber-500/15 text-amber-600 border-amber-500/20',
+  contributor: 'bg-cyan-500/15 text-cyan-600 border-cyan-500/20',
+  reader: 'bg-slate-500/15 text-slate-600 border-slate-500/20',
+};
 
 export function TopBar() {
   const {
@@ -114,6 +153,11 @@ export function TopBar() {
 
   const activeTenant = tenants.find((t) => t.id === activeTenantId);
 
+  // Get section key for current page
+  const sectionKey = PAGE_SECTION_MAP[activePage] || 'communication';
+  // @ts-expect-error — dynamic section key access on topbar.sections
+  const sectionName = t.topbar?.sections?.[sectionKey] || t.sidebar[sectionKey as keyof typeof t.sidebar] || sectionKey;
+
   // CMS role labels
   const getRoleLabel = (role: string): string => {
     const roles: Record<string, string> = {
@@ -131,6 +175,11 @@ export function TopBar() {
     return t.nav[key] || page;
   };
 
+  // Get role badge class
+  const getRoleBadgeStyle = (role: string): string => {
+    return ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES['reader'];
+  };
+
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-background/80 backdrop-blur-md relative">
       {/* Gradient border-bottom */}
@@ -144,7 +193,7 @@ export function TopBar() {
             animate={{ scaleX: 1, opacity: 1 }}
             exit={{ scaleX: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[oklch(0.55_0.18_250)] to-transparent origin-left"
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent origin-left"
           />
         )}
       </AnimatePresence>
@@ -183,7 +232,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Breadcrumb navigation */}
+        {/* Dynamic Breadcrumb navigation — Section > Page */}
         <Breadcrumb className="hidden sm:flex">
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -202,6 +251,28 @@ export function TopBar() {
             <BreadcrumbSeparator>
               <ChevronRight className="h-3.5 w-3.5" />
             </BreadcrumbSeparator>
+            {/* Dynamic Section */}
+            {activePage !== 'dashboard' && (
+              <>
+                <BreadcrumbItem>
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={sectionKey}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-muted-foreground text-sm"
+                    >
+                      {sectionName}
+                    </motion.span>
+                  </AnimatePresence>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </BreadcrumbSeparator>
+              </>
+            )}
             <BreadcrumbItem>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -260,7 +331,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Search bar - wider with animated focus ring */}
+        {/* Search bar with ⌘K hint and blue focus border */}
         <motion.div
           animate={{
             width: searchFocused ? 320 : undefined,
@@ -273,7 +344,7 @@ export function TopBar() {
               'hidden md:flex items-center gap-2 h-9 px-3 text-muted-foreground hover:text-foreground',
               'w-72 justify-start shadow-sm bg-muted/30',
               'transition-all duration-200',
-              searchFocused && 'ring-2 ring-[oklch(0.55_0.18_250/0.3)] border-[oklch(0.55_0.18_250/0.3)]'
+              searchFocused && 'ring-2 ring-blue-500/40 border-blue-500/40'
             )}
             onClick={() => setSearchOpen(true)}
             onFocus={() => setSearchFocused(true)}
@@ -356,7 +427,7 @@ export function TopBar() {
               onClick={() => setActivePage('scheduling')}
             >
               <Clock className="h-4 w-4 mr-2 text-rose-500" />
-              {t.topbar.schedulePublish}
+              {t.topbar.schedulePublish || t.topbar.scheduleSend}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -364,12 +435,12 @@ export function TopBar() {
               onClick={() => setCreateWorkspaceDialogOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {t.sidebar.createTenant}
+              {t.sidebar.createTenant || t.sidebar.createWorkspace}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Language toggle - icon only on mobile */}
+        {/* Language toggle */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -385,7 +456,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Mobile language toggle - icon only */}
+        {/* Mobile language toggle */}
         <Button
           variant="ghost"
           size="icon"
@@ -413,7 +484,7 @@ export function TopBar() {
           </Tooltip>
         </TooltipProvider>
 
-        {/* Notifications with hover dropdown preview */}
+        {/* Notification Bell with badge and pulse animation */}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -440,10 +511,13 @@ export function TopBar() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  className="absolute -top-0.5 -right-0.5"
                 >
-                  <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] p-0 flex items-center justify-center text-[10px] bg-[oklch(0.55_0.18_250)] text-white border-2 border-background">
+                  <Badge className="h-4 min-w-[16px] p-0 flex items-center justify-center text-[10px] bg-rose-500 text-white border-2 border-background">
                     {unreadCount}
                   </Badge>
+                  {/* Pulse animation ring */}
+                  <span className="absolute inset-0 rounded-full bg-rose-500/40 animate-ping" />
                 </motion.div>
               )}
             </Button>
@@ -457,7 +531,7 @@ export function TopBar() {
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold">{t.topbar.notifications}</h4>
                 {unreadCount > 0 && (
-                  <Badge className="h-5 px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white">
+                  <Badge className="h-5 px-1.5 text-[10px] bg-rose-500 text-white">
                     {unreadCount} {t.topbar.new}
                   </Badge>
                 )}
@@ -484,7 +558,7 @@ export function TopBar() {
                     </p>
                   </div>
                   {!n.read && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)] flex-shrink-0 mt-1.5" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0 mt-1.5" />
                   )}
                 </div>
               ))}
@@ -504,7 +578,7 @@ export function TopBar() {
           </PopoverContent>
         </Popover>
 
-        {/* User menu - enhanced with online dot and separator */}
+        {/* User menu with role badge */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-9 gap-2 px-2 ml-1.5 pl-1.5 border-l border-border hidden sm:flex">
@@ -535,7 +609,17 @@ export function TopBar() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                  {currentUser?.role && (
+                    <span className={cn(
+                      'inline-flex items-center px-1.5 py-0 rounded text-[9px] font-semibold leading-tight border',
+                      getRoleBadgeStyle(currentUser.role)
+                    )}>
+                      {getRoleLabel(currentUser.role)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'marie@globalcorp.com'}</p>
               </div>
             </div>
@@ -578,7 +662,17 @@ export function TopBar() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium truncate">{currentUser?.name || 'Marie Dupont'}</p>
+                  {currentUser?.role && (
+                    <span className={cn(
+                      'inline-flex items-center px-1.5 py-0 rounded text-[9px] font-semibold leading-tight border',
+                      getRoleBadgeStyle(currentUser.role)
+                    )}>
+                      {getRoleLabel(currentUser.role)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{currentUser?.email || 'marie@globalcorp.com'}</p>
               </div>
             </div>

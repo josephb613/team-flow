@@ -31,6 +31,7 @@ import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
 import { CreateContentDialog } from '@/components/create-content-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
+import { ContentDetailDrawer } from '@/components/content-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
 import { ConnectionStatus } from '@/components/connection-status';
@@ -290,6 +291,9 @@ export function MainApp() {
 
       {/* Task Detail Drawer */}
       <TaskDetailDrawer />
+
+      {/* Content Detail Drawer */}
+      <ContentDetailDrawer />
 
       {/* Create Content Dialog */}
       <CreateContentDialog />

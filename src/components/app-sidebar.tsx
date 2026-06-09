@@ -56,6 +56,7 @@ import {
   ListChecks,
   CalendarClock,
   Globe,
+  Bell,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -232,10 +233,12 @@ export function AppSidebar() {
     mobileSidebarOpen,
     setMobileSidebarOpen,
     recentItems,
+    notifications,
   } = useAppStore();
   const { t } = useTranslation();
 
   const activeTenant = tenants.find((t) => t.id === activeTenantId);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Helper to get translated nav label by pageId
   const getNavLabel = (pageId: string): string => {
@@ -379,18 +382,77 @@ export function AppSidebar() {
         </div>
       )}
 
-      {/* Search (in sidebar) */}
+      {/* Search (in sidebar) + Notification badge */}
       {!sidebarCollapsed && (
         <div className="px-3 py-2 flex-shrink-0">
-          <button
-            onClick={() => useAppStore.getState().setSearchOpen(true)}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
-          >
-            <span className="text-sidebar-foreground/30 text-[10px]">✦</span>
-            <Search className="h-3.5 w-3.5" />
-            <span>{t.sidebar.search}</span>
-            <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => useAppStore.getState().setSearchOpen(true)}
+              className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
+            >
+              <span className="text-sidebar-foreground/30 text-[10px]">✦</span>
+              <Search className="h-3.5 w-3.5" />
+              <span>{t.sidebar.search}</span>
+              <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
+            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => useAppStore.getState().setNotificationPanelOpen(true)}
+                    className={cn(
+                      'relative flex items-center justify-center h-8 w-8 rounded-lg border transition-all duration-200',
+                      unreadCount > 0
+                        ? 'border-[oklch(0.55_0.18_250/0.3)] bg-[oklch(0.55_0.18_250/0.1)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.15)]'
+                        : 'border-sidebar-border/30 bg-sidebar-accent/30 text-sidebar-foreground/40 hover:text-sidebar-foreground/70'
+                    )}
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                    {unreadCount > 0 && (
+                      <>
+                        <span className="absolute -top-1 -right-1 h-4 min-w-[16px] flex items-center justify-center rounded-full bg-[oklch(0.55_0.18_250)] text-white text-[9px] font-bold px-1">
+                          {unreadCount}
+                        </span>
+                        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[oklch(0.55_0.18_250)] opacity-40 animate-ping" />
+                      </>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                  {t.notificationPanel.title} {unreadCount > 0 ? `(${unreadCount})` : ''}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed sidebar: Notification bell */}
+      {sidebarCollapsed && (
+        <div className="px-2 py-2 flex-shrink-0 flex justify-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => useAppStore.getState().setNotificationPanelOpen(true)}
+                  className="relative flex items-center justify-center h-8 w-8 rounded-lg border border-sidebar-border/30 bg-sidebar-accent/30 text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-all"
+                >
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <>
+                      <span className="absolute -top-1 -right-1 h-3.5 min-w-[14px] flex items-center justify-center rounded-full bg-[oklch(0.55_0.18_250)] text-white text-[8px] font-bold px-0.5">
+                        {unreadCount}
+                      </span>
+                      <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-[oklch(0.55_0.18_250)] opacity-30 animate-ping" />
+                    </>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {t.notificationPanel.title} {unreadCount > 0 ? `(${unreadCount})` : ''}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
 

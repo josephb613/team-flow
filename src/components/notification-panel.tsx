@@ -9,15 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
   Bell,
-  CheckSquare,
-  MessageSquare,
-  Clock,
+  Shield,
+  CheckCircle,
+  Send,
+  AlertTriangle,
+  UserPlus,
   AtSign,
-  Mail,
-  Info,
+  Settings,
   X,
   CheckCheck,
   Check,
+  BellOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -25,7 +27,8 @@ import type { Notification } from '@/lib/types';
 
 type FilterTab = 'all' | 'unread' | 'mentions';
 
-function getRelativeTime(timestamp: string, t: ReturnType<typeof useTranslation>['t']): string {
+// ─── Relative time formatting (FR/EN) ─────────────────────────────────────
+function getRelativeTime(timestamp: string, locale: 'fr' | 'en'): string {
   const now = new Date();
   const date = new Date(timestamp);
   const diffMs = now.getTime() - date.getTime();
@@ -33,45 +36,85 @@ function getRelativeTime(timestamp: string, t: ReturnType<typeof useTranslation>
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMinutes < 1) return t.activity.justNow;
-  if (diffMinutes < 60) return `${diffMinutes}${t.activity.minutes} ${t.activity.ago}`;
-  if (diffHours < 24) return `${diffHours}${t.activity.hours} ${t.activity.ago}`;
-  return `${diffDays}${t.activity.days} ${t.activity.ago}`;
+  if (locale === 'fr') {
+    if (diffMinutes < 1) return "à l'instant";
+    if (diffMinutes < 60) return `il y a ${diffMinutes}m`;
+    if (diffHours < 24) return `il y a ${diffHours}h`;
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `il y a ${diffDays}j`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  }
+
+  // English
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
+// ─── Notification type icons (per spec) ────────────────────────────────────
 function getNotificationIcon(type: Notification['type']) {
   switch (type) {
+    case 'validation_requested':
+      return <Shield className="h-4 w-4" />;
+    case 'content_approved':
+      return <CheckCircle className="h-4 w-4" />;
+    case 'content_published':
+      return <Send className="h-4 w-4" />;
+    case 'send_failed':
+      return <AlertTriangle className="h-4 w-4" />;
+    case 'new_assignment':
+      return <UserPlus className="h-4 w-4" />;
+    case 'comment_mention':
+      return <AtSign className="h-4 w-4" />;
+    case 'system':
+      return <Settings className="h-4 w-4" />;
+    // Legacy types (keep backward compat)
     case 'assignment':
-      return <CheckSquare className="h-4 w-4" />;
+      return <UserPlus className="h-4 w-4" />;
     case 'comment':
-      return <MessageSquare className="h-4 w-4" />;
+      return <AtSign className="h-4 w-4" />;
     case 'deadline':
-      return <Clock className="h-4 w-4" />;
+      return <AlertTriangle className="h-4 w-4" />;
     case 'mention':
       return <AtSign className="h-4 w-4" />;
     case 'invitation':
-      return <Mail className="h-4 w-4" />;
-    case 'system':
-      return <Info className="h-4 w-4" />;
+      return <UserPlus className="h-4 w-4" />;
     default:
       return <Bell className="h-4 w-4" />;
   }
 }
 
+// ─── Notification type border colors (per spec) ────────────────────────────
 function getNotificationBorderColor(type: Notification['type']) {
   switch (type) {
+    case 'validation_requested':
+      return 'border-l-[oklch(0.55_0.18_250)]';
+    case 'content_approved':
+      return 'border-l-emerald-500';
+    case 'content_published':
+      return 'border-l-cyan-500';
+    case 'send_failed':
+      return 'border-l-rose-500';
+    case 'new_assignment':
+      return 'border-l-amber-500';
+    case 'comment_mention':
+      return 'border-l-pink-500';
+    case 'system':
+      return 'border-l-slate-400';
+    // Legacy
     case 'assignment':
-      return 'border-l-blue-500';
+      return 'border-l-amber-500';
     case 'comment':
       return 'border-l-cyan-500';
     case 'deadline':
-      return 'border-l-amber-500';
+      return 'border-l-rose-500';
     case 'mention':
       return 'border-l-pink-500';
     case 'invitation':
-      return 'border-l-blue-500';
-    case 'system':
-      return 'border-l-slate-400';
+      return 'border-l-amber-500';
     default:
       return 'border-l-muted';
   }
@@ -79,23 +122,37 @@ function getNotificationBorderColor(type: Notification['type']) {
 
 function getNotificationIconBg(type: Notification['type']) {
   switch (type) {
+    case 'validation_requested':
+      return 'bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)]';
+    case 'content_approved':
+      return 'bg-emerald-500/12 text-emerald-500';
+    case 'content_published':
+      return 'bg-cyan-500/12 text-cyan-500';
+    case 'send_failed':
+      return 'bg-rose-500/12 text-rose-500';
+    case 'new_assignment':
+      return 'bg-amber-500/12 text-amber-500';
+    case 'comment_mention':
+      return 'bg-pink-500/12 text-pink-500';
+    case 'system':
+      return 'bg-slate-400/12 text-slate-500';
+    // Legacy
     case 'assignment':
-      return 'bg-blue-500/12 text-blue-500';
+      return 'bg-amber-500/12 text-amber-500';
     case 'comment':
       return 'bg-cyan-500/12 text-cyan-500';
     case 'deadline':
-      return 'bg-amber-500/12 text-amber-500';
+      return 'bg-rose-500/12 text-rose-500';
     case 'mention':
       return 'bg-pink-500/12 text-pink-500';
     case 'invitation':
-      return 'bg-blue-500/12 text-blue-500';
-    case 'system':
-      return 'bg-slate-400/12 text-slate-500';
+      return 'bg-amber-500/12 text-amber-500';
     default:
       return 'bg-muted text-muted-foreground';
   }
 }
 
+// ─── Group notifications by time ───────────────────────────────────────────
 function groupNotifications(notifications: Notification[]) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -123,15 +180,18 @@ function groupNotifications(notifications: Notification[]) {
   return groups.filter((g) => g.items.length > 0);
 }
 
+// ─── Notification Item ─────────────────────────────────────────────────────
 function NotificationItem({
   notification,
   onMarkRead,
   onRemove,
+  locale,
   t,
 }: {
   notification: Notification;
   onMarkRead: (id: string) => void;
   onRemove: (id: string) => void;
+  locale: 'fr' | 'en';
   t: ReturnType<typeof useTranslation>['t'];
 }) {
   return (
@@ -160,14 +220,14 @@ function NotificationItem({
             {notification.title}
           </span>
           {!notification.read && (
-            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+            <div className="w-2 h-2 rounded-full bg-[oklch(0.55_0.18_250)] flex-shrink-0 mt-1.5" />
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
           {notification.message}
         </p>
         <span className="text-[10px] text-muted-foreground/60 mt-1 block">
-          {getRelativeTime(notification.timestamp, t)}
+          {getRelativeTime(notification.timestamp, locale)}
         </span>
       </div>
 
@@ -177,7 +237,7 @@ function NotificationItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 hover:bg-blue-500/10 hover:text-blue-500"
+            className="h-6 w-6 hover:bg-[oklch(0.55_0.18_250/0.1)] hover:text-[oklch(0.55_0.18_250)]"
             onClick={(e) => {
               e.stopPropagation();
               onMarkRead(notification.id);
@@ -204,6 +264,7 @@ function NotificationItem({
   );
 }
 
+// ─── Main Panel ────────────────────────────────────────────────────────────
 export function NotificationPanel() {
   const {
     notificationPanelOpen,
@@ -212,19 +273,20 @@ export function NotificationPanel() {
     markAllNotificationsRead,
     markNotificationRead,
     removeNotification,
+    locale,
   } = useAppStore();
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const mentionCount = notifications.filter((n) => n.type === 'mention').length;
+  const mentionCount = notifications.filter((n) => n.type === 'mention' || n.type === 'comment_mention').length;
 
   const filteredNotifications = useMemo(() => {
     switch (activeFilter) {
       case 'unread':
         return notifications.filter((n) => !n.read);
       case 'mentions':
-        return notifications.filter((n) => n.type === 'mention');
+        return notifications.filter((n) => n.type === 'mention' || n.type === 'comment_mention');
       default:
         return notifications;
     }
@@ -243,6 +305,8 @@ export function NotificationPanel() {
     { key: 'unread', label: t.notificationPanel.unread, count: unreadCount },
     { key: 'mentions', label: t.notificationPanel.mentions, count: mentionCount },
   ];
+
+  const allRead = unreadCount === 0;
 
   return (
     <AnimatePresence>
@@ -264,13 +328,13 @@ export function NotificationPanel() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] bg-background border-l shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-background border-l shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-500/12 p-2">
-                  <Bell className="h-4 w-4 text-blue-500" />
+                <div className="rounded-lg bg-[oklch(0.55_0.18_250/0.12)] p-2">
+                  <Bell className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-semibold">{t.notificationPanel.title}</h2>
@@ -286,7 +350,7 @@ export function NotificationPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1.5 text-xs text-blue-500 hover:text-blue-500 hover:bg-blue-500/8"
+                    className="h-8 gap-1.5 text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.08)] border border-[oklch(0.55_0.18_250/0.15)]"
                     onClick={() => {
                       markAllNotificationsRead();
                       toast.success(t.notificationPanel.allMarkedRead);
@@ -317,7 +381,7 @@ export function NotificationPanel() {
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
                       activeFilter === tab.key
-                        ? 'bg-blue-500/12 text-blue-600 dark:text-blue-400'
+                        ? 'bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)]'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     )}
                   >
@@ -326,7 +390,7 @@ export function NotificationPanel() {
                       className={cn(
                         'text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
                         activeFilter === tab.key
-                          ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                          ? 'bg-[oklch(0.55_0.18_250/0.2)] text-[oklch(0.55_0.18_250)]'
                           : 'bg-muted text-muted-foreground'
                       )}
                     >
@@ -340,24 +404,38 @@ export function NotificationPanel() {
             {/* Notification List */}
             <ScrollArea className="flex-1">
               <AnimatePresence mode="popLayout">
-                {grouped.length === 0 ? (
+                {allRead && activeFilter === 'all' ? (
+                  /* ─── All caught up / empty state ──────────────────── */
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center justify-center py-20 px-4"
                   >
-                    <div className="relative mb-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
-                        <Bell className="h-8 w-8 text-blue-500" />
+                    <div className="relative mb-5">
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[oklch(0.55_0.18_250/0.15)] to-emerald-500/15 flex items-center justify-center">
+                        <BellOff className="h-9 w-9 text-[oklch(0.55_0.18_250)]" />
                       </div>
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                        <Check className="h-2.5 w-2.5 text-white" />
+                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Check className="h-3.5 w-3.5 text-white" />
                       </div>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">{t.notificationPanel.allCaughtUp}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.notificationPanel.allCaughtUpSubtitle}</p>
+                    <p className="text-base font-semibold text-foreground">{t.notificationPanel.allCaughtUp}</p>
+                    <p className="text-sm text-muted-foreground mt-1.5 text-center max-w-[240px]">{t.notificationPanel.allCaughtUpSubtitle}</p>
+                  </motion.div>
+                ) : grouped.length === 0 ? (
+                  /* ─── Filter empty state ───────────────────────────── */
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-16 px-4"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-3">
+                      <Bell className="h-7 w-7 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{t.notificationPanel.noNotifications}</p>
                   </motion.div>
                 ) : (
+                  /* ─── Notification groups ──────────────────────────── */
                   <div className="p-4 space-y-4">
                     {grouped.map((group) => (
                       <div key={group.label}>
@@ -377,6 +455,7 @@ export function NotificationPanel() {
                                 notification={notif}
                                 onMarkRead={markNotificationRead}
                                 onRemove={removeNotification}
+                                locale={locale}
                                 t={t}
                               />
                             ))}
