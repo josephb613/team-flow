@@ -66,10 +66,6 @@ interface AppState {
   setFocusMode: (focus: boolean) => void;
   toggleFocusMode: () => void;
 
-  // AI Chat Widget
-  aiChatOpen: boolean;
-  toggleAiChat: () => void;
-  setAiChatOpen: (open: boolean) => void;
 
   // i18n / Locale
   locale: Locale;
@@ -292,10 +288,6 @@ export const useAppStore = create<AppState>((set) => ({
   setFocusMode: (focus) => set({ focusMode: focus }),
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
 
-  // AI Chat Widget
-  aiChatOpen: false,
-  toggleAiChat: () => set((s) => ({ aiChatOpen: !s.aiChatOpen })),
-  setAiChatOpen: (open) => set({ aiChatOpen: open }),
 
   // i18n / Locale
   locale: 'fr',

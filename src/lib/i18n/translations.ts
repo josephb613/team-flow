@@ -879,22 +879,7 @@ export const translations = {
       online: 'En ligne',
     },
 
-    // AI Chat Widget
-    aiChat: {
-      title: 'ContentFlow IA',
-      online: 'En ligne',
-      welcomeMessage: 'Salut Alex ! 👋 Je suis votre assistant ContentFlow IA. Je peux vous aider à créer du contenu, planifier vos envois et analyser vos performances. Comment puis-je vous aider ?',
-      placeholder: 'Posez une question...',
-      summarizeContent: 'Résumer mes contenus',
-      createContent: 'Créer un contenu',
-      findDeadlines: 'Trouver les échéances',
-      campaignStatus: 'Statut des campagnes',
-      thinking: 'L\'IA réfléchit...',
-      aiPowered: 'IA',
-      errorMessage: 'Désolé, je n\'ai pas pu me connecter. Veuillez réessayer dans un instant.',
-      errorTitle: 'Erreur de connexion',
-      retry: 'Réessayer',
-    },
+
   },
 
   en: {
@@ -1775,22 +1760,7 @@ export const translations = {
       online: 'Online',
     },
 
-    // AI Chat Widget
-    aiChat: {
-      title: 'ContentFlow AI',
-      online: 'Online',
-      welcomeMessage: 'Hi Alex! 👋 I\'m your ContentFlow AI assistant. I can help you create content, schedule sends, and analyze performance. What can I help you with?',
-      placeholder: 'Ask a question...',
-      summarizeContent: 'Summarize my content',
-      createContent: 'Create content',
-      findDeadlines: 'Find deadlines',
-      campaignStatus: 'Campaign status',
-      thinking: 'AI is thinking...',
-      aiPowered: 'AI',
-      errorMessage: 'Sorry, I couldn\'t connect right now. Please try again in a moment.',
-      errorTitle: 'Connection Error',
-      retry: 'Retry',
-    },
+
   },
 } as const;
 

@@ -2265,3 +2265,26 @@ Tested via agent-browser + VLM:
 4. **Mobile responsive improvements** — Fine-tune all views for smaller screens
 5. **Data persistence** — Connect more views to the Prisma database
 6. **Content workflow actions** — Make the workflow buttons in the detail drawer actually change content status
+
+---
+Task ID: 14
+Agent: main
+Task: Remove AI Chat Widget functionality without creating code regressions
+
+Work Log:
+- Removed AiChatWidget import and render from main-app.tsx (line 40 import, lines 313-314 render)
+- Deleted src/components/ai-chat-widget.tsx component file entirely
+- Deleted src/app/api/ai-chat/ API route directory entirely
+- Deleted src/hooks/use-smart-suggestions.ts hook (was only used by ai-chat-widget, called /api/ai-chat)
+- Removed aiChatOpen, toggleAiChat, setAiChatOpen state from src/lib/store.ts (interface lines 69-72, implementation lines 295-298)
+- Removed aiChat i18n translation sections from src/lib/i18n/translations.ts (FR lines 882-897, EN lines 1778-1793)
+- Verified zero remaining references to aiChat/ai-chat/AiChat in entire src directory
+- Ran ESLint: 0 errors, 0 warnings
+- Verified dev server running on port 3000 with 200 responses
+- Verified via agent-browser + VLM: No AI chat button or Sparkles icon visible on login page or dashboard
+
+Stage Summary:
+- AI Chat Widget completely removed with zero regressions
+- 3 files deleted: ai-chat-widget.tsx, /api/ai-chat/route.ts, use-smart-suggestions.ts
+- 3 files modified: main-app.tsx, store.ts, translations.ts
+- 0 lint errors, 0 runtime errors, app fully functional

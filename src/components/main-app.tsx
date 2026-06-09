@@ -37,7 +37,7 @@ import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog'
 import { ConnectionStatus } from '@/components/connection-status';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
-import { AiChatWidget } from '@/components/ai-chat-widget';
+
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ArrowUp, Plus, FileText, Target, Clock } from 'lucide-react';
@@ -310,8 +310,7 @@ export function MainApp() {
       {/* Toast Notifications */}
       <Toaster />
 
-      {/* AI Chat Widget (floating) */}
-      <AiChatWidget />
+
     </div>
     </>
   );
