@@ -2288,3 +2288,30 @@ Stage Summary:
 - 3 files deleted: ai-chat-widget.tsx, /api/ai-chat/route.ts, use-smart-suggestions.ts
 - 3 files modified: main-app.tsx, store.ts, translations.ts
 - 0 lint errors, 0 runtime errors, app fully functional
+
+---
+Task ID: 15
+Agent: main
+Task: Change sidebar from dark to light theme per user request ("ma sidebar est trop sombre")
+
+Work Log:
+- Changed CSS variables in :root (globals.css) for light sidebar:
+  - --sidebar: oklch(0.17 → 0.98) — near-black → off-white
+  - --sidebar-foreground: oklch(0.92 → 0.22) — light text → dark text
+  - --sidebar-accent: oklch(0.25 → 0.94) — dark accent → light gray accent
+  - --sidebar-accent-foreground: oklch(0.92 → 0.22) — light → dark
+  - --sidebar-border: oklch(0.30 → 0.91) — dark border → light border
+- Adjusted app-sidebar.tsx opacity values for light background:
+  - SectionLabel: text-sidebar-foreground/30 → /40
+  - Search button: text-sidebar-foreground/40 → /50, bg-sidebar-accent/30 → /50
+  - Sparkle icon: text-sidebar-foreground/30 → /40
+  - Recent items Clock icon: text-sidebar-foreground/20 → /30
+- Dark mode variables left unchanged (sidebar stays dark in dark mode)
+- Ran ESLint: 0 errors
+- Verified via agent-browser + VLM: Light sidebar with excellent readability, clean modern design, all items visible
+
+Stage Summary:
+- Sidebar transformed from dark (near-black) to light (off-white) theme
+- All text, icons, and badges clearly visible on light background
+- Dark mode unaffected (stays dark sidebar)
+- 0 lint errors, no regressions

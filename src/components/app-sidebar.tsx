@@ -161,7 +161,7 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
   if (collapsed) return null;
   return (
     <div className="px-3 pt-4 pb-1">
-      <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/30 flex items-center gap-1">
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-sidebar-foreground/40 flex items-center gap-1">
         {children}
       </span>
     </div>
@@ -388,9 +388,9 @@ export function AppSidebar() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => useAppStore.getState().setSearchOpen(true)}
-              className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors border border-sidebar-border/30 bg-sidebar-accent/30"
+              className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors border border-sidebar-border/40 bg-sidebar-accent/50"
             >
-              <span className="text-sidebar-foreground/30 text-[10px]">✦</span>
+              <span className="text-sidebar-foreground/40 text-[10px]">✦</span>
               <Search className="h-3.5 w-3.5" />
               <span>{t.sidebar.search}</span>
               <kbd className="ml-auto text-[10px] border border-sidebar-border/50 rounded px-1">⌘K</kbd>
@@ -564,7 +564,7 @@ export function AppSidebar() {
                 >
                   <span className="flex-shrink-0">{item.icon}</span>
                   <span className="flex-1 text-left truncate">{getNavLabel(item.pageId)}</span>
-                  <Clock className="h-3 w-3 text-sidebar-foreground/20" />
+                  <Clock className="h-3 w-3 text-sidebar-foreground/30" />
                 </button>
               ))}
             </div>
