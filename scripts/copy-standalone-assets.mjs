@@ -26,4 +26,18 @@ if (existsSync(publicSrc)) {
   cpSync(publicSrc, publicDest, { recursive: true });
 }
 
+const prismaEngine = 'node_modules/.prisma';
+const prismaClient = 'node_modules/@prisma/client';
+const standaloneNodeModules = join(standaloneDir, 'node_modules');
+
+if (existsSync(prismaEngine)) {
+  mkdirSync(join(standaloneNodeModules, '.prisma'), { recursive: true });
+  cpSync(prismaEngine, join(standaloneNodeModules, '.prisma'), { recursive: true });
+}
+
+if (existsSync(prismaClient)) {
+  mkdirSync(join(standaloneNodeModules, '@prisma/client'), { recursive: true });
+  cpSync(prismaClient, join(standaloneNodeModules, '@prisma/client'), { recursive: true });
+}
+
 console.log('Copied static assets into standalone output.');
