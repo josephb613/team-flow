@@ -15,7 +15,6 @@ import { CreateMilestoneDialog } from '@/components/create-milestone-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
-import { ConnectionStatus } from '@/components/connection-status';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -251,8 +250,6 @@ export function MainApp() {
     <AppDataProvider>
     <AppDataSync />
     <SearchDialog />
-    <>
-    <ConnectionStatus />
     <div className="h-screen flex overflow-hidden bg-background">
       {/* Sidebar */}
       <div className={cn('transition-opacity duration-300', focusMode ? 'opacity-30 pointer-events-none' : 'opacity-100')}>
@@ -327,7 +324,6 @@ export function MainApp() {
 
 
     </div>
-    </>
     </AppDataProvider>
   );
 }
