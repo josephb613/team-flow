@@ -32,12 +32,42 @@ import {
   Sparkles,
   GripVertical,
 } from 'lucide-react';
-import { mockSprints, mockTasks, mockProjects, getProjectName } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  avgSprintVelocityInPeriod,
+  compareCounts,
+  countActiveSprintsCreatedInPeriod,
+  getPeriodBounds,
+} from '@/lib/analytics';
 import type { Sprint, SprintStatus } from '@/lib/types';
+import {
+  DndContext,
+  DragOverlay,
+  rectIntersection,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+function isMeaningfulTrend(change: string): boolean {
+  return change !== '0' && change !== '0%' && change !== '+0' && change !== '+0%';
+}
 
 // ── Sprint Status Config ──────────────────────────────────────────────────────
 
@@ -88,8 +118,8 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function getSprintStats(sprint: Sprint) {
-  const sprintTasks = mockTasks.filter((t) => sprint.taskIds.includes(t.id));
+function getSprintStats(sprint: Sprint, allTasks: import('@/lib/types').Task[]) {
+  const sprintTasks = allTasks.filter((t) => sprint.taskIds.includes(t.id));
   const completed = sprintTasks.filter((t) => t.status === 'done').length;
   const total = sprintTasks.length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -110,12 +140,23 @@ const item = {
 
 // ── Sprint Card ───────────────────────────────────────────────────────────────
 
-function SprintCard({ sprint }: { sprint: Sprint }) {
+function SprintCard({
+  sprint,
+  dragHandleProps,
+}: {
+  sprint: Sprint;
+  dragHandleProps?: {
+    attributes: React.HTMLAttributes<HTMLButtonElement>;
+    listeners: React.HTMLAttributes<HTMLButtonElement>;
+  };
+}) {
   const { t } = useTranslation();
+  const { openMyTasksWithSprintFilter } = useAppStore();
+  const { tasks, projects, getProjectName } = useAppData();
   const config = sprintStatusConfig[sprint.status];
   const projectName = getProjectName(sprint.projectId);
-  const project = mockProjects.find((p) => p.id === sprint.projectId);
-  const stats = getSprintStats(sprint);
+  const project = projects.find((p) => p.id === sprint.projectId);
+  const stats = getSprintStats(sprint, tasks);
   const statusLabels: Record<SprintStatus, string> = {
     planning: t.sprints.planning,
     active: t.sprints.active,
@@ -123,7 +164,7 @@ function SprintCard({ sprint }: { sprint: Sprint }) {
   };
 
   return (
-    <motion.div variants={item} whileHover={{ y: -3, transition: { duration: 0.2 } }} className="group">
+    <div className="group">
       <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300 border-0 shadow-sm">
         {/* Accent strip */}
         <div
@@ -137,9 +178,16 @@ function SprintCard({ sprint }: { sprint: Sprint }) {
           {/* Header */}
           <div className="flex items-start justify-between mb-2.5">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="flex-shrink-0 opacity-0 group-hover:opacity-40 transition-opacity">
+              <button
+                type="button"
+                aria-label="Drag sprint"
+                className="flex-shrink-0 opacity-0 group-hover:opacity-40 transition-opacity cursor-grab active:cursor-grabbing touch-none"
+                onClick={(e) => e.stopPropagation()}
+                {...dragHandleProps?.attributes}
+                {...dragHandleProps?.listeners}
+              >
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
-              </div>
+              </button>
               <div className="min-w-0">
                 <h3 className="text-sm font-bold truncate">{sprint.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -173,9 +221,16 @@ function SprintCard({ sprint }: { sprint: Sprint }) {
           {/* Progress bar */}
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openMyTasksWithSprintFilter(sprint.id);
+                }}
+                className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground hover:underline cursor-pointer transition-colors"
+              >
                 {stats.completed}/{stats.total} {t.sprints.tasks}
-              </span>
+              </button>
               <span className="text-[10px] font-bold" style={{ color: project?.color || '#10b981' }}>
                 {stats.progress}%
               </span>
@@ -222,7 +277,201 @@ function SprintCard({ sprint }: { sprint: Sprint }) {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
+  );
+}
+
+function SortableSprintCard({ sprint }: { sprint: Sprint }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sprint.id, data: { type: 'sprint', sprint } });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    touchAction: 'none',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SprintCard sprint={sprint} dragHandleProps={{ attributes, listeners }} />
+    </div>
+  );
+}
+
+function DroppableSprintColumn({
+  status,
+  label,
+  color,
+  dotColor,
+  sprints,
+  isOver,
+  children,
+}: {
+  status: SprintStatus;
+  label: string;
+  color: string;
+  dotColor: string;
+  sprints: Sprint[];
+  isOver: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: `column-${status}`, data: { type: 'column', status } });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'space-y-3 min-h-[240px] transition-all duration-200',
+        isOver && 'ring-2 ring-[oklch(0.55_0.15_160)]/40 ring-offset-2 ring-offset-background rounded-2xl p-1'
+      )}
+    >
+      <div className={cn('flex items-center justify-between rounded-xl px-3 py-2.5', color)}>
+        <div className="flex items-center gap-2">
+          <div className={cn('w-2 h-2 rounded-full', dotColor)} />
+          <span className="text-xs font-semibold">{label}</span>
+          <span className="text-[10px] font-bold text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded-full">
+            {sprints.length}
+          </span>
+        </div>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function SprintBoard({
+  columns,
+  filteredSprints,
+  emptyLabel,
+}: {
+  columns: { status: SprintStatus; label: string; color: string; dotColor: string }[];
+  filteredSprints: Sprint[];
+  emptyLabel: string;
+}) {
+  const { sprints: appSprints, updateSprintStatus } = useAppData();
+  const [dragSprints, setDragSprints] = useState<Sprint[] | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overColumn, setOverColumn] = useState<SprintStatus | null>(null);
+
+  const sprints = dragSprints ?? appSprints;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const activeSprint = activeId ? sprints.find((s) => s.id === activeId) : null;
+
+  function findContainer(id: string, sourceSprints = sprints): SprintStatus | undefined {
+    if (id.startsWith('column-')) {
+      return id.replace('column-', '') as SprintStatus;
+    }
+    return sourceSprints.find((s) => s.id === id)?.status;
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setDragSprints([...appSprints]);
+    setActiveId(event.active.id as string);
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeContainer = findContainer(active.id as string);
+    const overContainer = findContainer(over.id as string);
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      setOverColumn(null);
+      return;
+    }
+
+    setOverColumn(overContainer);
+    setDragSprints((prev) =>
+      (prev ?? appSprints).map((sprint) =>
+        sprint.id === active.id ? { ...sprint, status: overContainer } : sprint
+      )
+    );
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    const currentSprints = dragSprints ?? appSprints;
+    const sprintId = active.id as string;
+    const originalSprint = appSprints.find((s) => s.id === sprintId);
+
+    setActiveId(null);
+    setOverColumn(null);
+    setDragSprints(null);
+
+    if (!over || !originalSprint) return;
+
+    const overContainer = findContainer(over.id as string, currentSprints);
+
+    if (!overContainer || originalSprint.status === overContainer) return;
+
+    void updateSprintStatus(sprintId, overContainer);
+  }
+
+  const boardSprints = filteredSprints.map(
+    (sprint) => sprints.find((s) => s.id === sprint.id) ?? sprint
+  );
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={rectIntersection}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {columns.map((col) => {
+          const columnSprints = boardSprints.filter((s) => s.status === col.status);
+
+          return (
+            <DroppableSprintColumn
+              key={col.status}
+              status={col.status}
+              label={col.label}
+              color={col.color}
+              dotColor={col.dotColor}
+              sprints={columnSprints}
+              isOver={overColumn === col.status}
+            >
+              <SortableContext
+                items={columnSprints.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {columnSprints.map((sprint) => (
+                  <SortableSprintCard key={sprint.id} sprint={sprint} />
+                ))}
+              </SortableContext>
+              {columnSprints.length === 0 && (
+                <div className="border-2 border-dashed rounded-xl p-6 text-center">
+                  <p className="text-xs text-muted-foreground">{emptyLabel}</p>
+                </div>
+              )}
+            </DroppableSprintColumn>
+          );
+        })}
+      </div>
+
+      <DragOverlay>
+        {activeSprint ? (
+          <div className="rotate-2 opacity-90 shadow-2xl">
+            <SprintCard sprint={activeSprint} />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -272,26 +521,42 @@ function StatCard({
 
 export function SprintsView() {
   const { t } = useTranslation();
-  const { setActiveSprintId } = useAppStore();
+  const { sprints, projects } = useAppData();
+  const { setCreateSprintDialogOpen } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Compute stats
   const stats = useMemo(() => {
-    const total = mockSprints.length;
-    const active = mockSprints.filter((s) => s.status === 'active').length;
-    const velocities = mockSprints.filter((s) => s.velocity && s.velocity > 0);
+    const total = sprints.length;
+    const active = sprints.filter((s) => s.status === 'active').length;
+    const velocities = sprints.filter((s) => s.velocity && s.velocity > 0);
     const avgVelocity = velocities.length > 0
       ? Math.round(velocities.reduce((sum, s) => sum + (s.velocity || 0), 0) / velocities.length)
       : 0;
-    const tasksInSprints = mockSprints.reduce((sum, s) => sum + s.taskIds.length, 0);
+    const tasksInSprints = sprints.reduce((sum, s) => sum + s.taskIds.length, 0);
     return { total, active, avgVelocity, tasksInSprints };
-  }, []);
+  }, [sprints]);
+
+  const trends = useMemo(() => {
+    const { currentStart, previousStart, now } = getPeriodBounds(7);
+    const weekAgo = currentStart;
+
+    const activeThisWeek = countActiveSprintsCreatedInPeriod(sprints, currentStart, now);
+    const activeLastWeek = countActiveSprintsCreatedInPeriod(sprints, previousStart, weekAgo);
+    const activeTrend = compareCounts(activeThisWeek, activeLastWeek, 'absolute');
+
+    const velocityThisWeek = avgSprintVelocityInPeriod(sprints, currentStart, now);
+    const velocityLastWeek = avgSprintVelocityInPeriod(sprints, previousStart, weekAgo);
+    const velocityTrend = compareCounts(velocityThisWeek, velocityLastWeek, 'absolute');
+
+    return { activeTrend, velocityTrend };
+  }, [sprints]);
 
   // Filter sprints
   const filteredSprints = useMemo(() => {
-    return mockSprints.filter((sprint) => {
+    return sprints.filter((sprint) => {
       const matchesSearch =
         sprint.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         sprint.goal.toLowerCase().includes(searchQuery.toLowerCase());
@@ -299,7 +564,7 @@ export function SprintsView() {
       const matchesStatus = statusFilter === 'all' || sprint.status === statusFilter;
       return matchesSearch && matchesProject && matchesStatus;
     });
-  }, [searchQuery, projectFilter, statusFilter]);
+  }, [searchQuery, projectFilter, statusFilter, sprints]);
 
   // Group by status
   const columns: { status: SprintStatus; label: string; color: string; dotColor: string }[] = [
@@ -322,6 +587,7 @@ export function SprintsView() {
         <Button
           size="sm"
           className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm"
+          onClick={() => setCreateSprintDialogOpen(true)}
         >
           <Sparkles className="h-3.5 w-3.5" /> {t.sprints.newSprint}
         </Button>
@@ -345,7 +611,7 @@ export function SprintsView() {
           icon={<Target className="h-4 w-4 text-[oklch(0.55_0.15_160)]" />}
           label={t.sprints.active}
           value={stats.active}
-          trend="+2"
+          trend={isMeaningfulTrend(trends.activeTrend.change) ? trends.activeTrend.change : undefined}
           gradient="bg-gradient-to-br from-[oklch(0.55_0.15_160/0.05)] via-[oklch(0.55_0.15_160/0.02)] to-transparent"
           iconBg="bg-[oklch(0.55_0.15_160/0.1)] border border-[oklch(0.55_0.15_160/0.2)]"
         />
@@ -353,7 +619,7 @@ export function SprintsView() {
           icon={<TrendingUp className="h-4 w-4 text-amber-600" />}
           label={t.sprints.velocity}
           value={`${stats.avgVelocity} pts`}
-          trend="+8%"
+          trend={isMeaningfulTrend(trends.velocityTrend.change) ? trends.velocityTrend.change : undefined}
           gradient="bg-gradient-to-br from-amber-500/5 via-amber-500/[0.02] to-transparent"
           iconBg="bg-amber-500/10 border border-amber-500/20"
         />
@@ -383,7 +649,7 @@ export function SprintsView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.sprints.all} {t.milestones.project}s</SelectItem>
-            {mockProjects.map((p) => (
+            {projects.map((p) => (
               <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
             ))}
           </SelectContent>
@@ -402,48 +668,11 @@ export function SprintsView() {
       </div>
 
       {/* Sprint Board - 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {columns.map((col) => {
-          const columnSprints = filteredSprints.filter((s) => s.status === col.status);
-          return (
-            <div key={col.status} className="space-y-3">
-              {/* Column header */}
-              <div className={cn('flex items-center justify-between rounded-xl px-3 py-2.5', col.color)}>
-                <div className="flex items-center gap-2">
-                  <div className={cn('w-2 h-2 rounded-full', col.dotColor)} />
-                  <span className="text-xs font-semibold">{col.label}</span>
-                  <span className="text-[10px] font-bold text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded-full">
-                    {columnSprints.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* Sprint cards */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  variants={container}
-                  initial="hidden"
-                  animate="show"
-                  className="space-y-3"
-                >
-                  {columnSprints.map((sprint) => (
-                    <SprintCard key={sprint.id} sprint={sprint} />
-                  ))}
-                  {columnSprints.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="border-2 border-dashed rounded-xl p-6 text-center"
-                    >
-                      <p className="text-xs text-muted-foreground">{t.sprints.noResults}</p>
-                    </motion.div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
+      <SprintBoard
+        columns={columns}
+        filteredSprints={filteredSprints}
+        emptyLabel={t.sprints.noResults}
+      />
     </div>
   );
 }

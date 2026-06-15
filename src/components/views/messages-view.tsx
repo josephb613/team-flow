@@ -29,7 +29,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { mockChannels, mockUsers } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import type { Channel, Message } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -38,20 +38,7 @@ import { useChatSocket } from '@/hooks/use-chat-socket';
 import type { ChatMessage } from '@/hooks/use-chat-socket';
 import { useAppStore } from '@/lib/store';
 
-// Helper functions
-function getUserById(id: string) {
-  return mockUsers.find((u) => u.id === id);
-}
-
-function getUserInitials(id: string, name?: string) {
-  if (name) return name.split(' ').map((n) => n[0]).join('');
-  const user = getUserById(id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserStatus(id: string) {
-  return getUserById(id)?.status || 'offline';
-}
+// Helper functions — use useAppData() in MessagesView for users/channels
 
 function formatMessageTime(timestamp: string) {
   const date = new Date(timestamp);
@@ -143,8 +130,10 @@ function ChannelListItem({
   onClick: () => void;
   membersLabel?: string;
 }) {
+  const { users, getUserInitials } = useAppData();
+  const getUserStatus = (id: string) => users.find((u) => u.id === id)?.status || 'offline';
   const isDirect = channel.type === 'direct';
-  const status = isDirect ? getUserStatus(channel.members[1] || channel.members[0]) : null;
+  const status = isDirect ? getUserStatus(channel.memberIds[1] || channel.memberIds[0]) : null;
 
   return (
     <button
@@ -160,7 +149,7 @@ function ChannelListItem({
         <div className="relative shrink-0">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-[9px] bg-muted">
-              {getUserInitials(channel.members[1] || channel.members[0])}
+              {getUserInitials(channel.memberIds[1] || channel.memberIds[0])}
             </AvatarFallback>
           </Avatar>
           {status && (
@@ -177,9 +166,9 @@ function ChannelListItem({
       <span className="truncate flex-1">
         {channel.name}
       </span>
-      {channel.unread > 0 && (
+      {channel.unreadCountCount > 0 && (
         <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.48_0.18_250)] shadow-sm">
-          {channel.unread}
+          {channel.unreadCountCount}
         </Badge>
       )}
     </button>
@@ -188,8 +177,10 @@ function ChannelListItem({
 
 // Message bubble that works with both local Message type and ChatMessage from WebSocket
 function MessageBubble({ message, showHeader, isOwnMessage }: { message: Message | ChatMessage; showHeader: boolean; isOwnMessage: boolean }) {
+  const { users, getUserInitials } = useAppData();
+  const getUserStatus = (id: string) => users.find((u) => u.id === id)?.status || 'offline';
   const senderId = 'senderId' in message ? message.senderId : '';
-  const senderName = 'senderName' in message ? message.senderName : (getUserById(senderId)?.name || 'Unknown');
+  const senderName = 'senderName' in message ? message.senderName : (users.find((u) => u.id === senderId)?.name || 'Unknown');
   const content = message.content;
   const timestamp = message.timestamp;
   const reactions = message.reactions || [];
@@ -288,6 +279,8 @@ const item = {
 
 export function MessagesView() {
   const { t } = useTranslation();
+  const { channels, users, getUserInitials } = useAppData();
+  const getUserStatus = (id: string) => users.find((u) => u.id === id)?.status || 'offline';
   const currentUser = useAppStore((s) => s.currentUser);
   const [selectedChannel, setSelectedChannel] = useState<string>('ch-1');
   const [messageInput, setMessageInput] = useState('');
@@ -305,12 +298,12 @@ export function MessagesView() {
     isConnected,
   } = useChatSocket(selectedChannel);
 
-  const channel = mockChannels.find((c) => c.id === selectedChannel);
+  const channel = channels.find((c) => c.id === selectedChannel);
 
   // Group channels by type
-  const teamChannels = mockChannels.filter((c) => c.type === 'team');
-  const projectChannels = mockChannels.filter((c) => c.type === 'project');
-  const directChannels = mockChannels.filter((c) => c.type === 'direct');
+  const teamChannels = channels.filter((c) => c.type === 'team');
+  const projectChannels = channels.filter((c) => c.type === 'project');
+  const directChannels = channels.filter((c) => c.type === 'direct');
 
   // Filter channels by search
   const filterChannels = (channels: Channel[]) =>
@@ -320,7 +313,7 @@ export function MessagesView() {
         )
       : channels;
 
-  const totalUnread = mockChannels.reduce((sum, c) => sum + c.unread, 0);
+  const totalUnread = channels.reduce((sum, c) => sum + c.unreadCount, 0);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -489,11 +482,11 @@ export function MessagesView() {
                   <div className="relative">
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="text-[8px] bg-muted">
-                        {getUserInitials(channel.members[1] || channel.members[0])}
+                        {getUserInitials(channel.memberIds[1] || channel.memberIds[0])}
                       </AvatarFallback>
                     </Avatar>
                     <span className="absolute -bottom-0.5 -right-0.5">
-                      <OnlineStatusDot status={getUserStatus(channel.members[1] || channel.members[0])} size="sm" />
+                      <OnlineStatusDot status={getUserStatus(channel.memberIds[1] || channel.memberIds[0])} size="sm" />
                     </span>
                   </div>
                 ) : channel.type === 'project' ? (
@@ -504,16 +497,16 @@ export function MessagesView() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold truncate">{channel.name}</h3>
-                    {channel.unread > 0 && (
+                    {channel.unreadCount > 0 && (
                       <Badge className="h-4 min-w-[16px] px-1 text-[8px] bg-[oklch(0.55_0.18_250)] text-white">
-                        {channel.unread} new
+                        {channel.unreadCount} new
                       </Badge>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {channel.type === 'direct'
-                      ? `Active now · ${channel.members.length} ${t.messages.members}`
-                      : `${channel.members.length} ${t.messages.members}`}
+                      ? `Active now · ${channel.memberIds.length} ${t.messages.members}`
+                      : `${channel.memberIds.length} ${t.messages.members}`}
                   </p>
                 </div>
               </div>
@@ -562,7 +555,7 @@ export function MessagesView() {
                 </TooltipProvider>
                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground ml-2 bg-muted/50 px-2 py-1 rounded-md">
                   <Users className="h-3.5 w-3.5" />
-                  <span>{connectedUsers.length || channel.members.length}</span>
+                  <span>{connectedUsers.length || channel.memberIds.length}</span>
                 </div>
               </div>
             </div>

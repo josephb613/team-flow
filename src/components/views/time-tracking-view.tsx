@@ -33,41 +33,13 @@ import {
   BarChart3,
   Zap,
 } from 'lucide-react';
-import { mockTimeEntries, mockTasks, mockProjects, mockUsers, getProjectName } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getUserName(id: string): string {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getUserInitials(id: string): string {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserColor(id: string): string {
-  const colors = [
-    'bg-emerald-500/20 text-emerald-700',
-    'bg-amber-500/20 text-amber-700',
-    'bg-cyan-500/20 text-cyan-700',
-    'bg-rose-500/20 text-rose-700',
-    'bg-teal-500/20 text-teal-700',
-    'bg-orange-500/20 text-orange-700',
-    'bg-pink-500/20 text-pink-700',
-    'bg-violet-500/20 text-violet-700',
-  ];
-  const idx = mockUsers.findIndex((u) => u.id === id);
-  return colors[idx % colors.length];
-}
-
-function getTaskName(id: string): string {
-  return mockTasks.find((t) => t.id === id)?.title || 'Unknown Task';
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -145,8 +117,9 @@ function StatCard({
 
 function TimerWidget() {
   const { t } = useTranslation();
+  const { tasks } = useAppData();
   const { timerRunning, timerTaskId, timerElapsed } = useAppStore();
-  const taskName = timerTaskId ? getTaskName(timerTaskId) : null;
+  const taskName = timerTaskId ? tasks.find((t) => t.id === timerTaskId)?.title || null : null;
   const displayTime = formatTimerDisplay(Math.floor(timerElapsed / 1000));
 
   return (
@@ -196,13 +169,32 @@ function TimerWidget() {
 
 export function TimeTrackingView() {
   const { t } = useTranslation();
+  const { timeEntries, tasks, projects, users, getUserName, getUserInitials, getProjectName } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
 
+  const getUserColor = (id: string): string => {
+    const colors = [
+      'bg-emerald-500/20 text-emerald-700',
+      'bg-amber-500/20 text-amber-700',
+      'bg-cyan-500/20 text-cyan-700',
+      'bg-rose-500/20 text-rose-700',
+      'bg-teal-500/20 text-teal-700',
+      'bg-orange-500/20 text-orange-700',
+      'bg-pink-500/20 text-pink-700',
+      'bg-violet-500/20 text-violet-700',
+    ];
+    const idx = users.findIndex((u) => u.id === id);
+    return colors[idx >= 0 ? idx % colors.length : 0];
+  };
+
+  const getTaskName = (id: string): string =>
+    tasks.find((task) => task.id === id)?.title || 'Unknown Task';
+
   // Compute stats
   const stats = useMemo(() => {
-    const totalHours = mockTimeEntries.reduce((sum, e) => sum + e.hours, 0);
-    const thisWeek = mockTimeEntries
+    const totalHours = timeEntries.reduce((sum, e) => sum + e.hours, 0);
+    const thisWeek = timeEntries
       .filter((e) => {
         const d = new Date(e.date);
         const now = new Date();
@@ -211,13 +203,13 @@ export function TimeTrackingView() {
         return d >= weekStart;
       })
       .reduce((sum, e) => sum + e.hours, 0);
-    const billable = mockTimeEntries
+    const billable = timeEntries
       .filter((e) => e.billable)
       .reduce((sum, e) => sum + e.hours, 0);
-    const days = new Set(mockTimeEntries.map((e) => e.date)).size;
+    const days = new Set(timeEntries.map((e) => e.date)).size;
     const avgDaily = days > 0 ? (totalHours / days).toFixed(1) : '0';
     return { totalHours, thisWeek, billable, avgDaily };
-  }, []);
+  }, [timeEntries]);
 
   // Get this week's dates (Mon-Sun)
   const weekDates = useMemo(() => {
@@ -237,12 +229,12 @@ export function TimeTrackingView() {
   // Get unique users with entries this week
   const weekUsers = useMemo(() => {
     const userIds = new Set(
-      mockTimeEntries
+      timeEntries
         .filter((e) => weekDates.includes(e.date))
         .map((e) => e.userId)
     );
-    return mockUsers.filter((u) => userIds.has(u.id));
-  }, [weekDates]);
+    return users.filter((u) => userIds.has(u.id));
+  }, [weekDates, timeEntries, users]);
 
   // Build timesheet data
   const timesheet = useMemo(() => {
@@ -250,7 +242,7 @@ export function TimeTrackingView() {
     weekUsers.forEach((user) => {
       sheet[user.id] = {};
       weekDates.forEach((date) => {
-        sheet[user.id][date] = mockTimeEntries
+        sheet[user.id][date] = timeEntries
           .filter((e) => e.userId === user.id && e.date === date)
           .reduce((sum, e) => sum + e.hours, 0);
       });
@@ -260,7 +252,7 @@ export function TimeTrackingView() {
 
   // Filter recent entries
   const recentEntries = useMemo(() => {
-    return mockTimeEntries
+    return timeEntries
       .filter((e) => {
         const matchesProject = projectFilter === 'all' || e.projectId === projectFilter;
         const matchesSearch = searchQuery === '' ||
@@ -350,7 +342,7 @@ export function TimeTrackingView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.sprints.all} {t.timeTracking.project}s</SelectItem>
-            {mockProjects.map((p) => (
+            {projects.map((p) => (
               <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
             ))}
           </SelectContent>
@@ -462,7 +454,7 @@ export function TimeTrackingView() {
             className="divide-y max-h-80 overflow-y-auto"
           >
             {recentEntries.map((entry) => {
-              const project = mockProjects.find((p) => p.id === entry.projectId);
+              const project = projects.find((p) => p.id === entry.projectId);
               return (
                 <motion.div
                   key={entry.id}

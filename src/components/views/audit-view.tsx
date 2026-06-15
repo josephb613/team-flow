@@ -25,8 +25,8 @@ import {
   Filter,
   TrendingUp,
 } from 'lucide-react';
-import { mockAuditLogs, getUserName, getUserInitials, roleColors } from '@/lib/mock-data';
-import { useAppStore } from '@/lib/store';
+import { roleColors } from '@/lib/data-mappers';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -116,7 +116,7 @@ function formatTimestamp(ts: string): { date: string; time: string; relative: st
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function AuditView() {
   const { t } = useTranslation();
-  const { activeTenantId } = useAppStore();
+  const { auditLogs, getUserName, getUserInitials } = useAppData();
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [entityFilter, setEntityFilter] = useState<string>('all');
@@ -124,26 +124,24 @@ export function AuditView() {
 
   // Get unique values for filters
   const actionTypes = useMemo(() => {
-    const types = new Set(mockAuditLogs.map((log) => log.action));
+    const types = new Set(auditLogs.map((log) => log.action));
     return Array.from(types).sort();
-  }, []);
+  }, [auditLogs]);
 
   const entityTypes = useMemo(() => {
-    const types = new Set(mockAuditLogs.map((log) => log.entityType));
+    const types = new Set(auditLogs.map((log) => log.entityType));
     return Array.from(types).sort();
-  }, []);
+  }, [auditLogs]);
 
   const userIds = useMemo(() => {
-    const ids = new Set(mockAuditLogs.map((log) => log.userId));
+    const ids = new Set(auditLogs.map((log) => log.userId));
     return Array.from(ids).sort();
-  }, []);
+  }, [auditLogs]);
 
   // Filter logs
   const filteredLogs = useMemo(() => {
-    let logs = mockAuditLogs;
+    let logs = auditLogs;
 
-    // Filter by activeTenantId for non-super-admin
-    // In this demo we don't strictly enforce it, but we support it
     if (actionFilter !== 'all') {
       logs = logs.filter((l) => l.action === actionFilter);
     }
@@ -168,33 +166,33 @@ export function AuditView() {
     return [...logs].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
-  }, [searchQuery, actionFilter, entityFilter, userFilter]);
+  }, [searchQuery, actionFilter, entityFilter, userFilter, auditLogs, getUserName]);
 
   // Stats
   const todayActions = useMemo(() => {
     const today = new Date().toDateString();
-    return mockAuditLogs.filter(
+    return auditLogs.filter(
       (l) => new Date(l.timestamp).toDateString() === today
     ).length;
-  }, []);
+  }, [auditLogs]);
 
   const mostActiveUser = useMemo(() => {
     const counts: Record<string, number> = {};
-    mockAuditLogs.forEach((l) => {
+    auditLogs.forEach((l) => {
       counts[l.userId] = (counts[l.userId] || 0) + 1;
     });
     const topUserId = Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0];
     return topUserId ? getUserName(topUserId) : '-';
-  }, []);
+  }, [auditLogs, getUserName]);
 
   const mostCommonAction = useMemo(() => {
     const counts: Record<string, number> = {};
-    mockAuditLogs.forEach((l) => {
+    auditLogs.forEach((l) => {
       counts[l.action] = (counts[l.action] || 0) + 1;
     });
     const top = Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0];
     return top || '-';
-  }, []);
+  }, [auditLogs]);
 
   const statCards = [
     {
@@ -235,7 +233,7 @@ export function AuditView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.audit.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {mockAuditLogs.length} entrées · {todayActions} aujourd'hui
+            {auditLogs.length} entrées · {todayActions} aujourd'hui
           </p>
         </div>
         <Button

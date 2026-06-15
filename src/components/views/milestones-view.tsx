@@ -30,7 +30,8 @@ import {
   ListChecks,
   ArrowUpRight,
 } from 'lucide-react';
-import { mockMilestones, mockProjects, mockTasks, getProjectName } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
+import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -106,8 +107,8 @@ function getDaysUntil(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / 86400000);
 }
 
-function getMilestoneProgress(milestone: Milestone) {
-  const msTasks = mockTasks.filter((t) => milestone.taskIds.includes(t.id));
+function getMilestoneProgress(milestone: Milestone, allTasks: import('@/lib/types').Task[]) {
+  const msTasks = allTasks.filter((t) => milestone.taskIds.includes(t.id));
   const completed = msTasks.filter((t) => t.status === 'done').length;
   const total = msTasks.length;
   return { completed, total, progress: total > 0 ? Math.round((completed / total) * 100) : 0 };
@@ -162,10 +163,12 @@ function StatCard({
 
 function MilestoneCard({ milestone }: { milestone: Milestone }) {
   const { t } = useTranslation();
+  const { openMyTasksWithMilestoneFilter } = useAppStore();
+  const { tasks, projects, getProjectName } = useAppData();
   const config = milestoneStatusConfig[milestone.status];
   const projectName = getProjectName(milestone.projectId);
-  const project = mockProjects.find((p) => p.id === milestone.projectId);
-  const { completed, total, progress } = getMilestoneProgress(milestone);
+  const project = projects.find((p) => p.id === milestone.projectId);
+  const { completed, total, progress } = getMilestoneProgress(milestone, tasks);
   const daysUntil = getDaysUntil(milestone.dueDate);
   const statusLabels: Record<MilestoneStatus, string> = {
     upcoming: t.milestones.upcoming,
@@ -247,9 +250,16 @@ function MilestoneCard({ milestone }: { milestone: Milestone }) {
           {total > 0 && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openMyTasksWithMilestoneFilter(milestone.id);
+                  }}
+                  className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground hover:underline cursor-pointer transition-colors"
+                >
                   {completed}/{total} {t.milestones.tasks}
-                </span>
+                </button>
                 <span className="text-[10px] font-bold" style={{ color: milestone.color }}>
                   {progress}%
                 </span>
@@ -296,22 +306,24 @@ function MilestoneCard({ milestone }: { milestone: Milestone }) {
 
 export function MilestonesView() {
   const { t } = useTranslation();
+  const { milestones, projects } = useAppData();
+  const { setCreateMilestoneDialogOpen } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Compute stats
   const stats = useMemo(() => {
-    const total = mockMilestones.length;
-    const upcoming = mockMilestones.filter((m) => m.status === 'upcoming').length;
-    const inProgress = mockMilestones.filter((m) => m.status === 'in_progress').length;
-    const overdue = mockMilestones.filter((m) => m.status === 'overdue').length;
+    const total = milestones.length;
+    const upcoming = milestones.filter((m) => m.status === 'upcoming').length;
+    const inProgress = milestones.filter((m) => m.status === 'in_progress').length;
+    const overdue = milestones.filter((m) => m.status === 'overdue').length;
     return { total, upcoming, inProgress, overdue };
-  }, []);
+  }, [milestones]);
 
   // Filter milestones
   const filteredMilestones = useMemo(() => {
-    return mockMilestones.filter((m) => {
+    return milestones.filter((m) => {
       const matchesSearch =
         m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -319,13 +331,13 @@ export function MilestonesView() {
       const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
       return matchesSearch && matchesProject && matchesStatus;
     });
-  }, [searchQuery, projectFilter, statusFilter]);
+  }, [searchQuery, projectFilter, statusFilter, milestones]);
 
   // Group by project
   const grouped = useMemo(() => {
     const groups: Record<string, { name: string; color: string; icon: string; milestones: typeof filteredMilestones }> = {};
     filteredMilestones.forEach((m) => {
-      const project = mockProjects.find((p) => p.id === m.projectId);
+      const project = projects.find((p) => p.id === m.projectId);
       if (!groups[m.projectId]) {
         groups[m.projectId] = {
           name: project?.name || 'Unknown',
@@ -356,6 +368,7 @@ export function MilestonesView() {
         <Button
           size="sm"
           className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm"
+          onClick={() => setCreateMilestoneDialogOpen(true)}
         >
           <Sparkles className="h-3.5 w-3.5" /> {t.milestones.newMilestone}
         </Button>
@@ -415,7 +428,7 @@ export function MilestonesView() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.sprints.all} {t.milestones.project}s</SelectItem>
-            {mockProjects.map((p) => (
+            {projects.map((p) => (
               <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
             ))}
           </SelectContent>

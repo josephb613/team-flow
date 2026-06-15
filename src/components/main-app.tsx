@@ -8,6 +8,10 @@ import { NotificationPanel } from '@/components/notification-panel';
 import { CreateWorkspaceDialog } from '@/components/create-workspace-dialog';
 import { CreateTaskDialog } from '@/components/create-task-dialog';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
+import { EditProjectDialog } from '@/components/edit-project-dialog';
+import { EditTaskDialog } from '@/components/edit-task-dialog';
+import { CreateSprintDialog } from '@/components/create-sprint-dialog';
+import { CreateMilestoneDialog } from '@/components/create-milestone-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
@@ -18,14 +22,19 @@ import { Toaster } from '@/components/ui/sonner';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ArrowUp, Plus, ListChecks, FolderKanban, Timer } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
+import { DraggableQuickAction } from '@/components/draggable-quick-action';
 import { useState, useEffect, useSyncExternalStore, Suspense } from 'react';
+import { AppDataProvider } from '@/hooks/use-app-data';
+import { AppDataSync } from '@/components/app-data-sync';
 import { PageTransition } from '@/components/page-transition';
+import { SearchDialog } from '@/components/search-dialog';
 
 // Dynamic imports to reduce initial compilation load and prevent ChunkLoadError
 const DashboardView = dynamic(() => import('@/components/views/dashboard-view').then(m => ({ default: m.DashboardView })), { ssr: false });
 const TasksView = dynamic(() => import('@/components/views/tasks-view').then(m => ({ default: m.TasksView })), { ssr: false });
 const ProjectsView = dynamic(() => import('@/components/views/projects-view').then(m => ({ default: m.ProjectsView })), { ssr: false });
+const ProjectDetailView = dynamic(() => import('@/components/views/project-detail-view').then(m => ({ default: m.ProjectDetailView })), { ssr: false });
 const CalendarView = dynamic(() => import('@/components/views/calendar-view').then(m => ({ default: m.CalendarView })), { ssr: false });
 const MessagesView = dynamic(() => import('@/components/views/messages-view').then(m => ({ default: m.MessagesView })), { ssr: false });
 const MeetingsView = dynamic(() => import('@/components/views/meetings-view').then(m => ({ default: m.MeetingsView })), { ssr: false });
@@ -44,11 +53,18 @@ const PlanningView = dynamic(() => import('@/components/views/planning-view').th
 const MilestonesView = dynamic(() => import('@/components/views/milestones-view').then(m => ({ default: m.MilestonesView })), { ssr: false });
 const TimeTrackingView = dynamic(() => import('@/components/views/time-tracking-view').then(m => ({ default: m.TimeTrackingView })), { ssr: false });
 const OrganizationsView = dynamic(() => import('@/components/views/organizations-view').then(m => ({ default: m.OrganizationsView })), { ssr: false });
+const DependenciesView = dynamic(() => import('@/components/views/dependencies-view').then(m => ({ default: m.DependenciesView })), { ssr: false });
+const CostsView = dynamic(() => import('@/components/views/costs-view').then(m => ({ default: m.CostsView })), { ssr: false });
+const RisksView = dynamic(() => import('@/components/views/risks-view').then(m => ({ default: m.RisksView })), { ssr: false });
+const StakeholdersView = dynamic(() => import('@/components/views/stakeholders-view').then(m => ({ default: m.StakeholdersView })), { ssr: false });
+const ChangeRequestsView = dynamic(() => import('@/components/views/change-requests-view').then(m => ({ default: m.ChangeRequestsView })), { ssr: false });
+const WorkloadView = dynamic(() => import('@/components/views/workload-view').then(m => ({ default: m.WorkloadView })), { ssr: false });
 
 const viewMap: Record<string, React.ComponentType> = {
   // Favoris
   dashboard: DashboardView,
   projects: ProjectsView,
+  'project-detail': ProjectDetailView,
   'my-tasks': TasksView,
   // Projets
   sprints: SprintsView,
@@ -74,6 +90,13 @@ const viewMap: Record<string, React.ComponentType> = {
   automations: AutomationsView,
   'time-tracking': TimeTrackingView,
   activity: ActivityView,
+  // PMP — Gestion de projets complexes
+  dependencies: DependenciesView,
+  costs: CostsView,
+  risks: RisksView,
+  stakeholders: StakeholdersView,
+  'change-requests': ChangeRequestsView,
+  workload: WorkloadView,
 };
 
 function ViewLoader() {
@@ -118,9 +141,6 @@ function AppFooter() {
         <span className="hidden sm:inline">{t.footer.rights}</span>
       </div>
       <div className="flex items-center gap-4">
-        <span className="hidden md:flex items-center gap-1">
-          {t.footer.madeWith} <Heart className="h-3 w-3 text-rose-500 fill-rose-500" /> {t.footer.byTeam}
-        </span>
         <span className="hidden sm:flex items-center gap-1.5 text-muted-foreground/60">
           <kbd className="bg-muted border border-border rounded px-1.5 py-0.5 text-[10px] font-mono">⌘K</kbd>
           <span>{t.footer.searchHint?.replace('⌘K ', '') || 'Search'}</span>
@@ -147,28 +167,37 @@ function AppFooter() {
 }
 
 function BackToTopButton() {
+  const { t } = useTranslation();
+  const activePage = useAppStore((s) => s.activePage);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const getScrollTop = () => {
       const mainEl = document.getElementById('main-content-area');
-      if (mainEl) {
-        setVisible(mainEl.scrollTop > 400);
-      }
+      const mainScroll = mainEl?.scrollTop ?? 0;
+      const windowScroll = window.scrollY || document.documentElement.scrollTop;
+      return Math.max(mainScroll, windowScroll);
+    };
+
+    const handleScroll = () => {
+      setVisible(getScrollTop() > 300);
     };
 
     const mainEl = document.getElementById('main-content-area');
-    if (mainEl) {
-      mainEl.addEventListener('scroll', handleScroll, { passive: true });
-      return () => mainEl.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    mainEl?.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      mainEl?.removeEventListener('scroll', handleScroll);
+    };
+  }, [activePage]);
 
   const scrollToTop = () => {
     const mainEl = document.getElementById('main-content-area');
-    if (mainEl) {
-      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    mainEl?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -180,78 +209,21 @@ function BackToTopButton() {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.2 }}
           onClick={scrollToTop}
-          className="fixed bottom-20 right-6 z-40 h-10 w-10 rounded-full bg-[oklch(0.55_0.18_250)] text-white shadow-lg hover:shadow-xl hover:bg-[oklch(0.55_0.18_250/0.9)] transition-shadow flex items-center justify-center"
-          aria-label="Back to top"
+          title={t.footer.backToTop}
+          className={cn(
+            'fixed z-40 h-11 w-11 rounded-full',
+            'bg-[oklch(0.55_0.18_250)] text-white shadow-lg',
+            'hover:shadow-xl hover:bg-[oklch(0.50_0.18_250)] hover:scale-105',
+            'active:scale-95 transition-all flex items-center justify-center',
+            'border border-white/20 backdrop-blur-sm',
+            'bottom-24 right-5 lg:bottom-8 lg:right-8'
+          )}
+          aria-label={t.footer.backToTop}
         >
-          <ArrowUp className="h-4 w-4" />
+          <ArrowUp className="h-5 w-5" />
         </motion.button>
       )}
     </AnimatePresence>
-  );
-}
-
-function MobileFAB() {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="lg:hidden fixed bottom-6 right-6 z-50">
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.8 }}
-            transition={{ duration: 0.15 }}
-            className="absolute bottom-16 right-0 flex flex-col gap-2 items-end"
-          >
-            <button
-              onClick={() => {
-                useAppStore.getState().setCreateTaskDialogOpen(true);
-                setOpen(false);
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
-            >
-              <ListChecks className="h-4 w-4 text-[oklch(0.55_0.18_250)]" />
-              <span>{t.topbar.newTask}</span>
-            </button>
-            <button
-              onClick={() => {
-                useAppStore.getState().setCreateProjectDialogOpen(true);
-                setOpen(false);
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
-            >
-              <FolderKanban className="h-4 w-4 text-amber-500" />
-              <span>{t.topbar.newProject}</span>
-            </button>
-            <button
-              onClick={() => {
-                useAppStore.getState().setActivePage('time-tracking');
-                setOpen(false);
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-background shadow-lg border text-xs font-medium hover:bg-muted transition-colors"
-            >
-              <Timer className="h-4 w-4 text-rose-500" />
-              <span>{t.topbar.timeTracking}</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.button
-        onClick={() => setOpen(!open)}
-        whileTap={{ scale: 0.9 }}
-        className={cn(
-          'h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
-          open
-            ? 'bg-rose-500 text-white rotate-45'
-            : 'bg-[oklch(0.55_0.18_250)] text-white'
-        )}
-      >
-        <Plus className="h-6 w-6" />
-      </motion.button>
-    </div>
   );
 }
 
@@ -263,12 +235,25 @@ export function MainApp() {
 
   useKeyboardShortcuts();
 
+  useEffect(() => {
+    useAppStore.getState().hydrateFavorites();
+  }, []);
+
+  useEffect(() => {
+    const mainEl = document.getElementById('main-content-area');
+    mainEl?.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [activePage]);
+
   const ActiveView = viewMap[activePage] || DashboardView;
 
   return (
+    <AppDataProvider>
+    <AppDataSync />
+    <SearchDialog />
     <>
     <ConnectionStatus />
-    <div className="min-h-screen flex bg-background">
+    <div className="h-screen flex overflow-hidden bg-background">
       {/* Sidebar */}
       <div className={cn('transition-opacity duration-300', focusMode ? 'opacity-30 pointer-events-none' : 'opacity-100')}>
         <AppSidebar />
@@ -277,14 +262,14 @@ export function MainApp() {
       {/* Main content */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300',
+          'flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300',
           sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-[260px]'
         )}
       >
         <TopBar />
         <main
           id="main-content-area"
-          className="flex-1 p-4 md:p-6 overflow-auto relative dot-pattern"
+          className="flex-1 min-h-0 p-4 md:p-6 overflow-y-auto relative bg-background"
         >
           {/* Subtle dot-pattern background overlay */}
           <div className="relative z-10">
@@ -301,8 +286,8 @@ export function MainApp() {
       {/* Back to top button */}
       <BackToTopButton />
 
-      {/* Mobile FAB */}
-      <MobileFAB />
+      {/* Draggable Quick Action FAB */}
+      <DraggableQuickAction />
 
       {/* Notification Panel (slide-out overlay) */}
       <NotificationPanel />
@@ -315,6 +300,18 @@ export function MainApp() {
 
       {/* Create Project Dialog */}
       <CreateProjectDialog />
+
+      {/* Edit Project Dialog */}
+      <EditProjectDialog />
+
+      {/* Edit Task Dialog */}
+      <EditTaskDialog />
+
+      {/* Create Sprint Dialog */}
+      <CreateSprintDialog />
+
+      {/* Create Milestone Dialog */}
+      <CreateMilestoneDialog />
 
       {/* Create Workspace/Organization Dialog */}
       <CreateWorkspaceDialog />
@@ -331,5 +328,6 @@ export function MainApp() {
 
     </div>
     </>
+    </AppDataProvider>
   );
 }

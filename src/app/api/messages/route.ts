@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-api';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const workspaceId = getWorkspaceIdFromRequest(request);
+
     const messages = await db.message.findMany({
+      where: workspaceId ? { channel: { workspaceId } } : undefined,
       include: {
         user: true,
         channel: true,

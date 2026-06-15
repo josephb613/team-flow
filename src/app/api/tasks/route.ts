@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-api';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const workspaceId = getWorkspaceIdFromRequest(request);
+
     const tasks = await db.task.findMany({
+      where: workspaceId ? { project: { workspaceId } } : undefined,
       include: {
         assignee: true,
         creator: true,
@@ -21,7 +25,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, status, priority, tags, dueDate, projectId, assigneeId, creatorId } = body;
+    const { title, description, status, priority, tags, dueDate, projectId, assigneeId, creatorId, subtasks } = body;
 
     const task = await db.task.create({
       data: {
@@ -34,6 +38,15 @@ export async function POST(request: Request) {
         projectId,
         assigneeId: assigneeId || null,
         creatorId: creatorId || null,
+        ...(Array.isArray(subtasks) && subtasks.length > 0
+          ? {
+              subtasks: {
+                create: subtasks.map((subtask: { title: string }) => ({
+                  title: subtask.title,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         assignee: true,

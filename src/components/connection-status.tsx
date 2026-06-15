@@ -10,24 +10,20 @@ export function ConnectionStatus() {
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
-    // Check server health periodically
     const checkConnection = async () => {
       try {
-        const res = await fetch('/api/tasks', { method: 'HEAD' }).catch(() => null);
+        const res = await fetch('/api/health').catch(() => null);
         setIsOnline(res !== null && res.ok);
       } catch {
         setIsOnline(false);
       }
     };
 
-    // Initial check
     checkConnection();
 
-    // Check every 30 seconds
     const interval = setInterval(checkConnection, 30000);
 
-    // Listen for browser online/offline events
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => { setIsOnline(true); checkConnection(); };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -42,7 +38,7 @@ export function ConnectionStatus() {
   const handleRetry = async () => {
     setIsChecking(true);
     try {
-      const res = await fetch('/api/tasks').catch(() => null);
+      const res = await fetch('/api/health').catch(() => null);
       setIsOnline(res !== null && res.ok);
     } catch {
       setIsOnline(false);

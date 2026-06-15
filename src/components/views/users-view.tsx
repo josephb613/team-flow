@@ -35,7 +35,8 @@ import {
   ArrowUpRight,
   TrendingUp,
 } from 'lucide-react';
-import { mockUsers, roleColors, getUserInitials } from '@/lib/mock-data';
+import { roleColors } from '@/lib/data-mappers';
+import { useAppData } from '@/hooks/use-app-data';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -99,41 +100,41 @@ function getRelativeTime(dateStr: string): string {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function UsersView() {
   const { t } = useTranslation();
+  const { users, getUserInitials } = useAppData();
   const { activeTenantId, tenants } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [tenantFilter, setTenantFilter] = useState<string>('all');
+  const [tenantFilter, setTenantFilter] = useState<string>(activeTenantId || 'all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Filter users by active tenant (non-super-admin scenario)
   const filteredUsers = useMemo(() => {
-    let users = mockUsers;
-    // If activeTenantId is set and not 'all', filter by tenant
-    if (tenantFilter !== 'all') {
-      users = users.filter((u) => u.tenantId === tenantFilter);
+    let filtered = users;
+    const effectiveTenant = tenantFilter === 'all' ? activeTenantId : tenantFilter;
+    if (effectiveTenant) {
+      filtered = filtered.filter((u) => u.organizationId === effectiveTenant);
     }
     if (roleFilter !== 'all') {
-      users = users.filter((u) => u.role === roleFilter);
+      filtered = filtered.filter((u) => u.role === roleFilter);
     }
     if (statusFilter !== 'all') {
-      users = users.filter((u) => u.status === statusFilter);
+      filtered = filtered.filter((u) => u.status === statusFilter);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      users = users.filter(
+      filtered = filtered.filter(
         (u) =>
           u.name.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
-          u.tenantName.toLowerCase().includes(q)
+          u.organizationName.toLowerCase().includes(q)
       );
     }
-    return users;
-  }, [searchQuery, roleFilter, statusFilter, tenantFilter]);
+    return filtered;
+  }, [users, searchQuery, roleFilter, statusFilter, tenantFilter, activeTenantId]);
 
   // Stats
-  const totalUsers = mockUsers.length;
-  const onlineNow = mockUsers.filter((u) => u.status === 'online').length;
+  const totalUsers = users.length;
+  const onlineNow = users.filter((u) => u.status === 'online').length;
   const newThisMonth = 3; // Simulated
 
   const statCards = [
@@ -408,7 +409,7 @@ export function UsersView() {
                     {/* Bottom info row */}
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40">
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <span>{user.tenantName}</span>
+                        <span>{user.organizationName}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -480,7 +481,7 @@ export function UsersView() {
 
                     {/* Tenant */}
                     <div className="hidden md:block w-36 text-[11px] text-muted-foreground truncate">
-                      {user.tenantName}
+                      {user.organizationName}
                     </div>
 
                     {/* Content count */}

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,51 +18,53 @@ import {
   Palette,
   Globe,
   Shield,
-  CreditCard,
-  Link2,
   Trash2,
   Camera,
   Save,
-  Check,
-  ExternalLink,
   AlertTriangle,
-  Sparkles,
   Moon,
-  PanelLeftClose,
   Mail,
   MessageSquare,
   AtSign,
   ListChecks,
   CalendarClock,
   FolderKanban,
-  Github,
-  Hash,
-  Figma,
-  HardDrive,
-  Code2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  ACCEPTED_LOGO_TYPES,
+  MAX_LOGO_SIZE,
+  OrganizationLogoPicker,
+  uploadWorkspaceLogo,
+} from '@/components/organization-logo-picker';
 import { useAppStore } from '@/lib/store';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
+import type { UserRole } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const roleLabelKeys: Record<UserRole, keyof ReturnType<typeof useTranslation>['t']['users']> = {
+  super_admin: 'superAdmin',
+  org_admin: 'orgAdmin',
+  project_manager: 'projectManager',
+  member: 'member',
+  viewer: 'viewer',
+};
+
+function splitName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? '',
+    lastName: parts.slice(1).join(' '),
+  };
+}
 
 // ─── Settings Sections Config ────────────────────────────────────────────────
 const settingsSections = [
   { id: 'general', labelKey: 'general', icon: Globe },
   { id: 'profile', labelKey: 'profile', icon: User },
   { id: 'notifications', labelKey: 'notifications', icon: Bell },
-  { id: 'integrations', labelKey: 'integrations', icon: Link2 },
   { id: 'workspace', labelKey: 'workspace', icon: Shield },
-  { id: 'billing', labelKey: 'billing', icon: CreditCard },
-];
-
-// ─── Integration Config ──────────────────────────────────────────────────────
-const integrations = [
-  { name: 'GitHub', desc: 'Sync issues and pull requests', connected: true, color: '#24292e', icon: Github },
-  { name: 'Slack', desc: 'Post updates to Slack channels', connected: true, color: '#4A154B', icon: Hash },
-  { name: 'Figma', desc: 'Embed Figma designs in tasks', connected: false, color: '#F24E1E', icon: Figma },
-  { name: 'Google Drive', desc: 'Attach files from Google Drive', connected: false, color: '#34A853', icon: HardDrive },
-  { name: 'Jira', desc: 'Sync with Jira projects', connected: false, color: '#0052CC', icon: Code2 },
 ];
 
 // ─── Animation ───────────────────────────────────────────────────────────────
@@ -76,6 +79,158 @@ export function SettingsView() {
   const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('general');
   const currentUser = useAppStore((s) => s.currentUser);
+  const activeOrganizationId = useAppStore((s) => s.activeOrganizationId);
+  const organizations = useAppStore((s) => s.organizations);
+  const { refetch } = useAppData();
+
+  const activeOrganization = useMemo(
+    () => organizations.find((org) => org.id === activeOrganizationId),
+    [organizations, activeOrganizationId]
+  );
+
+  const roleLabel = currentUser
+    ? t.users[roleLabelKeys[currentUser.role] ?? 'member']
+    : '';
+
+  const [profileSettings, setProfileSettings] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    bio: '',
+  });
+
+  const [workspaceSettings, setWorkspaceSettings] = useState({
+    name: '',
+    slug: '',
+    description: '',
+  });
+
+  const [savingWorkspace, setSavingWorkspace] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoRemoved, setLogoRemoved] = useState(false);
+  const logoPreviewRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const { firstName, lastName } = splitName(currentUser.name);
+    setProfileSettings({
+      firstName,
+      lastName,
+      email: currentUser.email,
+      bio: '',
+    });
+  }, [currentUser]);
+
+  const activeOrgId = activeOrganizationId || currentUser?.organizationId || '';
+
+  useEffect(() => {
+    setWorkspaceSettings({
+      name: activeOrganization?.name ?? currentUser?.organizationName ?? '',
+      slug: activeOrganization?.slug ?? '',
+      description: activeOrganization?.description ?? '',
+    });
+  }, [
+    activeOrgId,
+    activeOrganization?.name,
+    activeOrganization?.slug,
+    activeOrganization?.description,
+    currentUser?.organizationName,
+  ]);
+
+  useEffect(() => {
+    setLogoFile(null);
+    setLogoRemoved(false);
+    if (logoPreviewRef.current) {
+      URL.revokeObjectURL(logoPreviewRef.current);
+      logoPreviewRef.current = null;
+    }
+    setLogoPreview(null);
+  }, [activeOrgId]);
+
+  const displayedLogo = logoPreview ?? (logoRemoved ? null : activeOrganization?.logo ?? null);
+
+  const handleLogoSelect = (file: File) => {
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
+      toast.error(t.createWorkspace.photoInvalidType);
+      return;
+    }
+
+    if (file.size > MAX_LOGO_SIZE) {
+      toast.error(t.createWorkspace.photoTooLarge);
+      return;
+    }
+
+    if (logoPreviewRef.current) URL.revokeObjectURL(logoPreviewRef.current);
+    const preview = URL.createObjectURL(file);
+    logoPreviewRef.current = preview;
+    setLogoPreview(preview);
+    setLogoFile(file);
+    setLogoRemoved(false);
+  };
+
+  const handleLogoRemove = () => {
+    setLogoFile(null);
+    setLogoRemoved(true);
+    if (logoPreviewRef.current) {
+      URL.revokeObjectURL(logoPreviewRef.current);
+      logoPreviewRef.current = null;
+    }
+    setLogoPreview(null);
+  };
+
+  const handleSaveWorkspace = async () => {
+    const orgId = activeOrganization?.id ?? currentUser?.organizationId;
+    if (!orgId) return;
+    setSavingWorkspace(true);
+    try {
+      let logo: string | null | undefined;
+
+      if (logoFile) {
+        const result = await uploadWorkspaceLogo(logoFile);
+        if (result.error === 'invalid_type') {
+          toast.error(t.createWorkspace.photoInvalidType);
+          return;
+        }
+        if (result.error === 'too_large') {
+          toast.error(t.createWorkspace.photoTooLarge);
+          return;
+        }
+        if (!result.url) {
+          throw new Error('upload_failed');
+        }
+        logo = result.url;
+      } else if (logoRemoved) {
+        logo = null;
+      }
+
+      const res = await fetch(`/api/workspaces/${orgId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...workspaceSettings,
+          ...(logo !== undefined ? { logo } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      await refetch();
+      setLogoFile(null);
+      setLogoRemoved(false);
+      if (logoPreviewRef.current) {
+        URL.revokeObjectURL(logoPreviewRef.current);
+        logoPreviewRef.current = null;
+      }
+      setLogoPreview(null);
+      toast.success(t.settings.saveChanges);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t.createWorkspace.error);
+    } finally {
+      setSavingWorkspace(false);
+    }
+  };
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -89,10 +244,6 @@ export function SettingsView() {
   const toggleNotification = (key: keyof typeof notifications) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
-
-  const [generalSettings, setGeneralSettings] = useState({
-    compactSidebar: false,
-  });
 
   const getSectionLabel = (id: string) => {
     const key = id as keyof typeof t.settings;
@@ -223,21 +374,6 @@ export function SettingsView() {
                         onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
                       />
                     </div>
-                    <div className="flex items-center justify-between py-1">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-muted/50">
-                          <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium">{t.settings.compactSidebar}</Label>
-                          <p className="text-xs text-muted-foreground">{t.settings.compactSidebarDesc}</p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={generalSettings.compactSidebar}
-                        onCheckedChange={(v) => setGeneralSettings((p) => ({ ...p, compactSidebar: v }))}
-                      />
-                    </div>
                     <div className="flex items-center gap-2">
                       <Button
                         className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white hover:shadow-[oklch(0.55_0.18_250/0.4)] transition-shadow"
@@ -270,17 +406,17 @@ export function SettingsView() {
                     <div className="flex items-center gap-4">
                       <div className="relative">
                         <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-[oklch(0.55_0.18_250/0.2)]">
-                          {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || 'AT'}
+                          {currentUser?.name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                         </div>
                         <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[oklch(0.55_0.18_250)] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                           <Camera className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div>
-                        <p className="font-semibold">{currentUser?.name || 'Alex Thompson'}</p>
-                        <p className="text-sm text-muted-foreground">{currentUser?.email || 'alex@acmecorp.com'}</p>
+                        <p className="font-semibold">{currentUser?.name || ''}</p>
+                        <p className="text-sm text-muted-foreground">{currentUser?.email ?? ''}</p>
                         <Badge className="mt-1 text-[10px] bg-blue-500/10 text-blue-700 border-0">
-                          Admin
+                          {roleLabel}
                         </Badge>
                       </div>
                     </div>
@@ -288,24 +424,42 @@ export function SettingsView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.firstName}</Label>
-                        <Input defaultValue="Alex" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={profileSettings.firstName}
+                          onChange={(e) => setProfileSettings((p) => ({ ...p, firstName: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.lastName}</Label>
-                        <Input defaultValue="Thompson" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={profileSettings.lastName}
+                          onChange={(e) => setProfileSettings((p) => ({ ...p, lastName: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.email}</Label>
-                      <Input defaultValue={currentUser?.email || 'alex@acmecorp.com'} type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                      <Input
+                        value={profileSettings.email}
+                        onChange={(e) => setProfileSettings((p) => ({ ...p, email: e.target.value }))}
+                        type="email"
+                        className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.role}</Label>
-                      <Input defaultValue="Admin" disabled className="bg-muted/30 border-transparent max-w-xs" />
+                      <Input value={roleLabel} disabled className="bg-muted/30 border-transparent max-w-xs" />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">{t.settings.bio}</Label>
-                      <Input defaultValue="Product Manager at Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                      <Input
+                        value={profileSettings.bio}
+                        onChange={(e) => setProfileSettings((p) => ({ ...p, bio: e.target.value }))}
+                        placeholder=""
+                        className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                      />
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -394,81 +548,6 @@ export function SettingsView() {
                 </Card>
               )}
 
-              {/* Integrations */}
-              {activeSection === 'integrations' && (
-                <Card className="border shadow-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/15">
-                        <Link2 className="h-4 w-4 text-cyan-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{t.settings.integrationsTitle}</CardTitle>
-                        <CardDescription>{t.settings.integrationsDesc}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {integrations.map((integration, idx) => {
-                      const Icon = integration.icon;
-                      return (
-                        <motion.div
-                          key={integration.name}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.05 + idx * 0.05 }}
-                          className={cn(
-                            'flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 hover:shadow-sm',
-                            integration.connected
-                              ? 'border-blue-500/20 bg-blue-500/[0.03]'
-                              : 'border-border hover:border-border/80'
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm border border-white/10"
-                              style={{ backgroundColor: integration.color }}
-                            >
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold">{integration.name}</p>
-                                {integration.connected && (
-                                  <Badge className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-700 border-0 font-medium">
-                                    <Check className="h-2.5 w-2.5 mr-0.5" />
-                                    {t.settings.connected}
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">{integration.desc}</p>
-                            </div>
-                          </div>
-                          <Button
-                            variant={integration.connected ? 'outline' : 'default'}
-                            size="sm"
-                            className={cn(
-                              'gap-1.5 text-xs',
-                              !integration.connected && 'bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] text-white shadow-sm'
-                            )}
-                          >
-                            {integration.connected ? (
-                              <>
-                                <ExternalLink className="h-3 w-3" /> Manage
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-3 w-3" /> {t.settings.connect}
-                              </>
-                            )}
-                          </Button>
-                        </motion.div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Workspace */}
               {activeSection === 'workspace' && (
                 <div className="space-y-5">
@@ -485,19 +564,47 @@ export function SettingsView() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-5">
+                      <OrganizationLogoPicker
+                        logoUrl={displayedLogo}
+                        icon={activeOrganization?.icon ?? '🏢'}
+                        color={activeOrganization?.color ?? '#10b981'}
+                        name={workspaceSettings.name || activeOrganization?.name || ''}
+                        photoLabel={t.settings.workspacePhoto}
+                        photoHint={t.createWorkspace.photoHint}
+                        photoAdd={t.createWorkspace.photoAdd}
+                        photoChange={t.createWorkspace.photoChange}
+                        photoRemove={t.createWorkspace.photoRemove}
+                        onSelect={handleLogoSelect}
+                        onRemove={handleLogoRemove}
+                      />
+                      <Separator />
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceName}</Label>
-                        <Input defaultValue="Acme Corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceSettings.name}
+                          onChange={(e) => setWorkspaceSettings((p) => ({ ...p, name: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.workspaceUrl}</Label>
-                        <Input defaultValue="acme-corp" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceSettings.slug}
+                          onChange={(e) => setWorkspaceSettings((p) => ({ ...p, slug: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t.settings.description}</Label>
-                        <Input defaultValue="Main workspace for Acme Corporation" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
+                        <Input
+                          value={workspaceSettings.description}
+                          onChange={(e) => setWorkspaceSettings((p) => ({ ...p, description: e.target.value }))}
+                          className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
+                        />
                       </div>
                       <Button
+                        onClick={handleSaveWorkspace}
+                        disabled={savingWorkspace || !(activeOrganization?.id ?? currentUser?.organizationId)}
                         className="gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.45_0.18_250)] shadow-sm shadow-[oklch(0.55_0.18_250/0.2)] text-white"
                       >
                         <Save className="h-4 w-4" /> {t.settings.saveChanges}
@@ -507,7 +614,6 @@ export function SettingsView() {
 
                   {/* Danger Zone */}
                   <Card className="border-2 border-rose-500/30 shadow-sm overflow-hidden dark:border-rose-500/20">
-                    <div className="h-1 bg-gradient-to-r from-rose-500 via-rose-600 to-red-600" />
                     <CardHeader className="pb-4">
                       <div className="flex items-center gap-2.5">
                         <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/15 dark:bg-rose-500/20 dark:border-rose-500/25">
@@ -532,63 +638,6 @@ export function SettingsView() {
                     </CardContent>
                   </Card>
                 </div>
-              )}
-
-              {/* Billing */}
-              {activeSection === 'billing' && (
-                <Card className="border shadow-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                        <CreditCard className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{t.settings.billingPlans}</CardTitle>
-                        <CardDescription>{t.settings.billingDesc}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {/* Current Plan */}
-                    <div className="p-5 rounded-xl border-2 border-[oklch(0.55_0.18_250/0.3)] bg-gradient-to-br from-[oklch(0.55_0.18_250/0.05)] to-transparent relative overflow-hidden">
-                      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-[oklch(0.55_0.18_250/0.05)]" />
-                      <div className="relative flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold">{t.settings.proPlan}</h4>
-                            <Badge className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.50_0.18_250)] text-white text-[10px] border-0 shadow-sm">
-                              <Sparkles className="h-3 w-3 mr-0.5" />
-                              {t.settings.currentPlan}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">{t.settings.proPlanDesc}</p>
-                        </div>
-                        <p className="text-xl font-extrabold tracking-tight">
-                          $12<span className="text-xs text-muted-foreground font-normal">/mo</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.billingEmail}</Label>
-                      <Input defaultValue="billing@acmecorp.com" type="email" className="bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">{t.settings.paymentMethod}</Label>
-                      <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-muted/20">
-                        <div className="w-12 h-8 rounded-md bg-gradient-to-r from-slate-700 to-slate-500 flex items-center justify-center text-white text-[9px] font-bold shadow-sm">
-                          VISA
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">•••• •••• •••• 4242</p>
-                          <p className="text-xs text-muted-foreground">{t.settings.expires} 12/2026</p>
-                        </div>
-                        <Button variant="outline" size="sm" className="ml-auto gap-1 text-xs">{t.settings.update}</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
             </motion.div>
           </AnimatePresence>

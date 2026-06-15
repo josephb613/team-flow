@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,8 +26,9 @@ import {
   ChevronRight,
   TodayIcon,
 } from 'lucide-react';
-import { mockProjects, mockMilestones, getProjectName } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
+import { useAppStore } from '@/lib/store';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -69,7 +70,15 @@ const item = {
 
 export function PlanningView() {
   const { t } = useTranslation();
+  const { projects, milestones } = useAppData();
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [projectFilter, setProjectFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (activeProjectId) {
+      setProjectFilter(activeProjectId);
+    }
+  }, [activeProjectId]);
 
   // Timeline range: 2 months before today to 3 months after
   const today = new Date();
@@ -79,17 +88,17 @@ export function PlanningView() {
 
   // Filter projects
   const filteredProjects = useMemo(() => {
-    return mockProjects.filter((p) => {
+    return projects.filter((p) => {
       if (projectFilter === 'all') return true;
       return p.id === projectFilter;
     });
-  }, [projectFilter]);
+  }, [projectFilter, projects]);
 
   // Filter milestones for these projects
   const filteredMilestones = useMemo(() => {
     const projectIds = new Set(filteredProjects.map((p) => p.id));
-    return mockMilestones.filter((m) => projectIds.has(m.projectId));
-  }, [filteredProjects]);
+    return milestones.filter((m) => projectIds.has(m.projectId));
+  }, [filteredProjects, milestones]);
 
   // Month markers for the timeline header
   const monthMarkers = useMemo(() => {
@@ -143,7 +152,7 @@ export function PlanningView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t.sprints.all} {t.milestones.project}s</SelectItem>
-              {mockProjects.map((p) => (
+              {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
               ))}
             </SelectContent>

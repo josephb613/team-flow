@@ -24,7 +24,7 @@ import {
   Zap,
   CheckSquare,
 } from 'lucide-react';
-import { mockCalendarEvents, mockProjects, mockTasks } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import type { CalendarEvent } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -95,14 +95,9 @@ function getEventTypeLabel(type: CalendarEvent['type'], t: ReturnType<typeof use
   return labels[type];
 }
 
-function getProjectName(id?: string) {
+function getProjectColorFrom(projects: import('@/lib/types').Project[], id?: string) {
   if (!id) return null;
-  return mockProjects.find((p) => p.id === id)?.name || null;
-}
-
-function getProjectColor(id?: string) {
-  if (!id) return null;
-  return mockProjects.find((p) => p.id === id)?.color || null;
+  return projects.find((p) => p.id === id)?.color || null;
 }
 
 // Animation variants
@@ -205,9 +200,10 @@ function CalendarDayCell({
 
 function EventCard({ event }: { event: CalendarEvent }) {
   const { t } = useTranslation();
+  const { projects, getProjectName } = useAppData();
   const config = eventTypeConfig[event.type];
-  const projectName = getProjectName(event.projectId);
-  const projectColor = getProjectColor(event.projectId);
+  const projectName = event.projectId ? getProjectName(event.projectId) : null;
+  const projectColor = getProjectColorFrom(projects, event.projectId);
   const label = getEventTypeLabel(event.type, t);
 
   return (
@@ -265,6 +261,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
 
 export function CalendarView() {
   const { t } = useTranslation();
+  const { calendarEvents, projects, tasks } = useAppData();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [direction, setDirection] = useState<number>(0);
@@ -314,22 +311,22 @@ export function CalendarView() {
 
   // Get events for a specific day
   const getEventsForDay = useCallback((day: Date) => {
-    return mockCalendarEvents.filter((event) => {
+    return calendarEvents.filter((event) => {
       const eventDate = parseISO(event.date);
       return isSameDay(eventDate, day);
     });
-  }, []);
+  }, [calendarEvents]);
 
   // Selected day events
   const selectedDayEvents = selectedDay ? getEventsForDay(selectedDay) : [];
 
   // Total events for current month view
   const monthEvents = useMemo(() => {
-    return mockCalendarEvents.filter((event) => {
+    return calendarEvents.filter((event) => {
       const eventDate = parseISO(event.date);
       return isSameMonth(eventDate, currentMonth);
     });
-  }, [currentMonth]);
+  }, [currentMonth, calendarEvents]);
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -531,12 +528,12 @@ export function CalendarView() {
                 {t.calendar.upcomingDeadlines}
               </h4>
               <div className="space-y-1.5">
-                {mockTasks
+                {tasks
                   .filter((task) => task.dueDate && task.status !== 'done')
                   .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
                   .slice(0, 3)
                   .map((task) => {
-                    const project = mockProjects.find((p) => p.id === task.projectId);
+                    const project = projects.find((p) => p.id === task.projectId);
                     const dueDate = new Date(task.dueDate);
                     const now = new Date();
                     const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -13,6 +14,9 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
+  },
+  turbopack: {
+    root: path.resolve(__dirname),
   },
 };
 

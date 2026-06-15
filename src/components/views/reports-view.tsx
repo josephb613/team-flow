@@ -33,20 +33,20 @@ import {
   FolderKanban,
   Timer,
 } from 'lucide-react';
-import {
-  mockTasks,
-  mockProjects,
-  mockSprints,
-  mockTimeEntries,
-  mockUsers,
-  mockMilestones,
-  getUserName,
-  projectStatusLabels,
-  taskStatusLabels,
-} from '@/lib/mock-data';
+import { projectStatusLabels, taskStatusLabels } from '@/lib/data-mappers';
+import { useAppData } from '@/hooks/use-app-data';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import {
+  avgTaskDurationInPeriod,
+  buildUserWorkload,
+  buildWeeklyTaskTrendReports,
+  compareCounts,
+  completionRateAt,
+  countTasksCompletedInPeriod,
+  getPeriodBounds,
+} from '@/lib/analytics';
 import { motion } from 'framer-motion';
 import {
   BarChart,
@@ -96,36 +96,29 @@ type ExportType = 'tasks' | 'projects' | 'time';
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function ReportsView() {
   const { t, locale } = useTranslation();
+  const { tasks, projects, sprints, timeEntries, users, milestones, getUserName } = useAppData();
   const [copiedType, setCopiedType] = useState<ExportType | null>(null);
 
   // ─── Compute PM Metrics ────────────────────────────────────────────────
-  const totalTasks = mockTasks.length;
-  const completedTasks = mockTasks.filter(t => t.status === 'done').length;
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === 'done').length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const avgTaskDuration = useMemo(() => {
-    const doneTasks = mockTasks.filter(t => t.status === 'done' && t.estimatedHours && t.estimatedHours > 0);
+    const doneTasks = tasks.filter(t => t.status === 'done' && t.estimatedHours && t.estimatedHours > 0);
     if (doneTasks.length === 0) return 0;
     return Math.round(doneTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0) / doneTasks.length);
   }, []);
 
   const activeContributors = useMemo(() => {
-    const assigneeIds = new Set(mockTasks.map(t => t.assigneeId));
+    const assigneeIds = new Set(tasks.map(t => t.assigneeId));
     return assigneeIds.size;
   }, []);
 
-  const totalHoursLogged = useMemo(() => mockTimeEntries.reduce((sum, te) => sum + te.hours, 0), []);
+  const totalHoursLogged = useMemo(() => timeEntries.reduce((sum, te) => sum + te.hours, 0), [timeEntries]);
 
   // ─── Chart Data ───────────────────────────────────────────────────────
-  const taskTrendData = useMemo(() => [
-    { name: 'S18', terminees: 4, creees: 6 },
-    { name: 'S19', terminees: 6, creees: 5 },
-    { name: 'S20', terminees: 3, creees: 7 },
-    { name: 'S21', terminees: 8, creees: 4 },
-    { name: 'S22', terminees: 5, creees: 6 },
-    { name: 'S23', terminees: 7, creees: 3 },
-    { name: 'S24', terminees: 9, creees: 5 },
-  ], []);
+  const taskTrendData = useMemo(() => buildWeeklyTaskTrendReports(tasks, 7), [tasks]);
 
   const tasksByStatusData = useMemo(() => {
     const statusLabels = locale === 'fr'
@@ -134,33 +127,27 @@ export function ReportsView() {
     const colors: Record<string, string> = { todo: '#64748b', in_progress: '#f59e0b', review: '#06b6d4', done: '#10b981' };
     return ['todo', 'in_progress', 'review', 'done'].map(s => ({
       name: statusLabels[s as keyof typeof statusLabels],
-      value: mockTasks.filter(t => t.status === s).length,
+      value: tasks.filter(t => t.status === s).length,
       color: colors[s],
     }));
   }, [locale]);
 
-  const teamWorkloadData = useMemo(() => {
-    return mockUsers.slice(0, 6).map(user => ({
-      name: user.name.split(' ')[0],
-      taches: user.taskCount,
-      terminees: Math.floor(user.taskCount * 0.6),
-    }));
-  }, []);
+  const teamWorkloadData = useMemo(() => buildUserWorkload(users, tasks), [users, tasks]);
 
   // ─── Export Handlers ───────────────────────────────────────────────────
   const getExportData = useCallback((type: ExportType) => {
     switch (type) {
       case 'tasks':
-        return mockTasks.map(t => ({
-          Titre: t.title, Statut: t.status, Priorité: t.priority, Projet: mockProjects.find(p => p.id === t.projectId)?.name || '', Assigné: getUserName(t.assigneeId), 'Heures estimées': t.estimatedHours || 0, 'Heures loguées': t.loggedHours, 'Date d\'échéance': t.dueDate,
+        return tasks.map(t => ({
+          Titre: t.title, Statut: t.status, Priorité: t.priority, Projet: projects.find(p => p.id === t.projectId)?.name || '', Assigné: getUserName(t.assigneeId), 'Heures estimées': t.estimatedHours || 0, 'Heures loguées': t.loggedHours, 'Date d\'échéance': t.dueDate,
         }));
       case 'projects':
-        return mockProjects.map(p => ({
+        return projects.map(p => ({
           Nom: p.name, Statut: p.status, 'Tâches': p.taskCount, 'Terminées': p.completedTasks, 'Progression': `${p.progress}%`, 'Date de début': p.startDate, 'Date de fin': p.dueDate,
         }));
       case 'time':
-        return mockTimeEntries.map(te => ({
-          Tâche: mockTasks.find(t => t.id === te.taskId)?.title || '', Projet: mockProjects.find(p => p.id === te.projectId)?.name || '', Utilisateur: getUserName(te.userId), Date: te.date, Heures: te.hours, Description: te.description, Facturable: te.billable ? 'Oui' : 'Non',
+        return timeEntries.map(te => ({
+          Tâche: tasks.find(t => t.id === te.taskId)?.title || '', Projet: projects.find(p => p.id === te.projectId)?.name || '', Utilisateur: getUserName(te.userId), Date: te.date, Heures: te.hours, Description: te.description, Facturable: te.billable ? 'Oui' : 'Non',
         }));
     }
   }, []);
@@ -184,58 +171,82 @@ export function ReportsView() {
     }
   }, [getExportData]);
 
-  const stats = [
-    {
-      title: t.reports.totalTasks,
-      value: totalTasks,
-      change: '+18%',
-      trend: 'up' as const,
-      icon: FolderKanban,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
-      glowColor: 'shadow-emerald-500/5',
-    },
-    {
-      title: t.reports.completionRate,
-      value: `${completionRate}%`,
-      isPercent: true,
-      change: '+5%',
-      trend: 'up' as const,
-      icon: TrendingUp,
-      gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
-      iconBg: 'bg-amber-500/15',
-      iconColor: 'text-amber-600',
-      borderAccent: 'border-amber-500/20',
-      glowColor: 'shadow-amber-500/5',
-    },
-    {
-      title: t.reports.avgCompletionTime,
-      value: `${avgTaskDuration}h`,
-      isString: true,
-      change: '-8%',
-      trend: 'up' as const,
-      icon: Clock,
-      gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
-      iconBg: 'bg-cyan-500/15',
-      iconColor: 'text-cyan-600',
-      borderAccent: 'border-cyan-500/20',
-      glowColor: 'shadow-cyan-500/5',
-    },
-    {
-      title: t.reports.activeContributors,
-      value: activeContributors,
-      change: '+2',
-      trend: 'up' as const,
-      icon: Users,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
-      glowColor: 'shadow-teal-500/5',
-    },
-  ];
+  const stats = useMemo(() => {
+    const { currentStart, previousStart, now } = getPeriodBounds(7);
+
+    const completedThisWeek = countTasksCompletedInPeriod(tasks, currentStart, now);
+    const completedLastWeek = countTasksCompletedInPeriod(tasks, previousStart, currentStart);
+    const tasksTrend = compareCounts(completedThisWeek, completedLastWeek, 'percent');
+
+    const rateTrend = compareCounts(completionRate, completionRateAt(tasks, currentStart), 'points');
+
+    const durationThisWeek = avgTaskDurationInPeriod(tasks, currentStart, now);
+    const durationLastWeek = avgTaskDurationInPeriod(tasks, previousStart, currentStart);
+    const durationTrend = compareCounts(durationThisWeek, durationLastWeek, 'percent');
+
+    const contributorsThisWeek = new Set(
+      tasks.filter((t) => new Date(t.updatedAt) >= currentStart).map((t) => t.assigneeId)
+    ).size;
+    const contributorsLastWeek = new Set(
+      tasks
+        .filter((t) => new Date(t.updatedAt) >= previousStart && new Date(t.updatedAt) < currentStart)
+        .map((t) => t.assigneeId)
+    ).size;
+    const contributorsTrend = compareCounts(contributorsThisWeek, contributorsLastWeek, 'absolute');
+
+    return [
+      {
+        title: t.reports.totalTasks,
+        value: totalTasks,
+        change: tasksTrend.change,
+        trend: tasksTrend.trend,
+        icon: FolderKanban,
+        gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+        iconBg: 'bg-emerald-500/15',
+        iconColor: 'text-emerald-600',
+        borderAccent: 'border-emerald-500/20',
+        glowColor: 'shadow-emerald-500/5',
+      },
+      {
+        title: t.reports.completionRate,
+        value: `${completionRate}%`,
+        isPercent: true,
+        change: rateTrend.change,
+        trend: rateTrend.trend,
+        icon: TrendingUp,
+        gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
+        iconBg: 'bg-amber-500/15',
+        iconColor: 'text-amber-600',
+        borderAccent: 'border-amber-500/20',
+        glowColor: 'shadow-amber-500/5',
+      },
+      {
+        title: t.reports.avgCompletionTime,
+        value: `${avgTaskDuration}h`,
+        isString: true,
+        change: durationTrend.change,
+        trend: durationTrend.trend,
+        icon: Clock,
+        gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
+        iconBg: 'bg-cyan-500/15',
+        iconColor: 'text-cyan-600',
+        borderAccent: 'border-cyan-500/20',
+        glowColor: 'shadow-cyan-500/5',
+      },
+      {
+        title: t.reports.activeContributors,
+        value: activeContributors,
+        change: contributorsTrend.change,
+        trend: contributorsTrend.trend,
+        icon: Users,
+        gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+        iconBg: 'bg-teal-500/15',
+        iconColor: 'text-teal-600',
+        borderAccent: 'border-teal-500/20',
+        glowColor: 'shadow-teal-500/5',
+      },
+    ];
+  }, [t.reports, tasks, totalTasks, completionRate, avgTaskDuration, activeContributors]);
 
   const tooltipStyle = {
     backgroundColor: 'var(--popover)',
@@ -530,12 +541,12 @@ export function ReportsView() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockProjects.map((project, idx) => {
+              {projects.map((project, idx) => {
                 const health = projectHealthColors[project.status] || projectHealthColors.active;
                 const statusLabel = (locale === 'fr' ? projectStatusLabels.fr : projectStatusLabels.en)[project.status] || project.status;
-                const sprintCount = mockSprints.filter(s => s.projectId === project.id).length;
+                const sprintCount = sprints.filter(s => s.projectId === project.id).length;
                 const milestoneProgress = (() => {
-                  const ms = mockMilestones.filter(m => m.projectId === project.id);
+                  const ms = milestones.filter(m => m.projectId === project.id);
                   if (ms.length === 0) return 0;
                   const completed = ms.filter(m => m.status === 'completed').length;
                   return Math.round((completed / ms.length) * 100);

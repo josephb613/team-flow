@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Target,
 } from 'lucide-react';
-import { mockUsers, roleColors } from '@/lib/mock-data';
+import { roleColors } from '@/lib/data-mappers';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -194,18 +195,27 @@ const roleDefinitions: RoleDef[] = [
   },
 ];
 
-// Count users per role
-const userCountsByRole: Record<string, number> = {};
-mockUsers.forEach((u) => {
-  userCountsByRole[u.role] = (userCountsByRole[u.role] || 0) + 1;
-});
-roleDefinitions.forEach((r) => {
-  r.userCount = userCountsByRole[r.key] || 0;
-});
+// Count users per role — computed inside component from live data
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function RolesView() {
   const { t } = useTranslation();
+  const { users } = useAppData();
+
+  const userCountsByRole = useMemo(() => {
+    const counts: Record<string, number> = {};
+    users.forEach((u) => {
+      counts[u.role] = (counts[u.role] || 0) + 1;
+    });
+    return counts;
+  }, [users]);
+
+  const rolesWithCounts = useMemo(() => {
+    return roleDefinitions.map((r) => ({
+      ...r,
+      userCount: userCountsByRole[r.key] || 0,
+    }));
+  }, [userCountsByRole]);
   const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>>>(() => {
     const state: Record<string, Record<string, boolean>> = {};
     roleDefinitions.forEach((role) => {
@@ -240,7 +250,7 @@ export function RolesView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.roles.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {roleDefinitions.length} rôles · {mockUsers.length} utilisateurs
+            {roleDefinitions.length} rôles · {users.length} utilisateurs
           </p>
         </div>
         <div className="flex items-center gap-2">

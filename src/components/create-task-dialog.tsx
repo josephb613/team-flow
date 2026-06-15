@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -24,12 +24,11 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
-import { mockProjects, mockUsers } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckSquare,
-  Sparkles,
   Type,
   FileText,
   CircleDot,
@@ -67,7 +66,14 @@ interface Subtask {
 }
 
 export function CreateTaskDialog() {
-  const { createTaskDialogOpen, setCreateTaskDialogOpen } = useAppStore();
+  const {
+    createTaskDialogOpen,
+    setCreateTaskDialogOpen,
+    createTaskDefaults,
+    activeProjectId,
+    currentUser,
+  } = useAppStore();
+  const { projects, users, refetch } = useAppData();
   const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
@@ -83,8 +89,11 @@ export function CreateTaskDialog() {
   const [newSubtask, setNewSubtask] = useState('');
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [titleError, setTitleError] = useState('');
+  const [projectError, setProjectError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const selectedPriority = priorityOptions.find((p) => p.value === priority);
+  const selectedStatus = statusOptions.find((p) => p.value === status);
 
   const resetForm = useCallback(() => {
     setTitle('');
@@ -99,7 +108,19 @@ export function CreateTaskDialog() {
     setSubtasks([]);
     setNewSubtask('');
     setTitleError('');
+    setProjectError('');
   }, []);
+
+  const applyDefaults = useCallback(() => {
+    setStatus(createTaskDefaults?.status ?? 'todo');
+    setProjectId(createTaskDefaults?.projectId ?? activeProjectId ?? projects[0]?.id ?? '');
+  }, [createTaskDefaults, activeProjectId, projects]);
+
+  useEffect(() => {
+    if (createTaskDialogOpen) {
+      applyDefaults();
+    }
+  }, [createTaskDialogOpen, applyDefaults]);
 
   const handleOpenChange = (open: boolean) => {
     setCreateTaskDialogOpen(open);
@@ -145,56 +166,78 @@ export function CreateTaskDialog() {
   };
 
   const validate = (): boolean => {
+    let valid = true;
     if (!title.trim()) {
       setTitleError(t.createTask.titleRequired);
-      return false;
+      valid = false;
+    } else {
+      setTitleError('');
     }
-    setTitleError('');
-    return true;
+    if (!projectId) {
+      setProjectError(t.createTask.projectRequired);
+      valid = false;
+    } else {
+      setProjectError('');
+    }
+    return valid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate() || submitting) return;
 
-    // In a real app, this would call the API
-    console.log('Creating task:', {
-      title,
-      description,
-      status,
-      priority,
-      projectId,
-      assigneeId,
-      dueDate: dueDate?.toISOString(),
-      tags,
-      subtasks: subtasks.map((s) => ({ ...s, completed: false })),
-    });
-    toast.success(t.toast.taskCreated);
-    setCreateTaskDialogOpen(false);
-    resetForm();
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          priority,
+          projectId,
+          assigneeId: assigneeId || null,
+          creatorId: currentUser?.id ?? null,
+          tags,
+          dueDate: dueDate?.toISOString() ?? null,
+          subtasks: subtasks.map((s) => ({ title: s.title })),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('create_failed');
+      }
+
+      await refetch();
+      toast.success(t.toast.taskCreated);
+      setCreateTaskDialogOpen(false);
+      resetForm();
+    } catch {
+      toast.error(t.createTask.error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const selectedProject = mockProjects.find((p) => p.id === projectId);
-  const selectedAssignee = mockUsers.find((u) => u.id === assigneeId);
+  const selectedProject = projects.find((p) => p.id === projectId);
+  const selectedAssignee = users.find((u) => u.id === assigneeId);
 
   return (
     <Dialog open={createTaskDialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-[580px] p-0 gap-0 overflow-hidden"
+        className="sm:max-w-[520px] max-h-[min(640px,85vh)] p-0 gap-0 overflow-hidden flex flex-col"
         showCloseButton={false}
       >
         <motion.div
+          className="flex flex-col min-h-0 flex-1"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
           {/* Gradient Header */}
-          <div className="relative px-6 pt-6 pb-4 bg-gradient-to-r from-[oklch(0.55_0.18_250/0.08)] via-[oklch(0.55_0.18_250/0.04)] to-transparent border-b">
-            {/* Decorative sparkle */}
-            <div className="absolute top-3 right-4 text-[oklch(0.55_0.18_250/0.15)]">
-              <Sparkles className="h-5 w-5" />
-            </div>
+          <div className="relative px-6 pt-6 pb-4 shrink-0 bg-gradient-to-r from-[oklch(0.55_0.18_250/0.08)] via-[oklch(0.55_0.18_250/0.04)] to-transparent border-b">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2.5 text-lg">
                 <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white shadow-sm">
@@ -213,11 +256,12 @@ export function CreateTaskDialog() {
           {/* Form Content with Priority Border */}
           <div
             className={cn(
-              'border-l-[3px] transition-colors duration-300',
+              'border-l-[3px] transition-colors duration-300 flex flex-col min-h-0 flex-1',
               selectedPriority?.border || 'border-l-cyan-500'
             )}
           >
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {/* Task Title */}
               <div className="space-y-2">
                 <Label htmlFor="task-title" className="text-sm font-medium flex items-center gap-1.5">
@@ -284,7 +328,14 @@ export function CreateTaskDialog() {
                   </Label>
                   <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
-                      <SelectValue />
+                      <SelectValue>
+                        {selectedStatus ? (
+                          <span className="flex items-center gap-2">
+                            <span className={cn('w-2 h-2 rounded-full', selectedStatus.color)} />
+                            {(t.tasks as Record<string, string>)?.[selectedStatus.labelKey] || selectedStatus.value}
+                          </span>
+                        ) : t.createTask.status}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {statusOptions.map((opt) => (
@@ -306,7 +357,14 @@ export function CreateTaskDialog() {
                   </Label>
                   <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
-                      <SelectValue />
+                      <SelectValue>
+                        {selectedPriority ? (
+                          <span className="flex items-center gap-2">
+                            <span className={cn('w-2 h-2 rounded-full', selectedPriority.color)} />
+                            {(t.tasks as Record<string, string>)?.[selectedPriority.labelKey] || selectedPriority.value}
+                          </span>
+                        ) : t.createTask.priority}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {priorityOptions.map((opt) => (
@@ -329,7 +387,13 @@ export function CreateTaskDialog() {
                     <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
                     {t.createTask.project}
                   </Label>
-                  <Select value={projectId} onValueChange={setProjectId}>
+                  <Select
+                    value={projectId}
+                    onValueChange={(value) => {
+                      setProjectId(value);
+                      if (projectError) setProjectError('');
+                    }}
+                  >
                     <SelectTrigger className="h-10 focus:ring-[oklch(0.55_0.18_250/0.3)]">
                       <SelectValue placeholder={t.createTask.selectProject}>
                         {selectedProject ? (
@@ -344,7 +408,7 @@ export function CreateTaskDialog() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {mockProjects.map((project) => (
+                      {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           <span className="flex items-center gap-2">
                             <span
@@ -357,6 +421,9 @@ export function CreateTaskDialog() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {projectError && (
+                    <p className="text-xs text-destructive">{projectError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -378,7 +445,7 @@ export function CreateTaskDialog() {
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {mockUsers.map((user) => (
+                      {users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           <span className="flex items-center gap-2">
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] text-white text-[10px] font-medium shrink-0">
@@ -541,8 +608,10 @@ export function CreateTaskDialog() {
                 </div>
               </div>
 
+              </div>
+
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-background shrink-0">
                 <Button
                   type="button"
                   variant="ghost"
@@ -553,11 +622,11 @@ export function CreateTaskDialog() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!title.trim()}
+                  disabled={!title.trim() || submitting}
                   className="bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.15_250)] hover:from-[oklch(0.50_0.15_160)] hover:to-[oklch(0.44_0.12_160)] text-white shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:shadow-none"
                 >
                   <CheckSquare className="h-4 w-4 mr-1.5" />
-                  {t.createTask.create}
+                  {submitting ? t.createTask.creating : t.createTask.create}
                 </Button>
               </div>
             </form>

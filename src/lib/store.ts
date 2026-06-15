@@ -1,9 +1,51 @@
 import { create } from 'zustand';
-import type { PageId, Organization, Notification, UserRole } from './types';
+import type { PageId, Organization, Notification, UserRole, TaskStatus } from './types';
+
+export type CreateTaskDefaults = {
+  status?: TaskStatus;
+  projectId?: string;
+};
 import type { Locale } from './i18n';
 
 export type TaskViewMode = 'kanban' | 'list' | 'my-tasks';
 export type SprintViewMode = 'board' | 'list' | 'timeline';
+
+const FAVORITES_STORAGE_KEY = 'teamflow-favorites';
+const DEFAULT_FAVORITES: string[] = [];
+const LEGACY_AUTO_FAVORITES = ['dashboard', 'projects', 'my-tasks'];
+
+function normalizeFavorites(favorites: string[]): string[] {
+  const isLegacyAutoDefault =
+    favorites.length === LEGACY_AUTO_FAVORITES.length &&
+    LEGACY_AUTO_FAVORITES.every((id) => favorites.includes(id));
+  return isLegacyAutoDefault ? [] : favorites;
+}
+
+function readStoredFavorites(): string[] {
+  if (typeof window === 'undefined') return DEFAULT_FAVORITES;
+  try {
+    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (!raw) return DEFAULT_FAVORITES;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_FAVORITES;
+    const normalized = normalizeFavorites(parsed);
+    if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
+      writeStoredFavorites(normalized);
+    }
+    return normalized;
+  } catch {
+    return DEFAULT_FAVORITES;
+  }
+}
+
+function writeStoredFavorites(favorites: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+  } catch {
+    // ignore quota / private mode errors
+  }
+}
 
 interface AppState {
   // Navigation
@@ -14,14 +56,13 @@ interface AppState {
   organizations: Organization[];
   activeOrganizationId: string;
   setActiveOrganization: (id: string) => void;
+  setOrganizations: (orgs: Organization[]) => void;
   addOrganization: (org: Organization) => void;
 
   // Backward-compatible aliases
   tenants: Organization[];
   activeTenantId: string;
   setActiveTenant: (id: string) => void;
-  createContentDialogOpen: boolean;
-  setCreateContentDialogOpen: (open: boolean) => void;
 
   // Sidebar
   sidebarCollapsed: boolean;
@@ -43,6 +84,7 @@ interface AppState {
 
   // Favorites
   favorites: string[];
+  hydrateFavorites: () => void;
   toggleFavorite: (pageId: string) => void;
 
   // Task detail drawer
@@ -53,15 +95,36 @@ interface AppState {
 
   // Create task dialog
   createTaskDialogOpen: boolean;
+  createTaskDefaults: CreateTaskDefaults | null;
   setCreateTaskDialogOpen: (open: boolean) => void;
+  openCreateTaskDialog: (defaults?: CreateTaskDefaults) => void;
 
   // Create project dialog
   createProjectDialogOpen: boolean;
   setCreateProjectDialogOpen: (open: boolean) => void;
 
+  // Edit project dialog
+  editProjectId: string | null;
+  openEditProjectDialog: (id: string) => void;
+  closeEditProjectDialog: () => void;
+
+  // Edit task dialog
+  editTaskId: string | null;
+  openEditTaskDialog: (id: string) => void;
+  closeEditTaskDialog: () => void;
+
+  // Create sprint dialog
+  createSprintDialogOpen: boolean;
+  setCreateSprintDialogOpen: (open: boolean) => void;
+
+  // Create milestone dialog
+  createMilestoneDialogOpen: boolean;
+  setCreateMilestoneDialogOpen: (open: boolean) => void;
+
   // Active project
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
+  openProject: (id: string) => void;
 
   // Task view mode
   taskViewMode: TaskViewMode;
@@ -74,6 +137,12 @@ interface AppState {
   // Active sprint
   activeSprintId: string | null;
   setActiveSprintId: (id: string | null) => void;
+
+  // Active milestone (task filter navigation)
+  activeMilestoneId: string | null;
+  setActiveMilestoneId: (id: string | null) => void;
+  openMyTasksWithSprintFilter: (sprintId: string) => void;
+  openMyTasksWithMilestoneFilter: (milestoneId: string) => void;
 
   // Timer state (time tracking)
   timerRunning: boolean;
@@ -103,6 +172,11 @@ interface AppState {
   setFocusMode: (focus: boolean) => void;
   toggleFocusMode: () => void;
 
+  // AI Chat
+  aiChatOpen: boolean;
+  setAiChatOpen: (open: boolean) => void;
+  toggleAiChat: () => void;
+
   // Create workspace dialog
   createWorkspaceDialogOpen: boolean;
   setCreateWorkspaceDialogOpen: (open: boolean) => void;
@@ -123,7 +197,13 @@ interface AppState {
     organizationId: string;
     organizationName: string;
   } | null;
-  login: (email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    workspaceName?: string
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   logout: () => void;
 }
 
@@ -132,124 +212,75 @@ export const useAppStore = create<AppState>((set) => ({
   activePage: 'dashboard',
   setActivePage: (page) => set({ activePage: page }),
 
-  // Organization (was Tenant)
-  organizations: [
-    {
-      id: 'org-1',
-      name: 'Global Corp France',
-      slug: 'global-corp-france',
-      type: 'company',
-      color: '#3b82f6',
-      icon: '🏢',
-      country: 'France',
-      memberCount: 24,
-      projectCount: 8,
-      isActive: true,
-      createdAt: '2024-01-15',
-    },
-    {
-      id: 'org-2',
-      name: 'Global Corp RDC',
-      slug: 'global-corp-rdc',
-      type: 'subsidiary',
-      color: '#f59e0b',
-      icon: '🌍',
-      country: 'RD Congo',
-      memberCount: 12,
-      projectCount: 4,
-      isActive: true,
-      createdAt: '2024-03-20',
-    },
-    {
-      id: 'org-3',
-      name: 'TechBrand',
-      slug: 'techbrand',
-      type: 'company',
-      color: '#ef4444',
-      icon: '💻',
-      country: 'France',
-      memberCount: 8,
-      projectCount: 3,
-      isActive: true,
-      createdAt: '2024-06-10',
-    },
-    {
-      id: 'org-4',
-      name: 'Marketing Dept',
-      slug: 'marketing-dept',
-      type: 'department',
-      color: '#8b5cf6',
-      icon: '📣',
-      country: 'France',
-      memberCount: 6,
-      projectCount: 5,
-      isActive: true,
-      createdAt: '2024-08-01',
-    },
-  ],
-  activeOrganizationId: 'org-1',
-  setActiveOrganization: (id) => set({ activeOrganizationId: id, activePage: 'dashboard' }),
-  addOrganization: (org) => set((s) => ({ organizations: [...s.organizations, org], tenants: [...s.organizations, org] })),
+  // Organization (was Tenant) — loaded from /api/app-data
+  organizations: [],
+  activeOrganizationId: '',
+  setActiveOrganization: (id) =>
+    set({
+      activeOrganizationId: id,
+      activeTenantId: id,
+      activePage: 'dashboard',
+      activeProjectId: null,
+      activeSprintId: null,
+      activeMilestoneId: null,
+      editProjectId: null,
+      editTaskId: null,
+      selectedTask: null,
+      taskDetailOpen: false,
+      createTaskDefaults: null,
+      createTaskDialogOpen: false,
+      createProjectDialogOpen: false,
+      createSprintDialogOpen: false,
+      createMilestoneDialogOpen: false,
+      timerRunning: false,
+      timerTaskId: null,
+      timerStartTime: null,
+      timerElapsed: 0,
+    }),
+  setOrganizations: (orgs) =>
+    set((s) => ({
+      organizations: orgs,
+      tenants: orgs,
+      activeOrganizationId:
+        s.activeOrganizationId && orgs.some((o) => o.id === s.activeOrganizationId)
+          ? s.activeOrganizationId
+          : (orgs[0]?.id ?? ''),
+      activeTenantId:
+        s.activeTenantId && orgs.some((o) => o.id === s.activeTenantId)
+          ? s.activeTenantId
+          : (orgs[0]?.id ?? ''),
+    })),
+  addOrganization: (org) =>
+    set((s) => ({
+      organizations: [...s.organizations, org],
+      tenants: [...s.tenants, org],
+    })),
 
   // Backward-compatible aliases (tenants = organizations)
-  tenants: [
-    {
-      id: 'org-1',
-      name: 'Global Corp France',
-      slug: 'global-corp-france',
-      type: 'company' as const,
-      color: '#3b82f6',
-      icon: '🏢',
-      country: 'France',
-      memberCount: 24,
-      projectCount: 8,
-      isActive: true,
-      createdAt: '2024-01-15',
-    },
-    {
-      id: 'org-2',
-      name: 'Global Corp RDC',
-      slug: 'global-corp-rdc',
-      type: 'subsidiary' as const,
-      color: '#f59e0b',
-      icon: '🌍',
-      country: 'RD Congo',
-      memberCount: 12,
-      projectCount: 4,
-      isActive: true,
-      createdAt: '2024-03-20',
-    },
-    {
-      id: 'org-3',
-      name: 'TechBrand',
-      slug: 'techbrand',
-      type: 'company' as const,
-      color: '#ef4444',
-      icon: '💻',
-      country: 'France',
-      memberCount: 8,
-      projectCount: 3,
-      isActive: true,
-      createdAt: '2024-06-10',
-    },
-    {
-      id: 'org-4',
-      name: 'Marketing Dept',
-      slug: 'marketing-dept',
-      type: 'department' as const,
-      color: '#8b5cf6',
-      icon: '📣',
-      country: 'France',
-      memberCount: 6,
-      projectCount: 5,
-      isActive: true,
-      createdAt: '2024-08-01',
-    },
-  ],
-  activeTenantId: 'org-1',
-  setActiveTenant: (id) => set({ activeOrganizationId: id, activeTenantId: id, activePage: 'dashboard' as PageId }),
-  createContentDialogOpen: false,
-  setCreateContentDialogOpen: (open) => set({ createContentDialogOpen: open }),
+  tenants: [],
+  activeTenantId: '',
+  setActiveTenant: (id) =>
+    set({
+      activeOrganizationId: id,
+      activeTenantId: id,
+      activePage: 'dashboard' as PageId,
+      activeProjectId: null,
+      activeSprintId: null,
+      activeMilestoneId: null,
+      editProjectId: null,
+      editTaskId: null,
+      selectedTask: null,
+      taskDetailOpen: false,
+      createTaskDefaults: null,
+      createTaskDialogOpen: false,
+      createProjectDialogOpen: false,
+      createSprintDialogOpen: false,
+      createMilestoneDialogOpen: false,
+      timerRunning: false,
+      timerTaskId: null,
+      timerStartTime: null,
+      timerElapsed: 0,
+    }),
 
   // Sidebar
   sidebarCollapsed: false,
@@ -261,73 +292,8 @@ export const useAppStore = create<AppState>((set) => ({
   searchOpen: false,
   setSearchOpen: (open) => set({ searchOpen: open }),
 
-  // Notifications
-  notifications: [
-    {
-      id: 'n1',
-      type: 'task_assigned',
-      title: 'Tâche assignée',
-      message: 'Vous avez été assigné à "Refonte UI Dashboard"',
-      read: false,
-      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n2',
-      type: 'task_completed',
-      title: 'Tâche terminée',
-      message: 'Jean-Pierre a terminé "API endpoints sprint 4"',
-      read: false,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n3',
-      type: 'sprint_started',
-      title: 'Sprint démarré',
-      message: 'Le Sprint 4 de "Refonte Platform" a démarré',
-      read: false,
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n4',
-      type: 'deadline_approaching',
-      title: 'Échéance proche',
-      message: 'La tâche "Module paiement" est due demain',
-      read: false,
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n5',
-      type: 'mention',
-      title: 'Mention dans un commentaire',
-      message: '@vous dans "Sprint Planning Q3"',
-      read: true,
-      timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n6',
-      type: 'comment_added',
-      title: 'Nouveau commentaire',
-      message: 'Sophie a commenté "Migration base de données"',
-      read: true,
-      timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n7',
-      type: 'meeting_reminder',
-      title: 'Rappel réunion',
-      message: 'Daily standup dans 15 minutes',
-      read: true,
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n8',
-      type: 'system',
-      title: 'Mise à jour système',
-      message: 'TeamFlow PM v2.1 est disponible',
-      read: true,
-      timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-    },
-  ],
+  // Notifications — UI-only, not persisted
+  notifications: [],
   notificationPanelOpen: false,
   setNotificationPanelOpen: (open) => set({ notificationPanelOpen: open }),
   markAllNotificationsRead: () =>
@@ -346,13 +312,16 @@ export const useAppStore = create<AppState>((set) => ({
     })),
 
   // Favorites
-  favorites: ['dashboard', 'projects', 'my-tasks'],
+  favorites: DEFAULT_FAVORITES,
+  hydrateFavorites: () => set({ favorites: readStoredFavorites() }),
   toggleFavorite: (pageId) =>
-    set((s) => ({
-      favorites: s.favorites.includes(pageId)
+    set((s) => {
+      const favorites = s.favorites.includes(pageId)
         ? s.favorites.filter((f) => f !== pageId)
-        : [...s.favorites, pageId],
-    })),
+        : [...s.favorites, pageId];
+      writeStoredFavorites(favorites);
+      return { favorites };
+    }),
 
   // Task detail drawer
   taskDetailOpen: false,
@@ -362,18 +331,49 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Create task dialog
   createTaskDialogOpen: false,
-  setCreateTaskDialogOpen: (open) => set({ createTaskDialogOpen: open }),
+  createTaskDefaults: null,
+  setCreateTaskDialogOpen: (open) =>
+    set({ createTaskDialogOpen: open, ...(open ? {} : { createTaskDefaults: null }) }),
+  openCreateTaskDialog: (defaults) =>
+    set({ createTaskDialogOpen: true, createTaskDefaults: defaults ?? null }),
 
   // Create project dialog
   createProjectDialogOpen: false,
   setCreateProjectDialogOpen: (open) => set({ createProjectDialogOpen: open }),
 
+  // Edit project dialog
+  editProjectId: null,
+  openEditProjectDialog: (id) => set({ editProjectId: id }),
+  closeEditProjectDialog: () => set({ editProjectId: null }),
+
+  // Edit task dialog
+  editTaskId: null,
+  openEditTaskDialog: (id) => set({ editTaskId: id }),
+  closeEditTaskDialog: () => set({ editTaskId: null }),
+
+  // Create sprint dialog
+  createSprintDialogOpen: false,
+  setCreateSprintDialogOpen: (open) => set({ createSprintDialogOpen: open }),
+
+  // Create milestone dialog
+  createMilestoneDialogOpen: false,
+  setCreateMilestoneDialogOpen: (open) => set({ createMilestoneDialogOpen: open }),
+
   // Active project
   activeProjectId: null,
   setActiveProjectId: (id) => set({ activeProjectId: id }),
+  openProject: (id) =>
+    set((s) => {
+      const filtered = s.recentItems.filter((item) => item !== 'project-detail');
+      return {
+        activeProjectId: id,
+        activePage: 'project-detail',
+        recentItems: ['project-detail', ...filtered].slice(0, 8),
+      };
+    }),
 
   // Task view mode
-  taskViewMode: 'kanban',
+  taskViewMode: 'my-tasks',
   setTaskViewMode: (mode) => set({ taskViewMode: mode }),
 
   // Sprint view mode
@@ -383,6 +383,32 @@ export const useAppStore = create<AppState>((set) => ({
   // Active sprint
   activeSprintId: null,
   setActiveSprintId: (id) => set({ activeSprintId: id }),
+
+  // Active milestone (task filter navigation)
+  activeMilestoneId: null,
+  setActiveMilestoneId: (id) => set({ activeMilestoneId: id }),
+  openMyTasksWithSprintFilter: (sprintId) =>
+    set((s) => {
+      const filtered = s.recentItems.filter((item) => item !== 'my-tasks');
+      return {
+        activeSprintId: sprintId,
+        activeMilestoneId: null,
+        taskViewMode: 'my-tasks',
+        activePage: 'my-tasks',
+        recentItems: ['my-tasks', ...filtered].slice(0, 8),
+      };
+    }),
+  openMyTasksWithMilestoneFilter: (milestoneId) =>
+    set((s) => {
+      const filtered = s.recentItems.filter((item) => item !== 'my-tasks');
+      return {
+        activeSprintId: null,
+        activeMilestoneId: milestoneId,
+        taskViewMode: 'my-tasks',
+        activePage: 'my-tasks',
+        recentItems: ['my-tasks', ...filtered].slice(0, 8),
+      };
+    }),
 
   // Timer state (time tracking)
   timerRunning: false,
@@ -419,12 +445,30 @@ export const useAppStore = create<AppState>((set) => ({
   setFocusMode: (focus) => set({ focusMode: focus }),
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
 
+  // AI Chat
+  aiChatOpen: false,
+  setAiChatOpen: (open) => set({ aiChatOpen: open }),
+  toggleAiChat: () => set((s) => ({ aiChatOpen: !s.aiChatOpen })),
+
   // Create workspace dialog
   createWorkspaceDialogOpen: false,
   setCreateWorkspaceDialogOpen: (open) => set({ createWorkspaceDialogOpen: open }),
-  addWorkspace: (workspace) => set((s) => ({
-    organizations: [...s.organizations, { ...workspace, type: 'team' as const, country: 'France', memberCount: 1, projectCount: 0, isActive: true, createdAt: new Date().toISOString() } as Organization],
-  })),
+  addWorkspace: (workspace) =>
+    set((s) => {
+      const org: Organization = {
+        ...workspace,
+        type: 'company',
+        country: '',
+        memberCount: 1,
+        projectCount: 0,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+      return {
+        organizations: [...s.organizations, org],
+        tenants: [...s.tenants, org],
+      };
+    }),
 
   // i18n / Locale
   locale: 'fr',
@@ -433,18 +477,55 @@ export const useAppStore = create<AppState>((set) => ({
   // Auth
   isAuthenticated: false,
   currentUser: null,
-  login: () =>
-    set({
-      isAuthenticated: true,
-      currentUser: {
-        id: 'u-1',
-        name: 'Marie Dupont',
-        email: 'marie@globalcorp.com',
-        avatar: '',
-        role: 'org_admin' as UserRole,
-        organizationId: 'org-1',
-        organizationName: 'Global Corp France',
-      },
-    }),
+  login: async (email, password) => {
+    if (!email || !password) {
+      return { ok: false, error: 'Email et mot de passe requis' };
+    }
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: data.error ?? 'Échec de connexion' };
+      }
+      set({
+        isAuthenticated: true,
+        currentUser: data.user,
+        activeOrganizationId: data.user.organizationId ?? '',
+        activeTenantId: data.user.organizationId ?? '',
+      });
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Échec de connexion' };
+    }
+  },
+  register: async (email, password, name, workspaceName) => {
+    if (!email || !password || !name) {
+      return { ok: false, error: 'Tous les champs sont requis' };
+    }
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, workspaceName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: data.error ?? 'Échec de la création du compte' };
+      }
+      set({
+        isAuthenticated: true,
+        currentUser: data.user,
+        activeOrganizationId: data.user.organizationId ?? '',
+        activeTenantId: data.user.organizationId ?? '',
+      });
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Échec de la création du compte' };
+    }
+  },
   logout: () => set({ isAuthenticated: false, currentUser: null }),
 }));

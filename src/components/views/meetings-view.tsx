@@ -25,32 +25,13 @@ import {
   Timer,
   Radio,
 } from 'lucide-react';
-import { mockMeetings, mockUsers, mockProjects } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import type { Meeting, MeetingStatus } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 
-// Helper functions
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n: string) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getUserAvatarColor(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user
-    ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
-    : undefined;
-}
-
-function getProjectById(id: string) {
-  return mockProjects.find((p) => p.id === id);
-}
+// Helper functions — use useAppData() inside components that call these
 
 function formatMeetingDate(dateStr: string, t: ReturnType<typeof useTranslation>['t']) {
   const date = new Date(dateStr);
@@ -208,8 +189,15 @@ const item = {
 
 // Meeting card component with gradient left border
 function MeetingCard({ meeting, t }: { meeting: Meeting; t: ReturnType<typeof useTranslation>['t'] }) {
+  const { projects, users, getUserInitials } = useAppData();
+  const getUserAvatarColor = (id: string) => {
+    const user = users.find((u) => u.id === id);
+    return user
+      ? `oklch(0.7 ${0.08 + (user.name.charCodeAt(0) % 5) * 0.02} ${140 + (user.name.charCodeAt(1) % 40)})`
+      : undefined;
+  };
   const status = statusConfig[meeting.status];
-  const project = meeting.projectId ? getProjectById(meeting.projectId) : null;
+  const project = meeting.projectId ? projects.find((p) => p.id === meeting.projectId) : null;
 
   return (
     <motion.div variants={item}>
@@ -361,8 +349,9 @@ function TimelineItem({
   isLast: boolean;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
+  const { projects, getUserInitials } = useAppData();
   const status = statusConfig[meeting.status];
-  const project = meeting.projectId ? getProjectById(meeting.projectId) : null;
+  const project = meeting.projectId ? projects.find((p) => p.id === meeting.projectId) : null;
 
   return (
     <motion.div
@@ -462,11 +451,12 @@ function TimelineItem({
 
 // ─── Countdown Header ────────────────────────────────────────────────────────
 function NextMeetingCountdown() {
+  const { meetings } = useAppData();
   const nextMeeting = useMemo(() => {
-    return mockMeetings
+    return meetings
       .filter((m) => m.status === 'scheduled' || m.status === 'in_progress')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-  }, []);
+  }, [meetings]);
 
   const meetingDate = nextMeeting ? new Date(nextMeeting.date) : new Date();
   const timeLeft = useCountdown(meetingDate);
@@ -545,12 +535,13 @@ function NextMeetingCountdown() {
 
 export function MeetingsView() {
   const { t } = useTranslation();
+  const { meetings } = useAppData();
   const [activeTab, setActiveTab] = useState<string>('upcoming');
   const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
 
   // Filter meetings by tab
   const filteredMeetings = useMemo(() => {
-    const sorted = [...mockMeetings].sort(
+    const sorted = [...meetings].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
@@ -566,7 +557,7 @@ export function MeetingsView() {
       default:
         return sorted;
     }
-  }, [activeTab]);
+  }, [activeTab, meetings]);
 
   // Group meetings by date for timeline
   const groupedMeetings = useMemo(() => {
@@ -580,11 +571,11 @@ export function MeetingsView() {
   }, [filteredMeetings, t]);
 
   // Stats
-  const upcomingCount = mockMeetings.filter(
+  const upcomingCount = meetings.filter(
     (m) => m.status === 'scheduled' || m.status === 'in_progress'
   ).length;
-  const totalMeetings = mockMeetings.length;
-  const inProgressCount = mockMeetings.filter(m => m.status === 'in_progress').length;
+  const totalMeetings = meetings.length;
+  const inProgressCount = meetings.filter(m => m.status === 'in_progress').length;
 
   return (
     <div className="space-y-4">

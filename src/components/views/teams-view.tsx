@@ -42,7 +42,8 @@ import {
   Clock,
   TrendingUp,
 } from 'lucide-react';
-import { mockTeams, mockUsers, mockProjects, mockTasks, mockActivities } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
+import type { AppTeam } from '@/lib/data-mappers';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -59,51 +60,6 @@ const avatarGradients = [
   'from-blue-400 to-cyan-500',
   'from-violet-400 to-purple-500',
 ];
-
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getUserGradient(id: string) {
-  const idx = mockUsers.findIndex((u) => u.id === id);
-  return avatarGradients[idx % avatarGradients.length];
-}
-
-function getUser(id: string) {
-  return mockUsers.find((u) => u.id === id);
-}
-
-function getTeamTasks(teamId: string) {
-  const team = mockTeams.find((t) => t.id === teamId);
-  if (!team) return [];
-  return mockTasks.filter((t) => team.projects.includes(t.projectId));
-}
-
-function getTeamProjects(teamId: string) {
-  const team = mockTeams.find((t) => t.id === teamId);
-  if (!team) return [];
-  return mockProjects.filter((p) => team.projects.includes(p.id));
-}
-
-function getTeamActivities(teamId: string) {
-  const team = mockTeams.find((t) => t.id === teamId);
-  if (!team) return [];
-  return mockActivities
-    .filter((a) => team.members.includes(a.userId))
-    .slice(0, 5);
-}
-
-function getTeamPerformance(teamId: string) {
-  const tasks = getTeamTasks(teamId);
-  if (tasks.length === 0) return 0;
-  const completed = tasks.filter((t) => t.status === 'done').length;
-  return Math.round((completed / tasks.length) * 100);
-}
 
 // ─── Role Config ─────────────────────────────────────────────────────────────
 const roleConfig: Record<MemberRole, { color: string; bg: string; border: string; icon: React.ElementType }> = {
@@ -154,6 +110,11 @@ function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#3b82f6'
 
 // ─── Avatar Stack Component ──────────────────────────────────────────────────
 function AvatarStack({ ids, max = 4 }: { ids: string[]; max?: number }) {
+  const { users, getUserInitials } = useAppData();
+  const getUserGradient = (id: string) => {
+    const idx = users.findIndex((u) => u.id === id);
+    return avatarGradients[idx >= 0 ? idx % avatarGradients.length : 0];
+  };
   const display = ids.slice(0, max);
   const remaining = ids.length - max;
 
@@ -178,14 +139,23 @@ function AvatarStack({ ids, max = 4 }: { ids: string[]; max?: number }) {
 // ─── Team Detail Panel ───────────────────────────────────────────────────────
 function TeamDetailPanel({ teamId }: { teamId: string }) {
   const { t } = useTranslation();
-  const team = mockTeams.find((t) => t.id === teamId);
+  const { teams, users, projects: allProjects, tasks: allTasks, activities: allActivities, getUserInitials, getUserName } = useAppData();
+  const team = teams.find((t) => t.id === teamId);
   if (!team) return null;
 
-  const projects = getTeamProjects(teamId);
-  const activities = getTeamActivities(teamId);
-  const tasks = getTeamTasks(teamId);
-  const completedThisWeek = tasks.filter((t) => t.status === 'done').length;
-  const avgVelocity = tasks.length > 0 ? Math.round((completedThisWeek / tasks.length) * 100) : 0;
+  const teamProjects = allProjects.filter((p) => team.projectIds.includes(p.id));
+  const teamActivities = allActivities
+    .filter((a) => team.memberIds.includes(a.userId))
+    .slice(0, 5);
+  const teamTasks = allTasks.filter((t) => team.projectIds.includes(t.projectId));
+  const completedThisWeek = teamTasks.filter((t) => t.status === 'done').length;
+  const avgVelocity = teamTasks.length > 0 ? Math.round((completedThisWeek / teamTasks.length) * 100) : 0;
+
+  const getUserGradient = (id: string) => {
+    const idx = users.findIndex((u) => u.id === id);
+    return avatarGradients[idx >= 0 ? idx % avatarGradients.length : 0];
+  };
+  const getUser = (id: string) => users.find((u) => u.id === id);
 
   const roleLabels: Record<string, string> = {
     admin: t.members.admin,
@@ -228,7 +198,7 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium">{t.teams.projects}</p>
-              <p className="text-sm font-bold">{projects.length}</p>
+              <p className="text-sm font-bold">{teamProjects.length}</p>
             </div>
           </div>
         </div>
@@ -237,11 +207,11 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{t.teams.members}</h4>
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-            {team.members.map((memberId, idx) => {
+            {team.memberIds.map((memberId, idx) => {
               const user = getUser(memberId);
               if (!user) return null;
               const role = roleConfig[user.role];
-              const memberTasks = tasks.filter((t) => t.assigneeId === memberId);
+              const memberTasks = teamTasks.filter((t) => t.assigneeId === memberId);
               const isLead = idx === 0;
               return (
                 <div key={memberId} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/30 transition-colors">
@@ -282,7 +252,7 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{t.teams.projectProgress}</h4>
           <div className="space-y-2">
-            {projects.map((project) => (
+            {teamProjects.map((project) => (
               <div key={project.id} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] shrink-0" style={{ backgroundColor: project.color + '20', color: project.color }}>
                   {project.icon}
@@ -302,11 +272,11 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
         {/* Recent Activity */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">{t.teams.recentActivity}</h4>
-          {activities.length === 0 ? (
+          {teamActivities.length === 0 ? (
             <p className="text-xs text-muted-foreground/60 text-center py-3">{t.teams.noActivityYet}</p>
           ) : (
             <div className="space-y-2">
-              {activities.map((activity) => (
+              {teamActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-2 text-xs">
                   <div className={cn('h-5 w-5 rounded-full bg-gradient-to-br flex items-center justify-center text-white text-[7px] font-bold shrink-0 mt-0.5', getUserGradient(activity.userId))}>
                     {getUserInitials(activity.userId)}
@@ -330,9 +300,16 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
 }
 
 // ─── Team Grid Card ──────────────────────────────────────────────────────────
-function TeamGridCard({ team, expanded, onToggle }: { team: typeof mockTeams[0]; expanded: boolean; onToggle: () => void }) {
+function TeamGridCard({ team, expanded, onToggle }: { team: AppTeam; expanded: boolean; onToggle: () => void }) {
   const { t } = useTranslation();
-  const performance = getTeamPerformance(team.id);
+  const { teams, tasks: allTasks } = useAppData();
+  const teamData = teams.find((t) => t.id === team.id);
+  const teamTasks = teamData
+    ? allTasks.filter((t) => teamData.projectIds.includes(t.projectId))
+    : [];
+  const performance = teamTasks.length > 0
+    ? Math.round((teamTasks.filter((t) => t.status === 'done').length / teamTasks.length) * 100)
+    : 0;
 
   return (
     <motion.div variants={item}>
@@ -376,17 +353,17 @@ function TeamGridCard({ team, expanded, onToggle }: { team: typeof mockTeams[0];
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-1.5">
               <div className="p-1 rounded-md bg-muted/50"><Users className="h-3 w-3 text-muted-foreground" /></div>
-              <span className="text-xs font-medium text-muted-foreground">{team.members.length} {t.teams.members}</span>
+              <span className="text-xs font-medium text-muted-foreground">{team.memberIds.length} {t.teams.members}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="p-1 rounded-md bg-muted/50"><FolderKanban className="h-3 w-3 text-muted-foreground" /></div>
-              <span className="text-xs font-medium text-muted-foreground">{team.projects.length} {t.teams.projects}</span>
+              <span className="text-xs font-medium text-muted-foreground">{team.projectIds.length} {t.teams.projects}</span>
             </div>
           </div>
 
           {/* Avatar stack + expand toggle */}
           <div className="flex items-center justify-between pt-3 border-t border-dashed">
-            <AvatarStack ids={team.members} />
+            <AvatarStack ids={team.memberIds} />
             <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:text-primary" onClick={onToggle}>
               {expanded ? t.teams.collapseDetails : t.teams.expandDetails}
               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -404,9 +381,16 @@ function TeamGridCard({ team, expanded, onToggle }: { team: typeof mockTeams[0];
 }
 
 // ─── Team List Row ───────────────────────────────────────────────────────────
-function TeamListRow({ team, expanded, onToggle }: { team: typeof mockTeams[0]; expanded: boolean; onToggle: () => void }) {
+function TeamListRow({ team, expanded, onToggle }: { team: AppTeam; expanded: boolean; onToggle: () => void }) {
   const { t } = useTranslation();
-  const performance = getTeamPerformance(team.id);
+  const { teams, tasks: allTasks } = useAppData();
+  const teamData = teams.find((t) => t.id === team.id);
+  const teamTasks = teamData
+    ? allTasks.filter((t) => teamData.projectIds.includes(t.projectId))
+    : [];
+  const performance = teamTasks.length > 0
+    ? Math.round((teamTasks.filter((t) => t.status === 'done').length / teamTasks.length) * 100)
+    : 0;
 
   return (
     <motion.div variants={item}>
@@ -434,16 +418,16 @@ function TeamListRow({ team, expanded, onToggle }: { team: typeof mockTeams[0]; 
             {/* Members */}
             <div className="hidden md:flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium">{team.members.length}</span>
+              <span className="text-xs font-medium">{team.memberIds.length}</span>
             </div>
             {/* Projects */}
             <div className="hidden md:flex items-center gap-1.5">
               <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium">{team.projects.length}</span>
+              <span className="text-xs font-medium">{team.projectIds.length}</span>
             </div>
             {/* Avatar */}
             <div className="hidden lg:block">
-              <AvatarStack ids={team.members} max={3} />
+              <AvatarStack ids={team.memberIds} max={3} />
             </div>
             {/* Expand icon */}
             <div className="shrink-0">
@@ -463,24 +447,25 @@ function TeamListRow({ team, expanded, onToggle }: { team: typeof mockTeams[0]; 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function TeamsView() {
   const { t } = useTranslation();
+  const { teams } = useAppData();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return mockTeams.filter((team) => {
+    return teams.filter((team) => {
       const matchesSearch =
         team.name.toLowerCase().includes(search.toLowerCase()) ||
         team.description.toLowerCase().includes(search.toLowerCase());
       const matchesSize =
         sizeFilter === 'all' ||
-        (sizeFilter === 'small' && team.members.length <= 3) ||
-        (sizeFilter === 'medium' && team.members.length >= 4 && team.members.length <= 6) ||
-        (sizeFilter === 'large' && team.members.length >= 7);
+        (sizeFilter === 'small' && team.memberIds.length <= 3) ||
+        (sizeFilter === 'medium' && team.memberIds.length >= 4 && team.memberIds.length <= 6) ||
+        (sizeFilter === 'large' && team.memberIds.length >= 7);
       return matchesSearch && matchesSize;
     });
-  }, [search, sizeFilter]);
+  }, [search, sizeFilter, teams]);
 
   const toggleExpand = (teamId: string) => {
     setExpandedTeam(expandedTeam === teamId ? null : teamId);
@@ -493,7 +478,7 @@ export function TeamsView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.teams.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {mockTeams.length} {t.teams.title.toLowerCase()} · {mockTeams.reduce((a, t) => a + t.members.length, 0)} {t.teams.members}
+            {teams.length} {t.teams.title.toLowerCase()} · {teams.reduce((a, t) => a + t.memberIds.length, 0)} {t.teams.members}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

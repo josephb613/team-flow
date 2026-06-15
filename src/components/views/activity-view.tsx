@@ -15,7 +15,8 @@ import {
   Activity,
   Filter,
 } from 'lucide-react';
-import { mockUsers, mockProjects, getProjectName } from '@/lib/mock-data';
+import type { AppActivity } from '@/lib/data-mappers';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -24,38 +25,10 @@ import { cn } from '@/lib/utils';
 
 type PMActivityType = 'task_completed' | 'task_created' | 'sprint_started' | 'comment_added' | 'milestone_reached' | 'member_joined';
 
-interface PMActivity {
-  id: string;
-  type: PMActivityType;
-  userId: string;
-  description: string;
-  timestamp: string;
-  projectId?: string;
+interface PMActivity extends AppActivity {
+  type: PMActivityType | string;
   reference?: string;
 }
-
-// ─── Inline Mock Data ─────────────────────────────────────────────────────────
-
-const mockPMActivities: PMActivity[] = [
-  { id: 'pm-1', type: 'task_completed', userId: 'u-3', description: 'completed task "Refonte UI Dashboard"', timestamp: new Date(Date.now() - 15 * 60000).toISOString(), projectId: 'p-1', reference: 'task-1' },
-  { id: 'pm-2', type: 'comment_added', userId: 'u-2', description: 'commented on "API endpoints Sprint 4"', timestamp: new Date(Date.now() - 45 * 60000).toISOString(), projectId: 'p-1', reference: 'task-2' },
-  { id: 'pm-3', type: 'task_created', userId: 'u-1', description: 'created task "Rapports automatisés"', timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), projectId: 'p-5', reference: 'task-8' },
-  { id: 'pm-4', type: 'sprint_started', userId: 'u-1', description: 'started "Sprint 4 - UI & API"', timestamp: new Date(Date.now() - 4 * 3600000).toISOString(), projectId: 'p-1', reference: 'sp-1' },
-  { id: 'pm-5', type: 'milestone_reached', userId: 'u-1', description: 'milestone "Alpha Release" is in progress', timestamp: new Date(Date.now() - 5 * 3600000).toISOString(), projectId: 'p-1', reference: 'ms-1' },
-  { id: 'pm-6', type: 'member_joined', userId: 'u-7', description: 'joined the team for "Refonte Platform"', timestamp: new Date(Date.now() - 6 * 3600000).toISOString(), projectId: 'p-1' },
-  { id: 'pm-7', type: 'task_completed', userId: 'u-2', description: 'completed task "API endpoints Sprint 4"', timestamp: new Date(Date.now() - 8 * 3600000).toISOString(), projectId: 'p-1', reference: 'task-2' },
-  { id: 'pm-8', type: 'comment_added', userId: 'u-3', description: 'commented on "Module hors-ligne iOS"', timestamp: new Date(Date.now() - 24 * 3600000).toISOString(), projectId: 'p-2', reference: 'task-3' },
-  { id: 'pm-9', type: 'task_created', userId: 'u-4', description: 'created task "Migration base de données"', timestamp: new Date(Date.now() - 26 * 3600000).toISOString(), projectId: 'p-3', reference: 'task-4' },
-  { id: 'pm-10', type: 'sprint_started', userId: 'u-4', description: 'started "Sprint 2 - Cloud Migration"', timestamp: new Date(Date.now() - 28 * 3600000).toISOString(), projectId: 'p-3', reference: 'sp-3' },
-  { id: 'pm-11', type: 'milestone_reached', userId: 'u-1', description: 'milestone "RGPD Compliance" completed', timestamp: new Date(Date.now() - 30 * 3600000).toISOString(), projectId: 'p-6', reference: 'ms-5' },
-  { id: 'pm-12', type: 'task_completed', userId: 'u-5', description: 'completed task "Configuration AWS IAM"', timestamp: new Date(Date.now() - 32 * 3600000).toISOString(), projectId: 'p-3', reference: 'task-9' },
-  { id: 'pm-13', type: 'member_joined', userId: 'u-6', description: 'joined the project "Module Paiement"', timestamp: new Date(Date.now() - 48 * 3600000).toISOString(), projectId: 'p-4' },
-  { id: 'pm-14', type: 'comment_added', userId: 'u-1', description: 'commented on "Intégration Stripe"', timestamp: new Date(Date.now() - 52 * 3600000).toISOString(), projectId: 'p-4', reference: 'task-5' },
-  { id: 'pm-15', type: 'task_created', userId: 'u-2', description: 'created task "Authentification SSO"', timestamp: new Date(Date.now() - 72 * 3600000).toISOString(), projectId: 'p-5', reference: 'task-7' },
-  { id: 'pm-16', type: 'sprint_started', userId: 'u-2', description: 'started "Sprint 3 - Mobile Offline"', timestamp: new Date(Date.now() - 96 * 3600000).toISOString(), projectId: 'p-2', reference: 'sp-2' },
-  { id: 'pm-17', type: 'milestone_reached', userId: 'u-4', description: 'milestone "Cloud Go-Live" is in progress', timestamp: new Date(Date.now() - 100 * 3600000).toISOString(), projectId: 'p-3', reference: 'ms-3' },
-  { id: 'pm-18', type: 'task_completed', userId: 'u-1', description: 'completed task "Audit sécurité OWASP"', timestamp: new Date(Date.now() - 120 * 3600000).toISOString(), projectId: 'p-6', reference: 'task-14' },
-];
 
 // ─── Activity Type Config ─────────────────────────────────────────────────────
 
@@ -119,30 +92,6 @@ const pmActivityConfig: Record<PMActivityType, {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserColor(id: string): string {
-  const colors = [
-    'bg-emerald-500/20 text-emerald-700',
-    'bg-amber-500/20 text-amber-700',
-    'bg-cyan-500/20 text-cyan-700',
-    'bg-rose-500/20 text-rose-700',
-    'bg-teal-500/20 text-teal-700',
-    'bg-orange-500/20 text-orange-700',
-    'bg-violet-500/20 text-violet-700',
-    'bg-pink-500/20 text-pink-700',
-  ];
-  const idx = mockUsers.findIndex((u) => u.id === id);
-  return colors[idx % colors.length];
-}
-
 function getRelativeTime(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -205,14 +154,31 @@ const dateHeader = {
 
 export function ActivityView() {
   const { t } = useTranslation();
+  const { activities, users, getUserName, getUserInitials, getProjectName } = useAppData();
   const [filter, setFilter] = useState('all');
+
+  const getUserColor = (id: string): string => {
+    const colors = [
+      'bg-emerald-500/20 text-emerald-700',
+      'bg-amber-500/20 text-amber-700',
+      'bg-cyan-500/20 text-cyan-700',
+      'bg-rose-500/20 text-rose-700',
+      'bg-teal-500/20 text-teal-700',
+      'bg-orange-500/20 text-orange-700',
+      'bg-violet-500/20 text-violet-700',
+      'bg-pink-500/20 text-pink-700',
+    ];
+    const idx = users.findIndex((u) => u.id === id);
+    return colors[idx >= 0 ? idx % colors.length : 0];
+  };
 
   // Filter activities
   const filtered = useMemo(() => {
     const filterObj = filterOptions.find((f) => f.value === filter);
-    if (!filterObj) return mockPMActivities;
-    return mockPMActivities.filter((a) => filterObj.types.includes(a.type));
-  }, [filter]);
+    const items = activities as PMActivity[];
+    if (!filterObj) return items;
+    return items.filter((a) => filterObj.types.includes(a.type as PMActivityType));
+  }, [filter, activities]);
 
   // Group by date
   const grouped = useMemo(() => {
@@ -230,8 +196,8 @@ export function ActivityView() {
 
   const filterCount = (value: string) => {
     const filterObj = filterOptions.find((f) => f.value === value);
-    if (!filterObj) return mockPMActivities.length;
-    return mockPMActivities.filter((a) => filterObj.types.includes(a.type)).length;
+    if (!filterObj) return activities.length;
+    return activities.filter((a) => filterObj.types.includes(a.type as PMActivityType)).length;
   };
 
   return (
@@ -241,7 +207,7 @@ export function ActivityView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.activity.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {mockPMActivities.length} activities · Real-time feed
+            {activities.length} activities · Real-time feed
           </p>
         </div>
         <div className="flex items-center gap-2">

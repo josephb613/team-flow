@@ -67,29 +67,61 @@ function Particle({ delay, x, y, size }: { delay: number; x: number; y: number; 
 
 export function LoginPage() {
   const login = useAppStore((s) => s.login);
+  const register = useAppStore((s) => s.register);
   const { locale, setLocale } = useAppStore();
   const { t } = useTranslation();
-  const [email, setEmail] = useState('alex@acmecorp.com');
-  const [password, setPassword] = useState('password');
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [name, setName] = useState('');
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [email, setEmail] = useState('josephbasix@gmail.com');
+  const [password, setPassword] = useState('123456Test');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  const switchMode = (nextMode: 'login' | 'signup') => {
+    setMode(nextMode);
+    setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (mode === 'signup') {
+      if (password.length < 6) {
+        setError(t.login.passwordTooShort);
+        setIsLoading(false);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError(t.login.passwordMismatch);
+        setIsLoading(false);
+        return;
+      }
 
-    if (email && password) {
-      login(email, password);
-      toast.success(t.toast.welcomeBack);
+      const result = await register(email, password, name, workspaceName || name);
+      if (result.ok) {
+        toast.success(t.toast.accountCreated);
+      } else {
+        setError(result.error);
+      }
     } else {
-      setError(t.login.enterCredentials);
+      if (email && password) {
+        const result = await login(email, password);
+        if (result.ok) {
+          toast.success(t.toast.welcomeBack);
+        } else {
+          setError(result.error);
+        }
+      } else {
+        setError(t.login.enterCredentials);
+      }
     }
+
     setIsLoading(false);
   };
 
@@ -259,28 +291,6 @@ export function LoginPage() {
                 </div>
               </motion.div>
             </motion.div>
-
-            {/* Trust Badges Row */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.5 }}
-              className="mt-5 flex items-center gap-2 flex-wrap"
-            >
-              {[
-                { label: t.login.sslSecured, icon: '🔒' },
-                { label: t.login.soc2Compliant, icon: '✓' },
-                { label: t.login.gdprReady, icon: '🛡️' },
-              ].map((badge, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] text-white/50 font-medium backdrop-blur-sm"
-                >
-                  <span className="text-xs">{badge.icon}</span>
-                  {badge.label}
-                </span>
-              ))}
-            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -306,11 +316,42 @@ export function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">{t.login.welcomeBack}</h2>
-            <p className="text-muted-foreground">{t.login.subtitle}</p>
+            <h2 className="text-2xl font-bold mb-2">
+              {mode === 'signup' ? t.login.signUpTitle : t.login.welcomeBack}
+            </h2>
+            <p className="text-muted-foreground">
+              {mode === 'signup' ? t.login.signUpSubtitle : t.login.subtitle}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {mode === 'signup' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t.login.fullName}</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Jean Dupont"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workspace">{t.login.workspaceName}</Label>
+                  <Input
+                    id="workspace"
+                    type="text"
+                    placeholder={t.login.workspaceNamePlaceholder}
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">{t.login.email}</Label>
               <Input
@@ -325,9 +366,11 @@ export function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t.login.password}</Label>
-                <button type="button" className="text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
-                  {t.login.forgotPassword}
-                </button>
+                {mode === 'login' && (
+                  <button type="button" className="text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
+                    {t.login.forgotPassword}
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Input
@@ -353,7 +396,23 @@ export function LoginPage() {
               </div>
             </div>
 
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">{t.login.confirmPassword}</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-11"
+                  required
+                />
+              </div>
+            )}
+
             {/* Remember me checkbox */}
+            {mode === 'login' && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="remember"
@@ -365,6 +424,7 @@ export function LoginPage() {
                 {t.login.rememberMe}
               </Label>
             </div>
+            )}
 
             <AnimatePresence>
               {error && (
@@ -403,10 +463,10 @@ export function LoginPage() {
                   {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {t.login.signingIn}
+                      {mode === 'signup' ? t.login.signingUp : t.login.signingIn}
                     </div>
                   ) : (
-                    t.login.signIn
+                    mode === 'signup' ? t.login.signUp : t.login.signIn
                   )}
                 </span>
               </Button>
@@ -415,20 +475,45 @@ export function LoginPage() {
 
           {/* Footer links below sign-in button */}
           <div className="mt-4 flex items-center justify-between text-xs">
-            <button type="button" className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors">
-              {t.login.forgotPasswordLink}
-            </button>
-            <button type="button" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
-              {t.login.signUpLink}
-            </button>
+            {mode === 'login' ? (
+              <>
+                <button
+                  type="button"
+                  className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors"
+                >
+                  {t.login.forgotPasswordLink}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode('signup')}
+                  className="text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  {t.login.signUpLink}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors ml-auto"
+              >
+                {t.login.signInLink}
+              </button>
+            )}
           </div>
 
+          {mode === 'login' && (
           <p className="mt-5 text-center text-sm text-muted-foreground">
             {t.login.noAccount}{' '}
-            <button className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
+            <button
+              type="button"
+              onClick={() => switchMode('signup')}
+              className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium"
+            >
               {t.login.createOne}
             </button>
           </p>
+          )}
         </motion.div>
       </div>
     </div>

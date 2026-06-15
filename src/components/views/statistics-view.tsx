@@ -20,17 +20,23 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
-import {
-  mockTasks,
-  mockProjects,
-  mockSprints,
-  mockTimeEntries,
-  mockUsers,
-  getUserName,
-} from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import {
+  avgSprintVelocityInPeriod,
+  buildUserWorkload,
+  buildWeeklyTaskTrend,
+  compareCounts,
+  completionRateAt,
+  countSprintsCompletedInPeriod,
+  countTasksCompletedInPeriod,
+  getPeriodBounds,
+  onTimeDeliveryRate,
+  onTimeDeliveryRateInPeriod,
+  sumTimeEntriesInPeriod,
+} from '@/lib/analytics';
 import { motion } from 'framer-motion';
 import {
   AreaChart,
@@ -75,52 +81,33 @@ type Period = typeof periods[number]['key'];
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function StatisticsView() {
   const { t, locale } = useTranslation();
+  const { tasks, sprints, timeEntries, users } = useAppData();
   const [period, setPeriod] = useState<Period>('30d');
 
   // ─── Compute PM Metrics ────────────────────────────────────────────────
-  const completedTasks = useMemo(() => mockTasks.filter(t => t.status === 'done').length, []);
-  const totalTasks = mockTasks.length;
+  const completedTasks = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks]);
+  const totalTasks = tasks.length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const sprintsDelivered = useMemo(() => mockSprints.filter(s => s.status === 'completed').length, []);
+  const sprintsDelivered = useMemo(() => sprints.filter(s => s.status === 'completed').length, [sprints]);
   const avgVelocity = useMemo(() => {
-    const activeSprints = mockSprints.filter(s => s.status === 'active' || s.status === 'completed');
+    const activeSprints = sprints.filter(s => s.status === 'active' || s.status === 'completed');
     if (activeSprints.length === 0) return 0;
     return Math.round(activeSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / activeSprints.length);
-  }, []);
+  }, [sprints]);
 
-  const onTimeDelivery = useMemo(() => {
-    const doneTasks = mockTasks.filter(t => t.status === 'done');
-    if (doneTasks.length === 0) return 0;
-    const onTime = doneTasks.filter(t => new Date(t.updatedAt) <= new Date(t.dueDate)).length;
-    return Math.round((onTime / doneTasks.length) * 100);
-  }, []);
+  const totalTimeSpent = useMemo(() => timeEntries.reduce((sum, te) => sum + te.hours, 0), [timeEntries]);
 
-  const totalTimeSpent = useMemo(() => mockTimeEntries.reduce((sum, te) => sum + te.hours, 0), []);
+  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 365;
 
   // ─── Chart Data: Task completion trend ──────────────────────────────────
   const taskTrendData = useMemo(() => {
     const weeks = period === '7d' ? 7 : period === '30d' ? 12 : 12;
-    const data = [];
-    for (let i = weeks - 1; i >= 0; i--) {
-      const label = `S${String(weeks - i).padStart(2, '0')}`;
-      data.push({
-        name: label,
-        completed: Math.floor(Math.random() * 6) + 2,
-        created: Math.floor(Math.random() * 5) + 3,
-      });
-    }
-    return data;
-  }, [period]);
+    return buildWeeklyTaskTrend(tasks, weeks);
+  }, [period, tasks]);
 
   // ─── Chart Data: Team workload ─────────────────────────────────────────
-  const workloadData = useMemo(() => {
-    return mockUsers.slice(0, 6).map(user => ({
-      name: user.name.split(' ')[0],
-      taches: user.taskCount,
-      terminees: Math.floor(user.taskCount * 0.6),
-    }));
-  }, []);
+  const workloadData = useMemo(() => buildUserWorkload(users, tasks), [users, tasks]);
 
   // ─── Chart Data: Priority distribution ─────────────────────────────────
   const priorityData = useMemo(() => {
@@ -128,81 +115,120 @@ export function StatisticsView() {
       ? { urgent: 'Urgent', high: 'Élevée', medium: 'Moyenne', low: 'Basse' }
       : { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
     return [
-      { name: priorityLabels.urgent, value: mockTasks.filter(t => t.priority === 'urgent').length },
-      { name: priorityLabels.high, value: mockTasks.filter(t => t.priority === 'high').length },
-      { name: priorityLabels.medium, value: mockTasks.filter(t => t.priority === 'medium').length },
-      { name: priorityLabels.low, value: mockTasks.filter(t => t.priority === 'low').length },
+      { name: priorityLabels.urgent, value: tasks.filter(t => t.priority === 'urgent').length },
+      { name: priorityLabels.high, value: tasks.filter(t => t.priority === 'high').length },
+      { name: priorityLabels.medium, value: tasks.filter(t => t.priority === 'medium').length },
+      { name: priorityLabels.low, value: tasks.filter(t => t.priority === 'low').length },
     ];
-  }, [locale]);
+  }, [locale, tasks]);
 
-  const stats = [
-    {
-      title: t.statistics.tasksCompleted,
-      value: completedTasks,
-      change: '+12%',
-      trend: 'up' as const,
-      icon: CheckCircle2,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
-    },
-    {
-      title: t.statistics.sprintsDelivered,
-      value: sprintsDelivered,
-      change: '+2',
-      trend: 'up' as const,
-      icon: Gauge,
-      gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
-      iconBg: 'bg-amber-500/15',
-      iconColor: 'text-amber-600',
-      borderAccent: 'border-amber-500/20',
-    },
-    {
-      title: t.statistics.velocity,
-      value: avgVelocity,
-      change: '+5',
-      trend: 'up' as const,
-      icon: Zap,
-      gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
-      iconBg: 'bg-cyan-500/15',
-      iconColor: 'text-cyan-600',
-      borderAccent: 'border-cyan-500/20',
-    },
-    {
-      title: t.statistics.completionRate,
-      value: `${completionRate}%`,
-      change: '+3.2%',
-      trend: 'up' as const,
-      icon: Target,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
-    },
-    {
-      title: t.statistics.timeSpent,
-      value: `${Math.round(totalTimeSpent)}h`,
-      change: '+8h',
-      trend: 'up' as const,
-      icon: Timer,
-      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
-      iconBg: 'bg-rose-500/15',
-      iconColor: 'text-rose-600',
-      borderAccent: 'border-rose-500/20',
-    },
-    {
-      title: t.statistics.onTimeDelivery,
-      value: `${onTimeDelivery}%`,
-      change: '+2.4%',
-      trend: 'up' as const,
-      icon: TrendingUp,
-      gradient: 'from-[oklch(0.55_0.18_160/0.1)] via-[oklch(0.55_0.18_160/0.05)] to-transparent',
-      iconBg: 'bg-[oklch(0.55_0.18_160/0.15)]',
-      iconColor: 'text-[oklch(0.55_0.18_160)]',
-      borderAccent: 'border-[oklch(0.55_0.18_160/0.2)]',
-    },
-  ];
+  const stats = useMemo(() => {
+    const { currentStart, previousStart, now } = getPeriodBounds(periodDays);
+    const periodEnd = period === '7d' ? now : currentStart;
+
+    const completedInPeriod = countTasksCompletedInPeriod(tasks, currentStart, now);
+    const completedPrevPeriod = countTasksCompletedInPeriod(tasks, previousStart, periodEnd);
+    const tasksTrend = compareCounts(completedInPeriod, completedPrevPeriod, 'percent');
+
+    const sprintsInPeriod = countSprintsCompletedInPeriod(sprints, currentStart, now);
+    const sprintsPrevPeriod = countSprintsCompletedInPeriod(sprints, previousStart, periodEnd);
+    const sprintsTrend = compareCounts(sprintsInPeriod, sprintsPrevPeriod, 'absolute');
+
+    const velocityInPeriod = avgSprintVelocityInPeriod(sprints, currentStart, now);
+    const velocityPrevPeriod = avgSprintVelocityInPeriod(sprints, previousStart, periodEnd);
+    const velocityTrend = compareCounts(velocityInPeriod, velocityPrevPeriod, 'absolute');
+
+    const rateTrend = compareCounts(completionRate, completionRateAt(tasks, periodEnd), 'points');
+
+    const hoursInPeriod = sumTimeEntriesInPeriod(timeEntries, currentStart, now);
+    const hoursPrevPeriod = sumTimeEntriesInPeriod(timeEntries, previousStart, periodEnd);
+    const hoursTrend = compareCounts(hoursInPeriod, hoursPrevPeriod, 'hours');
+
+    const onTimeNow = onTimeDeliveryRate(tasks);
+    const onTimePrev = onTimeDeliveryRateInPeriod(tasks, previousStart, periodEnd);
+    const onTimeTrend = compareCounts(onTimeNow, onTimePrev, 'points');
+
+    return [
+      {
+        title: t.statistics.tasksCompleted,
+        value: completedTasks,
+        change: tasksTrend.change,
+        trend: tasksTrend.trend,
+        icon: CheckCircle2,
+        gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+        iconBg: 'bg-emerald-500/15',
+        iconColor: 'text-emerald-600',
+        borderAccent: 'border-emerald-500/20',
+      },
+      {
+        title: t.statistics.sprintsDelivered,
+        value: sprintsDelivered,
+        change: sprintsTrend.change,
+        trend: sprintsTrend.trend,
+        icon: Gauge,
+        gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
+        iconBg: 'bg-amber-500/15',
+        iconColor: 'text-amber-600',
+        borderAccent: 'border-amber-500/20',
+      },
+      {
+        title: t.statistics.velocity,
+        value: avgVelocity,
+        change: velocityTrend.change,
+        trend: velocityTrend.trend,
+        icon: Zap,
+        gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
+        iconBg: 'bg-cyan-500/15',
+        iconColor: 'text-cyan-600',
+        borderAccent: 'border-cyan-500/20',
+      },
+      {
+        title: t.statistics.completionRate,
+        value: `${completionRate}%`,
+        change: rateTrend.change,
+        trend: rateTrend.trend,
+        icon: Target,
+        gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+        iconBg: 'bg-teal-500/15',
+        iconColor: 'text-teal-600',
+        borderAccent: 'border-teal-500/20',
+      },
+      {
+        title: t.statistics.timeSpent,
+        value: `${Math.round(totalTimeSpent)}h`,
+        change: hoursTrend.change,
+        trend: hoursTrend.trend,
+        icon: Timer,
+        gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
+        iconBg: 'bg-rose-500/15',
+        iconColor: 'text-rose-600',
+        borderAccent: 'border-rose-500/20',
+      },
+      {
+        title: t.statistics.onTimeDelivery,
+        value: `${onTimeNow}%`,
+        change: onTimeTrend.change,
+        trend: onTimeTrend.trend,
+        icon: TrendingUp,
+        gradient: 'from-[oklch(0.55_0.18_160/0.1)] via-[oklch(0.55_0.18_160/0.05)] to-transparent',
+        iconBg: 'bg-[oklch(0.55_0.18_160/0.15)]',
+        iconColor: 'text-[oklch(0.55_0.18_160)]',
+        borderAccent: 'border-[oklch(0.55_0.18_160/0.2)]',
+      },
+    ];
+  }, [
+    t.statistics,
+    periodDays,
+    period,
+    tasks,
+    sprints,
+    timeEntries,
+    completedTasks,
+    sprintsDelivered,
+    avgVelocity,
+    completionRate,
+    totalTimeSpent,
+  ]);
 
   const tooltipStyle = {
     backgroundColor: 'var(--popover)',
@@ -448,7 +474,7 @@ export function StatisticsView() {
                   },
                   {
                     title: locale === 'fr' ? 'Sprints en cours' : 'Active sprints',
-                    value: `${mockSprints.filter(s => s.status === 'active').length}`,
+                    value: `${sprints.filter(s => s.status === 'active').length}`,
                     description: locale === 'fr' ? 'Nombre de sprints actuellement actifs' : 'Number of currently active sprints',
                     color: 'text-teal-600',
                     bg: 'bg-teal-500/10',

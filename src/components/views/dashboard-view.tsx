@@ -11,9 +11,6 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Activity,
-  BarChart3,
-  PieChart as PieChartIcon,
   ChevronRight,
   Plus,
   UserPlus,
@@ -30,28 +27,99 @@ import {
   Timer,
   Target,
   Flame,
+  ShieldAlert,
 } from 'lucide-react';
 import {
-  mockTasks,
-  mockProjects,
-  mockSprints,
-  mockTimeEntries,
-  mockCalendarEvents,
-  mockAuditLogs,
-  mockUsers,
-  getUserName,
-  getUserInitials,
   taskStatusColors,
   taskStatusLabels,
   taskPriorityColors,
   projectStatusColors,
   projectStatusLabels,
-} from '@/lib/mock-data';
+} from '@/lib/data-mappers';
+import {
+  avgSprintVelocityInPeriod,
+  buildProjectProgressTrend,
+  compareCounts,
+  compareCountsInverted,
+  completionRateAt,
+  countActiveProjects,
+  countOverdueTasks,
+  countProjectsActivatedInPeriod,
+  countTasksCompletedInPeriod,
+  getPeriodBounds,
+  sumTimeEntriesInPeriod,
+} from '@/lib/analytics';
+import { useAppData } from '@/hooks/use-app-data';
+import { useApiData } from '@/hooks/use-pmp-data';
 import { useTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
+import { appendWorkspaceQuery } from '@/lib/workspace-query';
+import { scoreColor } from '@/lib/risk-utils';
 import type { TaskStatus, TaskPriority } from '@/lib/types';
 import { motion, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { cn } from '@/lib/utils';
+
+const chartTooltipStyle = {
+  backgroundColor: 'var(--popover)',
+  border: '1px solid var(--border)',
+  borderRadius: '8px',
+  fontSize: '12px',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  padding: '8px 12px',
+};
+
+function DashboardPanelCard({
+  title,
+  subtitle,
+  action,
+  children,
+  className,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={cn('gap-0 overflow-hidden border-border/50 bg-card py-0 shadow-none', className)}>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border/40 px-5 py-4">
+        <div className="min-w-0 space-y-0.5">
+          <CardTitle className="text-[13px] font-semibold tracking-tight">{title}</CardTitle>
+          {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        {action}
+      </CardHeader>
+      <CardContent className="px-5 py-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function DashboardLinkButton({
+  children,
+  onClick,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className={cn(
+        'h-7 shrink-0 px-2 text-xs font-medium text-muted-foreground hover:bg-transparent hover:text-foreground',
+        className
+      )}
+    >
+      {children}
+      <ChevronRight className="ml-0.5 h-3 w-3 opacity-50" />
+    </Button>
+  );
+}
 
 // ─── Animated Counter ────────────────────────────────────────────────────────
 function AnimatedCounter({ value, duration = 1200 }: { value: number; duration?: number }) {
@@ -71,56 +139,6 @@ function AnimatedCounter({ value, duration = 1200 }: { value: number; duration?:
   }, [transformed]);
 
   return <span>{display}</span>;
-}
-
-// ─── Circular Progress Ring ──────────────────────────────────────────────────
-function CircularProgress({
-  value,
-  size = 56,
-  strokeWidth = 5,
-  color,
-}: {
-  value: number;
-  size?: number;
-  strokeWidth?: number;
-  color: string;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (value / 100) * circumference;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          className="text-muted/40"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold" style={{ color }}>
-          {value}%
-        </span>
-      </div>
-    </div>
-  );
 }
 
 // ─── Relative Time ───────────────────────────────────────────────────────────
@@ -168,46 +186,59 @@ const cardHover = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function DashboardView() {
   const { t, locale } = useTranslation();
-  const { setActivePage, setCreateContentDialogOpen, activeOrganizationId, currentUser } = useAppStore();
+  const { setActivePage, setCreateTaskDialogOpen, setCreateProjectDialogOpen, currentUser, activeOrganizationId } = useAppStore();
+  const {
+    tasks,
+    projects,
+    sprints,
+    timeEntries,
+    calendarEvents,
+    auditLogs,
+    users,
+    getUserName,
+  } = useAppData();
+  const risksUrl = activeOrganizationId
+    ? appendWorkspaceQuery('/api/risks?activeOnly=true&minScore=10', activeOrganizationId)
+    : null;
+  const { data: alertRisks } = useApiData<Array<{
+    id: string;
+    title: string;
+    score: number;
+    probability: number;
+    impact: number;
+    status: string;
+    project?: { id: string; name: string; icon: string };
+  }>>(risksUrl);
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
   );
 
-  // ─── Compute PM stats from mock data ────────────────────────────────────
+  // ─── Compute PM stats from app data ─────────────────────────────────────
   const tasksCompletedThisWeek = useMemo(() => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 86400000);
-    return mockTasks.filter((task) => task.status === 'done' && new Date(task.updatedAt) >= weekAgo).length;
-  }, []);
-
-  const activeProjectsCount = useMemo(() => {
-    return mockProjects.filter((p) => p.status === 'active').length;
-  }, []);
+    return tasks.filter((task) => task.status === 'done' && new Date(task.updatedAt) >= weekAgo).length;
+  }, [tasks]);
 
   const inReviewCount = useMemo(() => {
-    return mockTasks.filter((task) => task.status === 'review').length;
-  }, []);
+    return tasks.filter((task) => task.status === 'review').length;
+  }, [tasks]);
 
   const totalTimeSpentThisWeek = useMemo(() => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 86400000);
-    return mockTimeEntries
+    return timeEntries
       .filter((te) => new Date(te.date) >= weekAgo)
       .reduce((sum, te) => sum + te.hours, 0);
-  }, []);
+  }, [timeEntries]);
 
   const sprintVelocity = useMemo(() => {
-    const activeSprints = mockSprints.filter((s) => s.status === 'active');
+    const activeSprints = sprints.filter((s) => s.status === 'active');
     if (activeSprints.length === 0) return 0;
     return Math.round(activeSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / activeSprints.length);
-  }, []);
-
-  const overdueTasksCount = useMemo(() => {
-    const now = new Date();
-    return mockTasks.filter((task) => task.status !== 'done' && new Date(task.dueDate) < now).length;
-  }, []);
+  }, [sprints]);
 
   // ─── Chart Data: Tâches par statut (bar chart) ─────────────────────────
   const tasksByStatusData = useMemo(() => {
@@ -217,25 +248,14 @@ export function DashboardView() {
     const statuses: TaskStatus[] = ['todo', 'in_progress', 'review', 'done'];
     return statuses.map((status) => ({
       name: statusLabels[status],
-      count: mockTasks.filter((t) => t.status === status).length,
+      count: tasks.filter((t) => t.status === status).length,
     }));
-  }, [locale]);
+  }, [locale, tasks]);
 
   // ─── Chart Data: Avancement des projets (area chart) ────────────────────
   const projectProgressData = useMemo(() => {
-    const labels = locale === 'fr'
-      ? ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']
-      : ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
-    const targetValues = [15, 30, 45, 60, 75, 90];
-    const actualValues = activeProjectsCount > 0
-      ? [10, 22, 35, 48, 58, 65]
-      : [0, 0, 0, 0, 0, 0];
-    return labels.map((name, i) => ({
-      name,
-      target: targetValues[i],
-      actual: actualValues[i],
-    }));
-  }, [locale, activeProjectsCount]);
+    return buildProjectProgressTrend(projects, tasks, 6, locale);
+  }, [locale, projects, tasks]);
 
   // ─── Chart Data: Répartition par priorité (pie chart) ───────────────────
   const priorityDistributionData = useMemo(() => {
@@ -246,17 +266,17 @@ export function DashboardView() {
     const priorities: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
     return priorities.map((p) => ({
       name: priorityLabels[p],
-      value: mockTasks.filter((t) => t.priority === p).length,
+      value: tasks.filter((t) => t.priority === p).length,
       color: colors[p],
     })).filter((d) => d.value > 0);
-  }, [locale]);
+  }, [locale, tasks]);
 
   // ─── Recent Activity from Audit Logs ───────────────────────────────────
   const recentActivity = useMemo(() => {
-    return mockAuditLogs
+    return auditLogs
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 6);
-  }, []);
+  }, [auditLogs]);
 
   const auditActionConfig: Record<string, { icon: React.ElementType; color: string; dotColor: string }> = {
     create: { icon: Zap, color: 'text-teal-500', dotColor: 'bg-teal-500' },
@@ -280,104 +300,144 @@ export function DashboardView() {
   // ─── Upcoming Calendar Events ──────────────────────────────────────────
   const upcomingEvents = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return mockCalendarEvents
+    return calendarEvents
       .filter((e) => e.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 3);
-  }, []);
+  }, [calendarEvents]);
 
   // ─── Active Sprints for Progress Section ───────────────────────────────
   const sprintsForProgress = useMemo(() => {
-    return mockSprints.filter((s) => s.status === 'active').map((sprint) => {
-      const sprintTasks = mockTasks.filter((t) => t.sprintId === sprint.id);
+    return sprints.filter((s) => s.status === 'active').map((sprint) => {
+      const sprintTasks = tasks.filter((t) => t.sprintId === sprint.id);
       const doneTasks = sprintTasks.filter((t) => t.status === 'done').length;
       const progress = sprintTasks.length > 0 ? Math.round((doneTasks / sprintTasks.length) * 100) : 0;
       return { ...sprint, progress, doneTasks, totalTasks: sprintTasks.length };
     });
-  }, []);
+  }, [sprints, tasks]);
 
-  // ─── Stats Config ──────────────────────────────────────────────────────
-  const statsConfig = [
-    {
-      title: t.dashboard.totalTasks,
-      value: tasksCompletedThisWeek,
-      change: '+12%',
-      trend: 'up' as const,
-      icon: CheckCircle2,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      iconBg: 'bg-emerald-500/15',
-      iconColor: 'text-emerald-600',
-      borderAccent: 'border-emerald-500/20',
-      glowColor: 'shadow-emerald-500/5',
-    },
-    {
-      title: t.dashboard.activeProjects,
-      value: sprintVelocity,
-      change: '+5',
-      trend: 'up' as const,
-      icon: Gauge,
-      gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
-      iconBg: 'bg-amber-500/15',
-      iconColor: 'text-amber-600',
-      borderAccent: 'border-amber-500/20',
-      glowColor: 'shadow-amber-500/5',
-    },
-    {
-      title: t.dashboard.inProgress,
-      value: Math.round(totalTimeSpentThisWeek),
-      suffix: 'h',
-      change: '+8h',
-      trend: 'up' as const,
-      icon: Timer,
-      gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
-      iconBg: 'bg-cyan-500/15',
-      iconColor: 'text-cyan-600',
-      borderAccent: 'border-cyan-500/20',
-      glowColor: 'shadow-cyan-500/5',
-    },
-    {
-      title: t.dashboard.completionRate,
-      value: Math.round(mockProjects.reduce((sum, p) => sum + p.progress, 0) / mockProjects.length),
-      isPercent: true,
-      change: '+3.2%',
-      trend: 'up' as const,
-      icon: Target,
-      gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
-      iconBg: 'bg-teal-500/15',
-      iconColor: 'text-teal-600',
-      borderAccent: 'border-teal-500/20',
-      glowColor: 'shadow-teal-500/5',
-    },
-    {
-      title: t.dashboard.activeProjectsCount,
-      value: activeProjectsCount,
-      change: '+1',
-      trend: 'up' as const,
-      icon: FolderKanban,
-      gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
-      iconBg: 'bg-amber-500/15',
-      iconColor: 'text-amber-600',
-      borderAccent: 'border-amber-500/20',
-      glowColor: 'shadow-amber-500/5',
-    },
-    {
-      title: t.dashboard.activeTasks,
-      value: overdueTasksCount,
-      change: '-2',
-      trend: 'down' as const,
-      icon: AlertTriangle,
-      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
-      iconBg: 'bg-rose-500/15',
-      iconColor: 'text-rose-600',
-      borderAccent: 'border-rose-500/20',
-      glowColor: 'shadow-rose-500/5',
-    },
-  ];
+  // ─── Stats Config (valeurs + tendances calculées depuis les données réelles) ─
+  const statsConfig = useMemo(() => {
+    const { currentStart, previousStart, now } = getPeriodBounds(7);
+    const weekAgo = currentStart;
+
+    const completedThisWeek = countTasksCompletedInPeriod(tasks, currentStart, now);
+    const completedLastWeek = countTasksCompletedInPeriod(tasks, previousStart, weekAgo);
+    const tasksTrend = compareCounts(completedThisWeek, completedLastWeek, 'percent');
+
+    const velocityThisWeek = avgSprintVelocityInPeriod(sprints, currentStart, now);
+    const velocityLastWeek = avgSprintVelocityInPeriod(sprints, previousStart, weekAgo);
+    const velocityTrend = compareCounts(velocityThisWeek, velocityLastWeek, 'absolute');
+
+    const hoursThisWeek = sumTimeEntriesInPeriod(timeEntries, currentStart, now);
+    const hoursLastWeek = sumTimeEntriesInPeriod(timeEntries, previousStart, weekAgo);
+    const hoursTrend = compareCounts(hoursThisWeek, hoursLastWeek, 'hours');
+
+    const rateNow =
+      projects.length > 0 ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length) : 0;
+    const rateLastWeek = completionRateAt(tasks, weekAgo);
+    const rateTrend = compareCounts(rateNow, rateLastWeek, 'points');
+
+    const activeNow = countActiveProjects(projects);
+    const activatedThisWeek = countProjectsActivatedInPeriod(projects, currentStart, now);
+    const activatedLastWeek = countProjectsActivatedInPeriod(projects, previousStart, weekAgo);
+    const activeTrend = compareCounts(activatedThisWeek, activatedLastWeek, 'absolute');
+
+    const overdueNow = countOverdueTasks(tasks, now);
+    const overdueLastWeek = countOverdueTasks(tasks, weekAgo);
+    const overdueTrend = compareCountsInverted(overdueNow, overdueLastWeek);
+
+    return [
+      {
+        title: t.dashboard.totalTasks,
+        value: tasksCompletedThisWeek,
+        change: tasksTrend.change,
+        trend: tasksTrend.trend,
+        icon: CheckCircle2,
+        gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
+        iconBg: 'bg-emerald-500/15',
+        iconColor: 'text-emerald-600',
+        borderAccent: 'border-emerald-500/20',
+        glowColor: 'shadow-emerald-500/5',
+      },
+      {
+        title: t.dashboard.activeProjects,
+        value: sprintVelocity,
+        change: velocityTrend.change,
+        trend: velocityTrend.trend,
+        icon: Gauge,
+        gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
+        iconBg: 'bg-amber-500/15',
+        iconColor: 'text-amber-600',
+        borderAccent: 'border-amber-500/20',
+        glowColor: 'shadow-amber-500/5',
+      },
+      {
+        title: t.dashboard.inProgress,
+        value: Math.round(totalTimeSpentThisWeek),
+        suffix: 'h',
+        change: hoursTrend.change,
+        trend: hoursTrend.trend,
+        icon: Timer,
+        gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
+        iconBg: 'bg-cyan-500/15',
+        iconColor: 'text-cyan-600',
+        borderAccent: 'border-cyan-500/20',
+        glowColor: 'shadow-cyan-500/5',
+      },
+      {
+        title: t.dashboard.completionRate,
+        value: rateNow,
+        isPercent: true,
+        change: rateTrend.change,
+        trend: rateTrend.trend,
+        icon: Target,
+        gradient: 'from-teal-500/10 via-teal-500/5 to-transparent',
+        iconBg: 'bg-teal-500/15',
+        iconColor: 'text-teal-600',
+        borderAccent: 'border-teal-500/20',
+        glowColor: 'shadow-teal-500/5',
+      },
+      {
+        title: t.dashboard.activeProjectsCount,
+        value: activeNow,
+        change: activeTrend.change,
+        trend: activeTrend.trend,
+        icon: FolderKanban,
+        gradient: 'from-amber-500/10 via-amber-500/5 to-transparent',
+        iconBg: 'bg-amber-500/15',
+        iconColor: 'text-amber-600',
+        borderAccent: 'border-amber-500/20',
+        glowColor: 'shadow-amber-500/5',
+      },
+      {
+        title: t.dashboard.activeTasks,
+        value: overdueNow,
+        change: overdueTrend.change,
+        trend: overdueTrend.trend,
+        icon: AlertTriangle,
+        gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
+        iconBg: 'bg-rose-500/15',
+        iconColor: 'text-rose-600',
+        borderAccent: 'border-rose-500/20',
+        glowColor: 'shadow-rose-500/5',
+      },
+    ];
+  }, [
+    t.dashboard,
+    tasks,
+    sprints,
+    timeEntries,
+    projects,
+    tasksCompletedThisWeek,
+    sprintVelocity,
+    totalTimeSpentThisWeek,
+  ]);
 
   // ─── Quick Actions ─────────────────────────────────────────────────────
   const quickActions = [
-    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateContentDialogOpen(true), color: 'text-teal-600 hover:bg-teal-500/10 hover:border-teal-500/30' },
-    { icon: FolderKanban, label: t.dashboard.quickActionNewProject, onClick: () => setActivePage('projects'), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
+    { icon: Plus, label: t.dashboard.quickActionNewTask, onClick: () => setCreateTaskDialogOpen(true), color: 'text-teal-600 hover:bg-teal-500/10 hover:border-teal-500/30' },
+    { icon: FolderKanban, label: t.dashboard.quickActionNewProject, onClick: () => setCreateProjectDialogOpen(true), color: 'text-amber-600 hover:bg-amber-500/10 hover:border-amber-500/30' },
     { icon: Timer, label: t.dashboard.quickActionScheduleMeeting, onClick: () => setActivePage('time-tracking'), color: 'text-cyan-600 hover:bg-cyan-500/10 hover:border-cyan-500/30' },
     { icon: UserPlus, label: t.dashboard.quickActionInviteMember, onClick: () => setActivePage('members'), color: 'text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500/30' },
   ];
@@ -392,7 +452,7 @@ export function DashboardView() {
       'bg-emerald-500/20 text-emerald-700',
       'bg-orange-500/20 text-orange-700',
     ];
-    const idx = mockUsers.findIndex((u) => u.id === id);
+    const idx = users.findIndex((u) => u.id === id);
     return colors[idx % colors.length];
   };
 
@@ -526,364 +586,339 @@ export function DashboardView() {
       </div>
 
       {/* ─── Charts Section ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Tâches par statut Bar Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
-                    <BarChart3 className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{t.dashboard.weeklyActivity}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {locale === 'fr' ? 'Tâches par statut' : 'Tasks by status'}
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-emerald-500/5">
-                  {t.dashboard.viewDetails}
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[220px] mt-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={tasksByStatusData} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey="name"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      stroke="var(--muted-foreground)"
-                      dy={8}
-                    />
-                    <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--popover)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                        padding: '10px 14px',
-                      }}
-                      cursor={{ fill: 'var(--muted)', radius: 4 }}
-                    />
-                    <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} name={locale === 'fr' ? 'Tâches' : 'Tasks'} />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <DashboardPanelCard
+            title={t.dashboard.weeklyActivity}
+            subtitle={locale === 'fr' ? 'Tâches par statut' : 'Tasks by status'}
+            action={<DashboardLinkButton>{t.dashboard.viewDetails}</DashboardLinkButton>}
+          >
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={tasksByStatusData} barGap={6}>
+                  <CartesianGrid stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    dy={6}
+                  />
+                  <YAxis
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    dx={-4}
+                    width={28}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--primary)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={32}
+                    name={locale === 'fr' ? 'Tâches' : 'Tasks'}
+                  />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </div>
+          </DashboardPanelCard>
         </motion.div>
 
-        {/* Avancement des projets Area Chart */}
         <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                    <Activity className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{t.dashboard.sprintBurndown}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {locale === 'fr' ? 'Objectif vs avancement réel' : 'Target vs actual progress'}
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-amber-500/5">
-                  {t.dashboard.viewDetails}
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
+          <DashboardPanelCard
+            title={t.dashboard.sprintBurndown}
+            subtitle={locale === 'fr' ? 'Objectif vs avancement réel' : 'Target vs actual progress'}
+            action={<DashboardLinkButton>{t.dashboard.viewDetails}</DashboardLinkButton>}
+          >
+            <div className="mb-3 flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="h-px w-4 border-t-2 border-dashed border-muted-foreground/50" />
+                <span className="text-[11px] text-muted-foreground">{locale === 'fr' ? 'Objectif' : 'Target'}</span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[220px] mt-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={projectProgressData}>
-                    <defs>
-                      <linearGradient id="projectGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis
-                      dataKey="name"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      stroke="var(--muted-foreground)"
-                      dy={8}
-                    />
-                    <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="var(--muted-foreground)" dx={-4} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--popover)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                        padding: '10px 14px',
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="target"
-                      stroke="#10b98180"
-                      fill="none"
-                      strokeDasharray="5 5"
-                      strokeWidth={2}
-                      name={locale === 'fr' ? 'Objectif' : 'Target'}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="actual"
-                      stroke="#10b981"
-                      fill="url(#projectGradient)"
-                      strokeWidth={2.5}
-                      name={locale === 'fr' ? 'Réel' : 'Actual'}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 rounded-full bg-primary" />
+                <span className="text-[11px] text-muted-foreground">{locale === 'fr' ? 'Réel' : 'Actual'}</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={projectProgressData}>
+                  <defs>
+                    <linearGradient id="projectGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    dy={6}
+                  />
+                  <YAxis
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    dx={-4}
+                    width={28}
+                  />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Area
+                    type="monotone"
+                    dataKey="target"
+                    stroke="var(--muted-foreground)"
+                    fill="none"
+                    strokeDasharray="4 4"
+                    strokeWidth={1.5}
+                    strokeOpacity={0.5}
+                    name={locale === 'fr' ? 'Objectif' : 'Target'}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="actual"
+                    stroke="var(--primary)"
+                    fill="url(#projectGradient)"
+                    strokeWidth={2}
+                    name={locale === 'fr' ? 'Réel' : 'Actual'}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </DashboardPanelCard>
         </motion.div>
 
-        {/* Répartition par priorité Pie Chart */}
         <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/15">
-                    <PieChartIcon className="h-4 w-4 text-rose-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{t.dashboard.contentTypeBreakdown}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {locale === 'fr' ? 'Répartition des tâches par priorité' : 'Task distribution by priority'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[160px] mt-1">
+          <DashboardPanelCard
+            title={t.dashboard.contentTypeBreakdown}
+            subtitle={locale === 'fr' ? 'Répartition par priorité' : 'Distribution by priority'}
+          >
+            <div className="flex items-center gap-6">
+              <div className="h-[140px] w-[140px] shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
                     <Pie
                       data={priorityDistributionData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={40}
-                      outerRadius={65}
-                      paddingAngle={4}
+                      innerRadius={42}
+                      outerRadius={58}
+                      paddingAngle={2}
                       dataKey="value"
-                      strokeWidth={0}
+                      strokeWidth={2}
+                      stroke="var(--card)"
                     >
                       {priorityDistributionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--popover)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                        padding: '10px 14px',
-                      }}
+                      contentStyle={chartTooltipStyle}
                       formatter={(value: number) => [value, '']}
                     />
                   </RechartsPieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex items-center justify-center gap-4 mt-2">
+              <div className="flex flex-1 flex-col gap-2.5">
                 {priorityDistributionData.map((entry, idx) => {
                   const total = priorityDistributionData.reduce((sum, d) => sum + d.value, 0);
                   const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
                   return (
-                    <div key={idx} className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                      <span className="text-[11px] text-muted-foreground">{entry.name}</span>
-                      <span className="text-[11px] font-semibold">{entry.value}</span>
-                      <span className="text-[10px] text-muted-foreground/60">({pct}%)</span>
+                    <div key={idx} className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+                        <span className="truncate text-xs text-muted-foreground">{entry.name}</span>
+                      </div>
+                      <div className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+                        <span className="text-xs font-semibold">{entry.value}</span>
+                        <span className="text-[10px] text-muted-foreground/70">{pct}%</span>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </DashboardPanelCard>
         </motion.div>
       </div>
 
       {/* ─── Recent Activity + Upcoming ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div variants={item}>
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300 h-full">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                    <Activity className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">{t.dashboard.recentActivity}</CardTitle>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5">
-                  {t.dashboard.seeAll}
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="relative space-y-0">
-                {/* Timeline line */}
-                <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-teal-500 via-teal-500/40 to-transparent" />
+          <DashboardPanelCard
+            className="h-full"
+            title={t.dashboard.recentActivity}
+            action={<DashboardLinkButton>{t.dashboard.seeAll}</DashboardLinkButton>}
+          >
+            <div className="divide-y divide-border/40">
+              {recentActivity.map((log, idx) => {
+                const config = auditActionConfig[log.action] || auditActionConfig.create;
+                const EntityIcon = entityTypeIcon[log.entityType] || CheckCircle2;
 
-                {recentActivity.map((log, idx) => {
-                  const config = auditActionConfig[log.action] || auditActionConfig.create;
-                  const IconComp = config.icon;
-                  const EntityIcon = entityTypeIcon[log.entityType] || CheckCircle2;
+                return (
+                  <motion.div
+                    key={log.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04, duration: 0.25 }}
+                    className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                      <EntityIcon className={cn('h-3.5 w-3.5', config.color)} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs leading-relaxed text-foreground">{log.details}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {getUserName(log.userId)}
+                        <span className="mx-1.5 text-border">·</span>
+                        {getRelativeTime(log.timestamp, locale)}
+                      </p>
+                    </div>
+                    <div className={cn('mt-2 h-1.5 w-1.5 shrink-0 rounded-full', config.dotColor)} />
+                  </motion.div>
+                );
+              })}
+            </div>
+          </DashboardPanelCard>
+        </motion.div>
+
+        <motion.div variants={item} className="flex flex-col gap-4">
+          <DashboardPanelCard
+            title={t.dashboard.criticalRisks}
+            subtitle={t.dashboard.criticalRisksDesc}
+            action={
+              <DashboardLinkButton onClick={() => setActivePage('risks')}>
+                {t.dashboard.viewRisks}
+              </DashboardLinkButton>
+            }
+          >
+            {(alertRisks ?? []).length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">{t.dashboard.noCriticalRisks}</p>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {(alertRisks ?? []).slice(0, 4).map((risk) => (
+                  <div key={risk.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <div className={cn('h-8 w-8 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0', scoreColor(risk.score))}>
+                      {risk.score}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium">{risk.title}</p>
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                        {risk.project ? `${risk.project.icon} ${risk.project.name}` : ''}
+                        <span className="mx-1.5 text-border">·</span>
+                        {t.dashboard.riskScore} {risk.probability}×{risk.impact}
+                      </p>
+                    </div>
+                    <ShieldAlert className="h-4 w-4 shrink-0 text-rose-500" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </DashboardPanelCard>
+
+          <DashboardPanelCard title={t.dashboard.upcomingDeadlines}>
+            <div className="divide-y divide-border/40">
+              {tasks
+                .filter((task) => task.status !== 'done')
+                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                .slice(0, 4)
+                .map((task) => {
+                  const dueDate = new Date(task.dueDate);
+                  const now = new Date();
+                  const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
+                  const isOverdue = daysUntil < 0;
+                  const isSoon = daysUntil >= 0 && daysUntil <= 3;
+                  const project = projects.find((p) => p.id === task.projectId);
 
                   return (
-                    <motion.div
-                      key={log.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.06, duration: 0.3 }}
-                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-muted/30 transition-colors group relative"
-                    >
-                      {/* Timeline dot */}
-                      <div className={`w-[7px] h-[7px] rounded-full ${config.dotColor} mt-2.5 flex-shrink-0 z-10 ring-2 ring-background`} />
-                      {/* Icon */}
-                      <div className={`p-1.5 rounded-lg flex-shrink-0 bg-muted/50`}>
-                        <EntityIcon className={`h-3.5 w-3.5 ${config.color}`} />
+                    <div key={task.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium">{task.title}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{project?.name}</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-foreground leading-snug">{log.details}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{getUserName(log.userId)} · {getRelativeTime(log.timestamp, locale)}</p>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium tabular-nums',
+                          isOverdue
+                            ? 'bg-rose-500/10 text-rose-600'
+                            : isSoon
+                              ? 'bg-amber-500/10 text-amber-700'
+                              : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {isOverdue
+                          ? `${Math.abs(daysUntil)}d ${locale === 'fr' ? 'retard' : 'overdue'}`
+                          : daysUntil === 0
+                            ? locale === 'fr'
+                              ? "Aujourd'hui"
+                              : 'Today'
+                            : `${daysUntil}d`}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </DashboardPanelCard>
+
+          <DashboardPanelCard
+            title={t.dashboard.projectProgress}
+            subtitle={locale === 'fr' ? 'Sprints actifs' : 'Active sprints'}
+            action={
+              <DashboardLinkButton onClick={() => setActivePage('projects')}>
+                {t.dashboard.viewAllProjects}
+              </DashboardLinkButton>
+            }
+          >
+            {sprintsForProgress.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Gauge className="mb-2 h-6 w-6 opacity-25" />
+                <p className="text-xs">{locale === 'fr' ? 'Aucun sprint actif' : 'No active sprints'}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sprintsForProgress.map((sprint) => {
+                  const project = projects.find((p) => p.id === sprint.projectId);
+                  const color = project?.color || 'var(--primary)';
+
+                  return (
+                    <div key={sprint.id}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium">{sprint.name}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {sprint.totalTasks} {locale === 'fr' ? 'tâches' : 'tasks'}
+                            <span className="mx-1.5 text-border">·</span>
+                            {sprint.velocity || 0} {locale === 'fr' ? 'pts' : 'pts'}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums" style={{ color }}>
+                          {sprint.progress}%
+                        </span>
                       </div>
-                    </motion.div>
+                      <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${sprint.progress}%` }}
+                          transition={{ duration: 0.8, delay: 0.15, ease: 'easeOut' }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Upcoming Deadlines + Sprint Progress */}
-        <motion.div variants={item} className="space-y-5">
-          {/* Upcoming Deadlines */}
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/15">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                </div>
-                <CardTitle className="text-sm font-semibold">{t.dashboard.upcomingDeadlines}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="space-y-2">
-                {mockTasks
-                  .filter((task) => task.status !== 'done')
-                  .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                  .slice(0, 4)
-                  .map((task) => {
-                    const dueDate = new Date(task.dueDate);
-                    const now = new Date();
-                    const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / 86400000);
-                    const isOverdue = daysUntil < 0;
-                    const isSoon = daysUntil >= 0 && daysUntil <= 3;
-                    const project = mockProjects.find((p) => p.id === task.projectId);
-
-                    return (
-                      <div key={task.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOverdue ? 'bg-rose-500' : isSoon ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{task.title}</p>
-                          <p className="text-[10px] text-muted-foreground">{project?.name}</p>
-                        </div>
-                        <span className={`text-[10px] font-semibold flex-shrink-0 ${isOverdue ? 'text-rose-500' : isSoon ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                          {isOverdue ? `${Math.abs(daysUntil)}d ${locale === 'fr' ? 'retard' : 'overdue'}` : daysUntil === 0 ? (locale === 'fr' ? "Aujourd'hui" : 'Today') : `${daysUntil}d`}
-                        </span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Sprint Progress */}
-          <Card className="overflow-hidden border shadow-md hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/15">
-                    <Gauge className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-semibold">{t.dashboard.projectProgress}</CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{locale === 'fr' ? 'Sprints actifs' : 'Active sprints'}</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 hover:bg-teal-500/5" onClick={() => setActivePage('projects')}>
-                  {t.dashboard.viewAllProjects}
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              {sprintsForProgress.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-                  <Gauge className="h-8 w-8 opacity-30 mb-2" />
-                  <p className="text-xs">{locale === 'fr' ? 'Aucun sprint actif' : 'No active sprints'}</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {sprintsForProgress.map((sprint) => {
-                    const project = mockProjects.find((p) => p.id === sprint.projectId);
-                    return (
-                      <div key={sprint.id} className="group">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <CircularProgress value={sprint.progress} size={36} strokeWidth={4} color={project?.color || '#10b981'} />
-                            <div>
-                              <p className="text-xs font-semibold">{sprint.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{sprint.totalTasks} {locale === 'fr' ? 'tâches' : 'tasks'} · {sprint.velocity || 0} {locale === 'fr' ? 'pts' : 'pts'}</p>
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-bold" style={{ color: project?.color || '#10b981' }}>{sprint.progress}%</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full rounded-full"
-                            style={{
-                              background: `linear-gradient(90deg, ${project?.color || '#10b981'}, ${project?.color || '#10b981'}cc)`,
-                            }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${sprint.progress}%` }}
-                            transition={{ duration: 1, delay: 0.2, ease: 'easeOut' }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </DashboardPanelCard>
         </motion.div>
       </div>
     </motion.div>

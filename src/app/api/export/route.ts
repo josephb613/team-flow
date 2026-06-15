@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-api';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'csv';
     const type = searchParams.get('type') || 'tasks';
+    const workspaceId = getWorkspaceIdFromRequest(request);
 
     let data: Array<Record<string, unknown>> = [];
 
     switch (type) {
       case 'tasks': {
         const tasks = await db.task.findMany({
+          where: workspaceId ? { project: { workspaceId } } : undefined,
           include: {
             assignee: { select: { name: true } },
             project: { select: { name: true } },
@@ -30,6 +33,7 @@ export async function GET(request: NextRequest) {
       }
       case 'projects': {
         const projects = await db.project.findMany({
+          where: workspaceId ? { workspaceId } : undefined,
           include: {
             tasks: true,
           },
@@ -48,8 +52,19 @@ export async function GET(request: NextRequest) {
       }
       case 'workload': {
         const teams = await db.team.findMany({
+          where: workspaceId ? { workspaceId } : undefined,
           include: {
-            teamMembers: { include: { user: { include: { assignedTasks: true } } } },
+            teamMembers: {
+              include: {
+                user: {
+                  include: {
+                    assignedTasks: workspaceId
+                      ? { where: { project: { workspaceId } } }
+                      : true,
+                  },
+                },
+              },
+            },
           },
         });
         data = teams.map((team) => {
@@ -80,7 +95,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // CSV format (default)
     if (data.length === 0) {
       return new NextResponse('', {
         status: 200,

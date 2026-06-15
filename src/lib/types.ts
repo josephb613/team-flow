@@ -6,6 +6,7 @@ export type PageId =
   // Favoris
   | 'dashboard'
   | 'projects'
+  | 'project-detail'
   | 'my-tasks'
   // Projets
   | 'sprints'
@@ -30,7 +31,14 @@ export type PageId =
   // Tools
   | 'automations'
   | 'time-tracking'
-  | 'activity';
+  | 'activity'
+  // PMP — Gestion de projets complexes
+  | 'dependencies'
+  | 'costs'
+  | 'risks'
+  | 'stakeholders'
+  | 'change-requests'
+  | 'workload';
 
 // ─── Task ────────────────────────────────────────────────────────────────
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
@@ -136,11 +144,14 @@ export interface Organization {
   id: string;
   name: string;
   slug: string;
+  description?: string;
   type: 'company' | 'department' | 'team' | 'subsidiary';
   color: string;
   icon: string;
+  logo?: string | null;
   country: string;
   memberCount: number;
+  memberIds?: string[];
   projectCount: number;
   isActive: boolean;
   createdAt: string;

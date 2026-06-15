@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, Paperclip, Mic, Sparkles, AlertCircle, RotateCcw } from 'lucide-react';
+import { X, Send, RotateCcw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ChatMessage {
   id: string;
@@ -13,11 +13,14 @@ interface ChatMessage {
   timestamp: Date;
 }
 
-export function AiChatWidget() {
+interface AiChatPanelProps {
+  onClose: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
   const { t } = useTranslation();
-  const aiChatOpen = useAppStore((s) => s.aiChatOpen);
-  const toggleAiChat = useAppStore((s) => s.toggleAiChat);
-  const setAiChatOpen = useAppStore((s) => s.setAiChatOpen);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -34,6 +37,8 @@ export function AiChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const hasConversation = messages.some((m) => m.role === 'user');
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -43,10 +48,9 @@ export function AiChatWidget() {
   }, [messages, isTyping, scrollToBottom]);
 
   useEffect(() => {
-    if (aiChatOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-    }
-  }, [aiChatOpen]);
+    const timer = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const callLlmApi = useCallback(async (message: string) => {
     setIsLoading(true);
@@ -106,7 +110,6 @@ export function AiChatWidget() {
 
   const handleRetry = useCallback(() => {
     if (lastFailedMessage) {
-      // Remove the last error message
       setMessages((prev) => prev.filter((m) => m.role !== 'error'));
       setLastFailedMessage(null);
       callLlmApi(lastFailedMessage);
@@ -134,209 +137,162 @@ export function AiChatWidget() {
   ];
 
   return (
-    <>
-      {/* Floating Button */}
-      <AnimatePresence>
-        {!aiChatOpen && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            onClick={toggleAiChat}
-            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] text-white shadow-lg hover:shadow-xl hover:shadow-blue-500/25 transition-shadow flex items-center justify-center group"
-            aria-label="Open AI Chat"
-          >
-            <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform" />
-            {/* Pulse ring */}
-            <span className="absolute inset-0 rounded-full animate-ping bg-[oklch(0.55_0.18_250)] opacity-20" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97, y: 8 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      style={style}
+      className={cn(
+        'pointer-events-auto w-[min(380px,calc(100vw-2rem))] h-[min(460px,calc(100vh-6rem))] rounded-xl border border-border/80 bg-background shadow-xl flex flex-col overflow-hidden',
+        className
+      )}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 h-12 border-b border-border/60 shrink-0">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-foreground">{t.aiChat.title}</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          aria-label="Close chat"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-      {/* Chat Panel */}
-      <AnimatePresence>
-        {aiChatOpen && (
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+        {messages.map((msg) => (
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed bottom-6 right-6 z-50 w-[480px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-3rem)] rounded-2xl border border-border bg-background shadow-2xl flex flex-col overflow-hidden"
+            key={msg.id}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className={cn(
+              'flex',
+              msg.role === 'user' ? 'justify-end' : 'justify-start'
+            )}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] text-white shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                  <Bot className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold">{t.aiChat.title}</h3>
-                    {/* AI-Powered Badge */}
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-white/20 backdrop-blur-sm border border-white/20">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      {t.aiChat.aiPowered}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-300 animate-pulse" />
-                    <span className="text-[11px] text-white/80">{t.aiChat.online}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setAiChatOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
-                aria-label="Close chat"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            {msg.role === 'error' ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{msg.content}</span>
+                <button
+                  onClick={handleRetry}
+                  className="inline-flex items-center gap-1 text-foreground hover:underline underline-offset-2"
                 >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                      msg.role === 'error'
-                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                        : msg.role === 'ai'
-                          ? 'bg-[oklch(0.55_0.18_250/0.1)] text-foreground border border-[oklch(0.55_0.18_250/0.15)]'
-                          : 'bg-muted text-foreground'
-                    }`}
-                  >
-                    {msg.role === 'ai' && (
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
-                        <span className="text-[10px] font-medium text-[oklch(0.55_0.18_250)]">{t.aiChat.title}</span>
-                      </div>
-                    )}
-                    {msg.role === 'error' && (
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-medium">{t.aiChat.errorTitle}</span>
-                      </div>
-                    )}
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                    {msg.role === 'error' && (
-                      <button
-                        onClick={handleRetry}
-                        className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        {t.aiChat.retry}
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                  <RotateCcw className="h-3 w-3" />
+                  {t.aiChat.retry}
+                </button>
+              </div>
+            ) : msg.role === 'user' ? (
+              <div className="max-w-[82%] rounded-2xl rounded-br-sm bg-foreground px-3.5 py-2 text-sm leading-relaxed text-background">
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              </div>
+            ) : (
+              <div className="max-w-[88%] text-sm leading-relaxed text-foreground/90">
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              </div>
+            )}
+          </motion.div>
+        ))}
 
-              {/* Typing indicator */}
-              <AnimatePresence>
-                {isTyping && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="flex justify-start"
-                  >
-                    <div className="bg-[oklch(0.55_0.18_250/0.1)] border border-[oklch(0.55_0.18_250/0.15)] rounded-2xl px-3.5 py-2.5">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <Bot className="h-3.5 w-3.5 text-[oklch(0.55_0.18_250)]" />
-                        <span className="text-[10px] font-medium text-[oklch(0.55_0.18_250)]">{t.aiChat.thinking}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <motion.span
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{ repeat: Infinity, duration: 0.6, delay: 0 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
-                        />
-                        <motion.span
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
-                        />
-                        <motion.span
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
-                          className="w-1.5 h-1.5 rounded-full bg-[oklch(0.55_0.18_250)]"
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Quick Actions */}
-            <div className="px-4 pb-2 shrink-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                {quickActions.map((action, i) => (
-                  <button
+        <AnimatePresence>
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex justify-start"
+            >
+              <div className="flex items-center gap-1 py-1">
+                {[0, 1, 2].map((i) => (
+                  <motion.span
                     key={i}
-                    onClick={() => handleQuickAction(action)}
-                    disabled={isLoading}
-                    className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[oklch(0.55_0.18_250/0.08)] text-[oklch(0.55_0.18_250)] border border-[oklch(0.55_0.18_250/0.15)] hover:bg-[oklch(0.55_0.18_250/0.15)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {action}
-                  </button>
+                    animate={{ opacity: [0.3, 0.8, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.2 }}
+                    className="w-1 h-1 rounded-full bg-muted-foreground/60"
+                  />
                 ))}
               </div>
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Input Area */}
-            <div className="px-4 pb-4 pt-1 shrink-0">
-              <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 py-2 focus-within:border-[oklch(0.55_0.18_250/0.4)] focus-within:ring-1 focus-within:ring-[oklch(0.55_0.18_250/0.2)] transition-all">
-                <button
-                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={t.aiChat.placeholder}
-                  disabled={isLoading}
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
-                />
-                <button
-                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Voice input"
-                >
-                  <Mic className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  className="p-1.5 rounded-lg bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.55_0.18_250/0.9)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  aria-label="Send message"
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
+        {!hasConversation && !isTyping && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {quickActions.map((action) => (
+              <button
+                key={action}
+                onClick={() => handleQuickAction(action)}
+                disabled={isLoading}
+                className="px-2.5 py-1 rounded-md text-xs text-muted-foreground border border-border/60 hover:text-foreground hover:border-border hover:bg-muted/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {action}
+              </button>
+            ))}
+          </div>
         )}
-      </AnimatePresence>
-    </>
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="px-4 pb-4 pt-2 shrink-0 border-t border-border/40">
+        <div className="flex items-center gap-2 pt-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={t.aiChat.placeholder}
+            disabled={isLoading}
+            className="flex-1 h-9 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isLoading}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label="Send message"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
+}
+
+const PANEL_WIDTH = 380;
+const PANEL_HEIGHT = 460;
+const PANEL_GAP = 12;
+const FAB_SIZE = 56;
+
+export function getAiChatPanelPosition(
+  fabX: number,
+  fabY: number,
+  placement: 'top' | 'bottom',
+  align: 'left' | 'right',
+  windowWidth: number,
+  windowHeight: number
+): React.CSSProperties {
+  let left = align === 'right' ? fabX + FAB_SIZE - PANEL_WIDTH : fabX;
+  let top =
+    placement === 'bottom'
+      ? fabY + FAB_SIZE + PANEL_GAP
+      : fabY - PANEL_HEIGHT - PANEL_GAP;
+
+  const margin = 12;
+  const maxLeft = Math.max(margin, windowWidth - PANEL_WIDTH - margin);
+  const maxTop = Math.max(margin, windowHeight - PANEL_HEIGHT - margin);
+
+  left = Math.min(Math.max(margin, left), maxLeft);
+  top = Math.min(Math.max(margin, top), maxTop);
+
+  return { position: 'fixed', left, top, zIndex: 60 };
 }

@@ -61,6 +61,7 @@ import {
   MessageSquare,
   Flag,
   Video,
+  Star,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ const PAGE_SECTION_MAP: Record<PageId, string> = {
   // Favoris
   dashboard: 'favorites',
   projects: 'favorites',
+  'project-detail': 'projects',
   'my-tasks': 'favorites',
   // Projets
   sprints: 'projects',
@@ -88,12 +90,12 @@ const PAGE_SECTION_MAP: Record<PageId, string> = {
   // Analyse
   statistics: 'analysis',
   reports: 'analysis',
-  // Administration
-  users: 'administration',
-  roles: 'administration',
-  organizations: 'administration',
-  audit: 'administration',
-  settings: 'administration',
+  // Paramètres
+  users: 'settings',
+  roles: 'settings',
+  organizations: 'settings',
+  audit: 'settings',
+  settings: 'settings',
   // Tools
   automations: 'projects',
   'time-tracking': 'projects',
@@ -141,6 +143,8 @@ export function TopBar() {
     isApiLoading,
     focusMode,
     toggleFocusMode,
+    favorites,
+    toggleFavorite,
   } = useAppStore();
   const { t } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
@@ -172,6 +176,8 @@ export function TopBar() {
     return t.nav[key] || page;
   };
 
+  const isCurrentPageFavorite = favorites.includes(activePage);
+
   // Get role badge class
   const getRoleBadgeStyle = (role: string): string => {
     return ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES['viewer'];
@@ -195,12 +201,28 @@ export function TopBar() {
         )}
       </AnimatePresence>
 
-      <div className="flex items-center gap-3">
+      {/* Mobile page title — centered in header, independent of toolbar button count */}
+      <div className="sm:hidden pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-center z-0 px-14">
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={activePage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="text-base font-semibold truncate max-w-full text-center leading-none"
+          >
+            {getPageName(activePage)}
+          </motion.h1>
+        </AnimatePresence>
+      </div>
+
+      <div className="relative z-10 flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
         {/* Mobile hamburger menu */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden h-9 w-9"
+          className="lg:hidden h-9 w-9 shrink-0"
           onClick={() => setMobileSidebarOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -230,28 +252,32 @@ export function TopBar() {
         </TooltipProvider>
 
         {/* Dynamic Breadcrumb navigation — Section > Page */}
-        <Breadcrumb className="hidden sm:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
+        <Breadcrumb className="hidden sm:flex min-w-0 flex-1 overflow-hidden">
+          <BreadcrumbList className="flex-nowrap break-normal min-w-0">
+            <BreadcrumbItem className="min-w-0 max-w-full">
               <BreadcrumbLink
                 asChild
-                className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors min-w-0 max-w-full"
               >
-                <span onClick={() => setActivePage('dashboard')} className="flex items-center gap-1.5">
-                  {activeOrganization?.name || 'TeamFlow PM'}
-                  <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)] leading-none">
+                <span
+                  onClick={() => setActivePage('dashboard')}
+                  className="flex items-center gap-1.5 min-w-0 max-w-full"
+                >
+                  <span className="truncate">
+                    {activeOrganization?.name || 'TeamFlow PM'}
+                  </span>
+                  <span className="inline-flex shrink-0 items-center px-1 py-0 rounded text-[8px] font-bold bg-[oklch(0.55_0.18_250/0.12)] text-[oklch(0.55_0.18_250)] leading-none">
                     {t.topbar.pro}
                   </span>
                 </span>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </BreadcrumbSeparator>
-            {/* Dynamic Section */}
             {activePage !== 'dashboard' && (
               <>
-                <BreadcrumbItem>
+                <BreadcrumbSeparator className="shrink-0">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </BreadcrumbSeparator>
+                <BreadcrumbItem className="min-w-0 shrink">
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={sectionKey}
@@ -259,51 +285,74 @@ export function TopBar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
                       transition={{ duration: 0.15 }}
-                      className="text-muted-foreground text-sm"
+                      className="text-muted-foreground text-sm truncate"
                     >
                       {sectionName}
                     </motion.span>
                   </AnimatePresence>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator>
+                <BreadcrumbSeparator className="shrink-0">
                   <ChevronRight className="h-3.5 w-3.5" />
                 </BreadcrumbSeparator>
+                <BreadcrumbItem className="min-w-0 shrink">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activePage}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="min-w-0"
+                    >
+                      <BreadcrumbPage className="font-semibold text-foreground truncate">
+                        {getPageName(activePage)}
+                      </BreadcrumbPage>
+                    </motion.div>
+                  </AnimatePresence>
+                </BreadcrumbItem>
               </>
             )}
-            <BreadcrumbItem>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePage}
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <BreadcrumbPage className="font-semibold text-foreground">
-                    {getPageName(activePage)}
-                  </BreadcrumbPage>
-                </motion.div>
-              </AnimatePresence>
-            </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-
-        {/* Mobile page title */}
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={activePage}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.15 }}
-            className="sm:hidden text-lg font-semibold"
-          >
-            {getPageName(activePage)}
-          </motion.h1>
-        </AnimatePresence>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+        {/* Favorite toggle for current page */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'hidden sm:flex h-9 w-9 transition-all',
+                  isCurrentPageFavorite
+                    ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-500/10'
+                    : 'text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10'
+                )}
+                onClick={() => toggleFavorite(activePage)}
+                aria-label={
+                  isCurrentPageFavorite
+                    ? t.sidebar.removeFromFavorites
+                    : t.sidebar.addToFavorites
+                }
+              >
+                <Star
+                  className={cn(
+                    'h-4 w-4',
+                    isCurrentPageFavorite && 'fill-amber-400 text-amber-400'
+                  )}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isCurrentPageFavorite
+                ? t.sidebar.removeFromFavorites
+                : t.sidebar.addToFavorites}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         {/* Focus Mode toggle */}
         <TooltipProvider>
           <Tooltip>
@@ -312,7 +361,7 @@ export function TopBar() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-9 w-9 transition-all',
+                  'hidden sm:flex h-9 w-9 transition-all',
                   focusMode ? 'bg-[oklch(0.55_0.18_250/0.15)] text-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.55_0.18_250/0.25)]' : 'hover:bg-muted'
                 )}
                 onClick={toggleFocusMode}
@@ -390,7 +439,7 @@ export function TopBar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 hover:ring-2 hover:ring-[oklch(0.55_0.18_250/0.3)] transition-all"
+                    className="hidden sm:flex h-9 w-9 hover:ring-2 hover:ring-[oklch(0.55_0.18_250/0.3)] transition-all"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -470,7 +519,7 @@ export function TopBar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className="hidden sm:flex h-9 w-9"
                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
               >
                 <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -684,6 +733,17 @@ export function TopBar() {
             >
               <Settings className="h-4 w-4 mr-2" />
               {t.topbar.settings}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="h-4 w-4 mr-2" />
+              ) : (
+                <Moon className="h-4 w-4 mr-2" />
+              )}
+              {t.topbar.toggleTheme}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">

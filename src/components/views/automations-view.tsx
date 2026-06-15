@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ import {
   ArrowRightLeft,
   Repeat,
 } from 'lucide-react';
-import { mockAutomations } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -138,18 +138,6 @@ const automationTemplates = [
     bg: 'bg-orange-500/10',
     border: 'border-orange-500/20',
   },
-];
-
-// ─── Mock Execution History ──────────────────────────────────────────────────
-const executionHistory = [
-  { id: 'eh-1', name: 'Auto-assign urgent tasks', timestamp: '2025-01-20T08:00:00Z', status: 'success', duration: '1.2s' },
-  { id: 'eh-2', name: 'Deadline reminder', timestamp: '2025-01-20T09:00:00Z', status: 'success', duration: '0.8s' },
-  { id: 'eh-3', name: 'Welcome new members', timestamp: '2025-01-19T14:00:00Z', status: 'failed', duration: '3.1s' },
-  { id: 'eh-4', name: 'Sprint report generation', timestamp: '2025-01-17T17:00:00Z', status: 'success', duration: '5.4s' },
-  { id: 'eh-5', name: 'Auto-assign urgent tasks', timestamp: '2025-01-17T08:00:00Z', status: 'success', duration: '1.1s' },
-  { id: 'eh-6', name: 'Deadline reminder', timestamp: '2025-01-17T09:00:00Z', status: 'success', duration: '0.9s' },
-  { id: 'eh-7', name: 'Welcome new members', timestamp: '2025-01-16T10:00:00Z', status: 'success', duration: '2.0s' },
-  { id: 'eh-8', name: 'Sprint report generation', timestamp: '2025-01-10T17:00:00Z', status: 'failed', duration: '8.2s' },
 ];
 
 // ─── Create Automation Dialog ────────────────────────────────────────────────
@@ -266,7 +254,11 @@ function CreateAutomationDialog({ open, onClose }: { open: boolean; onClose: () 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function AutomationsView() {
   const { t } = useTranslation();
-  const [automations, setAutomations] = useState(mockAutomations);
+  const { automations: appAutomations } = useAppData();
+  const [automations, setAutomations] = useState(appAutomations);
+  useEffect(() => {
+    setAutomations(appAutomations);
+  }, [appAutomations]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const toggleAutomation = useCallback((id: string) => {
@@ -277,8 +269,13 @@ export function AutomationsView() {
 
   const enabledCount = automations.filter((a) => a.enabled).length;
   const totalRuns = automations.reduce((acc, a) => acc + a.runCount, 0);
-  const runsThisWeek = 23;
-  const timeSaved = 12.5;
+  const runsThisWeek = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return automations
+      .filter((a) => a.lastRun && new Date(a.lastRun).getTime() >= weekAgo)
+      .reduce((acc, a) => acc + a.runCount, 0);
+  }, [automations]);
+  const timeSaved = 0;
 
   const statCards = [
     {
@@ -572,54 +569,44 @@ export function AutomationsView() {
         </h3>
         <Card className="border-border/60 overflow-hidden">
           <div className="divide-y">
-            {executionHistory.map((entry, i) => (
+            {appAutomations.filter((a) => a.lastRun).length === 0 ? (
+              <p className="px-4 py-6 text-xs text-muted-foreground text-center">{t.pmp.noData}</p>
+            ) : (
+              appAutomations
+                .filter((a) => a.lastRun)
+                .slice(0, 8)
+                .map((automation, i) => (
               <motion.div
-                key={entry.id}
+                key={automation.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
               >
-                {/* Status icon */}
-                <div className={cn(
-                  'p-1 rounded-md shrink-0',
-                  entry.status === 'success' ? 'bg-blue-500/10' : 'bg-rose-500/10'
-                )}>
-                  {entry.status === 'success'
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
-                    : <XCircle className="h-3.5 w-3.5 text-rose-600" />
-                  }
+                <div className="p-1 rounded-md shrink-0 bg-blue-500/10">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
                 </div>
 
-                {/* Name */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{entry.name}</p>
+                  <p className="text-xs font-medium truncate">{automation.name}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(entry.timestamp).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                    })}
+                    {automation.lastRun
+                      ? new Date(automation.lastRun).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
                   </p>
                 </div>
 
-                {/* Status badge */}
                 <Badge
                   variant="outline"
-                  className={cn(
-                    'text-[9px] px-2 py-0 h-4 font-semibold border-0 gap-1 shrink-0',
-                    entry.status === 'success'
-                      ? 'bg-blue-500/10 text-blue-700'
-                      : 'bg-rose-500/10 text-rose-700'
-                  )}
+                  className="text-[9px] px-2 py-0 h-4 font-semibold border-0 gap-1 shrink-0 bg-blue-500/10 text-blue-700"
                 >
-                  {entry.status === 'success' ? t.automations.success : t.automations.failed}
+                  {t.automations.success}
                 </Badge>
-
-                {/* Duration */}
-                <span className="text-[10px] text-muted-foreground font-mono shrink-0 w-12 text-right">
-                  {entry.duration}
-                </span>
               </motion.div>
-            ))}
+            ))
+            )}
           </div>
         </Card>
       </div>

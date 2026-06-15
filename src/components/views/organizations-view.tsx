@@ -14,11 +14,12 @@ import {
   FolderKanban,
   Sparkles,
 } from 'lucide-react';
-import { mockOrganizations } from '@/lib/mock-data';
-import type { Organization } from '@/lib/types';
+import { useAppData } from '@/hooks/use-app-data';
 import { useAppStore } from '@/lib/store';
+import type { Organization } from '@/lib/types';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { OrganizationLogo } from '@/components/organization-logo';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Animation ───────────────────────────────────────────────────────────────
@@ -120,24 +121,17 @@ function OrganizationCard({ organization }: { organization: Organization }) {
       className="group"
     >
       <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-0 shadow-sm">
-        {/* Accent strip */}
-        <div
-          className="h-1.5 w-full"
-          style={{
-            background: `linear-gradient(90deg, ${organization.color}, ${organization.color}88)`,
-          }}
-        />
-
         <CardContent className="p-5">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm"
-                style={{ backgroundColor: organization.color + '18', color: organization.color }}
-              >
-                {organization.icon}
-              </div>
+              <OrganizationLogo
+                logo={organization.logo}
+                icon={organization.icon}
+                color={organization.color}
+                name={organization.name}
+                className="w-10 h-10 rounded-xl text-lg font-semibold shadow-sm"
+              />
               <div className="min-w-0">
                 <h3 className="text-sm font-bold truncate">{organization.name}</h3>
                 <p className="text-xs text-muted-foreground">{organization.slug}</p>
@@ -194,13 +188,13 @@ function OrganizationCard({ organization }: { organization: Organization }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function OrganizationsView() {
   const { t } = useTranslation();
-  const { organizations } = useAppStore();
+  const { organizations } = useAppData();
+  const setCreateWorkspaceDialogOpen = useAppStore((s) => s.setCreateWorkspaceDialogOpen);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  // Use store organizations (or fallback to mock data)
-  const allOrgs = organizations.length > 0 ? organizations : mockOrganizations;
+  const allOrgs = organizations;
 
   const filteredOrganizations = useMemo(() => {
     return allOrgs.filter((org) => {
@@ -242,6 +236,7 @@ export function OrganizationsView() {
         <Button
           size="sm"
           className="h-8 gap-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-sm shadow-emerald-600/20"
+          onClick={() => setCreateWorkspaceDialogOpen(true)}
         >
           <Sparkles className="h-3.5 w-3.5" /> {t.organizations.createOrganization}
         </Button>
@@ -316,7 +311,12 @@ export function OrganizationsView() {
             ))}
 
             {/* Create Organization Card */}
-            <motion.div variants={item} whileHover={{ y: -2 }} className="group">
+            <motion.div
+              variants={item}
+              whileHover={{ y: -2 }}
+              className="group"
+              onClick={() => setCreateWorkspaceDialogOpen(true)}
+            >
               <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-2 border-dashed border-muted-foreground/20 hover:border-emerald-500/40">
                 <CardContent className="p-5 flex flex-col items-center justify-center min-h-[200px] gap-3">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">

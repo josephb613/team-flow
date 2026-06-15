@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
@@ -47,8 +54,10 @@ import {
   Target,
   AlertTriangle,
   SlidersHorizontal,
+  Zap,
+  Flag,
 } from 'lucide-react';
-import { mockTasks, mockProjects, mockUsers, mockSprints } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import type { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,7 +67,7 @@ import { cn } from '@/lib/utils';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  rectIntersection,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -150,31 +159,37 @@ const priorityConfig: Record<TaskPriority, { color: string; bg: string; strip: s
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getUserStatus(id: string) {
-  return mockUsers.find((u) => u.id === id)?.status || 'offline';
-}
-
-function getProjectName(id: string) {
-  return mockProjects.find((p) => p.id === id)?.name || 'Unknown';
-}
-
-function getProjectColor(id: string) {
-  return mockProjects.find((p) => p.id === id)?.color || '#3b82f6';
-}
-
 function isOverdue(dueDate: string, status: TaskStatus) {
   if (status === 'done') return false;
   return new Date(dueDate) < new Date();
 }
+
+function filterTasksBySprintAndMilestone(
+  tasks: Task[],
+  sprintFilter: string,
+  milestoneFilter: string
+): Task[] {
+  return tasks.filter((task) => {
+    if (sprintFilter !== 'all' && task.sprintId !== sprintFilter) return false;
+    if (milestoneFilter !== 'all' && task.milestoneId !== milestoneFilter) return false;
+    return true;
+  });
+}
+
+// ── Toolbar styles ───────────────────────────────────────────────────────────
+
+const VIEW_TAB_TRIGGER_CLASS =
+  'text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm';
+
+const FILTER_SELECT_TRIGGER_CLASS = (isActive: boolean) =>
+  cn(
+    'h-7 w-auto min-w-[140px] max-w-[170px] text-xs px-2.5 rounded-md gap-1 border-transparent shadow-none',
+    '[&_svg:not([class*="size-"])]:size-3.5',
+    'focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+    isActive
+      ? 'bg-background shadow-sm text-foreground'
+      : 'bg-transparent text-muted-foreground hover:text-foreground'
+  );
 
 // ── Sort types ───────────────────────────────────────────────────────────────
 
@@ -185,14 +200,27 @@ const priorityOrder: Record<TaskPriority, number> = { urgent: 0, high: 1, medium
 
 // ── Task Card (Kanban) - base card without sortable ──────────────────────────
 
-function TaskCardContent({ task, onClick }: { task: Task; onClick?: () => void }) {
+function TaskCardContent({
+  task,
+  onClick,
+  dragHandleProps,
+}: {
+  task: Task;
+  onClick?: () => void;
+  dragHandleProps?: {
+    attributes: React.HTMLAttributes<HTMLButtonElement>;
+    listeners: React.HTMLAttributes<HTMLButtonElement>;
+  };
+}) {
+  const { openEditTaskDialog } = useAppStore();
   const { t } = useTranslation();
+  const { users, getUserName, getUserInitials } = useAppData();
   const subtaskTotal = task.subtasks.length;
   const subtaskDone = task.subtasks.filter((s) => s.completed).length;
   const priority = priorityConfig[task.priority];
   const overdue = isOverdue(task.dueDate, task.status);
   const pl: Record<TaskPriority, string> = { urgent: t.tasks.urgent, high: t.tasks.high, medium: t.tasks.medium, low: t.tasks.low };
-  const assigneeStatus = getUserStatus(task.assigneeId);
+  const assigneeStatus = users.find((u) => u.id === task.assigneeId)?.status || 'offline';
 
   return (
     <div
@@ -220,18 +248,34 @@ function TaskCardContent({ task, onClick }: { task: Task; onClick?: () => void }
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <div className="opacity-0 group-hover:opacity-40 transition-opacity cursor-grab p-0.5">
+            <button
+              type="button"
+              aria-label="Drag task"
+              className="opacity-0 group-hover:opacity-40 transition-opacity cursor-grab active:cursor-grabbing p-0.5 touch-none"
+              onClick={(e) => e.stopPropagation()}
+              {...dragHandleProps?.attributes}
+              {...dragHandleProps?.listeners}
+            >
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>{t.common.edit}</DropdownMenuItem>
-                <DropdownMenuItem>{t.tasks.assignee}</DropdownMenuItem>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => openEditTaskDialog(task.id)}>
+                  {t.common.edit}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openEditTaskDialog(task.id)}>
+                  {t.tasks.assignee}
+                </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive">{t.common.delete}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -341,26 +385,21 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
     isDragging,
   } = useSortable({ id: task.id, data: { type: 'task', task } });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+    touchAction: 'none',
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.97 }}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-    >
-      <TaskCardContent task={task} onClick={onClick} />
-    </motion.div>
+    <div ref={setNodeRef} style={style}>
+      <TaskCardContent
+        task={task}
+        onClick={onClick}
+        dragHandleProps={{ attributes, listeners }}
+      />
+    </div>
   );
 }
 
@@ -368,15 +407,20 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
 
 function DroppableKanbanColumn({
   status,
+  statusLabel,
   tasks,
   isOver,
+  onAddTask,
   children,
 }: {
   status: TaskStatus;
+  statusLabel: string;
   tasks: Task[];
   isOver: boolean;
+  onAddTask: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const { setNodeRef } = useDroppable({ id: `column-${status}`, data: { type: 'column', status } });
   const config = statusConfig[status];
 
@@ -394,7 +438,7 @@ function DroppableKanbanColumn({
           <div className={cn('p-1 rounded-md', config.bg)}>
             <span className={config.color}>{config.icon}</span>
           </div>
-          <span className="text-sm font-bold">{status}</span>
+          <span className="text-sm font-bold">{statusLabel}</span>
           <span
             className={cn(
               'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold text-white',
@@ -404,7 +448,13 @@ function DroppableKanbanColumn({
             {tasks.length}
           </span>
         </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-black/5 dark:hover:bg-white/10"
+          onClick={onAddTask}
+          aria-label={t.tasks.addTask}
+        >
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -425,16 +475,39 @@ function DroppableKanbanColumn({
 
 // ── Kanban View with DnD ─────────────────────────────────────────────────────
 
-function KanbanView() {
-  const { setSelectedTask } = useAppStore();
+function KanbanView({
+  sprintFilter,
+  milestoneFilter,
+  searchQuery,
+}: {
+  sprintFilter: string;
+  milestoneFilter: string;
+  searchQuery: string;
+}) {
+  const { setSelectedTask, openCreateTaskDialog } = useAppStore();
   const { t } = useTranslation();
+  const { tasks: appTasks, updateTaskStatus } = useAppData();
   const statuses: TaskStatus[] = ['todo', 'in_progress', 'review', 'done'];
   const sl: Record<TaskStatus, string> = { todo: t.tasks.todo, in_progress: t.tasks.inProgress, review: t.tasks.inReview, done: t.tasks.done };
 
-  // Local task state initialized from mock data
-  const [tasks, setTasks] = useState<Task[]>([...mockTasks]);
+  const [dragTasks, setDragTasks] = useState<Task[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
+
+  const filteredTasks = useMemo(() => {
+    let result = filterTasksBySprintAndMilestone(appTasks, sprintFilter, milestoneFilter);
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          task.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [appTasks, sprintFilter, milestoneFilter, searchQuery]);
+
+  const tasks = dragTasks ?? filteredTasks;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -443,17 +516,18 @@ function KanbanView() {
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
-  function findContainer(id: string): TaskStatus | undefined {
+  function findContainer(id: string, sourceTasks = tasks): TaskStatus | undefined {
     // Check if id is a column id
     if (id.startsWith('column-')) {
       return id.replace('column-', '') as TaskStatus;
     }
     // Otherwise find which column the task is in
-    const task = tasks.find((t) => t.id === id);
+    const task = sourceTasks.find((t) => t.id === id);
     return task?.status;
   }
 
   function handleDragStart(event: DragStartEvent) {
+    setDragTasks([...filteredTasks]);
     setActiveId(event.active.id as string);
   }
 
@@ -472,9 +546,8 @@ function KanbanView() {
     // Set over column for visual feedback
     setOverColumn(overContainer);
 
-    // Move the task to the new column
-    setTasks((prev) =>
-      prev.map((task) =>
+    setDragTasks((prev) =>
+      (prev ?? filteredTasks).map((task) =>
         task.id === active.id ? { ...task, status: overContainer } : task
       )
     );
@@ -482,30 +555,40 @@ function KanbanView() {
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    const currentTasks = dragTasks ?? filteredTasks;
+    const taskId = active.id as string;
+    const originalTask = appTasks.find((t) => t.id === taskId);
+
     setActiveId(null);
     setOverColumn(null);
+    setDragTasks(null);
 
-    if (!over) return;
+    if (!over || !originalTask) return;
 
-    const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over.id as string);
+    const overContainer = findContainer(over.id as string, currentTasks);
 
-    if (!activeContainer || !overContainer) return;
+    if (!overContainer || originalTask.status === overContainer) return;
 
-    // If same container, we may want to reorder (but for now, just finalize the move)
-    if (activeContainer === overContainer) return;
-
-    // Task was already moved in onDragOver, nothing more to do
+    void updateTaskStatus(taskId, overContainer);
   }
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task as unknown as Record<string, unknown>);
   };
 
+  if (filteredTasks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground min-h-[calc(100vh-220px)]">
+        <Search className="h-8 w-8 mb-2 opacity-40" />
+        <p className="text-sm">{t.myTasks.noResults}</p>
+      </div>
+    );
+  }
+
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -519,28 +602,30 @@ function KanbanView() {
             <DroppableKanbanColumn
               key={status}
               status={status}
+              statusLabel={sl[status]}
               tasks={columnTasks}
               isOver={overColumn === status}
+              onAddTask={() => openCreateTaskDialog({ status })}
             >
               <SortableContext
                 items={columnTasks.map((t) => t.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <AnimatePresence>
-                  {columnTasks.map((task) => (
-                    <SortableTaskCard
-                      key={task.id}
-                      task={task}
-                      onClick={() => handleTaskClick(task)}
-                    />
-                  ))}
-                </AnimatePresence>
+                {columnTasks.map((task) => (
+                  <SortableTaskCard
+                    key={task.id}
+                    task={task}
+                    onClick={() => handleTaskClick(task)}
+                  />
+                ))}
               </SortableContext>
 
               {/* Add task button with dashed border */}
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
+                onClick={() => openCreateTaskDialog({ status })}
                 className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.18_250)]/40 hover:bg-[oklch(0.55_0.18_250)]/5 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -584,9 +669,17 @@ function SortHeader({ field, label, currentField, currentDir, onSort }: { field:
   );
 }
 
-function ListView() {
+function ListView({
+  sprintFilter,
+  milestoneFilter,
+}: {
+  sprintFilter: string;
+  milestoneFilter: string;
+}) {
   const { setSelectedTask } = useAppStore();
   const { t } = useTranslation();
+  const { tasks, projects, getUserName, getUserInitials, getProjectName } = useAppData();
+  const getProjectColor = (id: string) => projects.find((p) => p.id === id)?.color || '#3b82f6';
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('priority');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
@@ -605,7 +698,9 @@ function ListView() {
   };
 
   const filteredAndSortedTasks = useMemo(() => {
-    let result = mockTasks.filter(
+    let result = filterTasksBySprintAndMilestone(tasks, sprintFilter, milestoneFilter);
+
+    result = result.filter(
       (task) =>
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -638,7 +733,7 @@ function ListView() {
     });
 
     return result;
-  }, [searchQuery, sortField, sortDir, filterPriority]);
+  }, [searchQuery, sortField, sortDir, filterPriority, tasks, getProjectName, sprintFilter, milestoneFilter]);
 
   return (
     <div className="space-y-3">
@@ -700,7 +795,12 @@ function ListView() {
 
         {/* Rows */}
         <div>
-          {filteredAndSortedTasks.map((task, idx) => {
+          {filteredAndSortedTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Search className="h-8 w-8 mb-2 opacity-40" />
+              <p className="text-sm">{t.myTasks.noResults}</p>
+            </div>
+          ) : filteredAndSortedTasks.map((task, idx) => {
             const status = statusConfig[task.status];
             const priority = priorityConfig[task.priority];
             const overdue = isOverdue(task.dueDate, task.status);
@@ -774,11 +874,23 @@ function ListView() {
 
 // ── My Tasks View ────────────────────────────────────────────────────────────
 
-function MyTasksView() {
-  const { setSelectedTask } = useAppStore();
+function MyTasksView({
+  sprintFilter,
+  milestoneFilter,
+}: {
+  sprintFilter: string;
+  milestoneFilter: string;
+}) {
+  const { setSelectedTask, currentUser } = useAppStore();
   const { t } = useTranslation();
+  const { tasks, projects, getProjectName, updateTaskPriority } = useAppData();
+  const getProjectColor = (id: string) => projects.find((p) => p.id === id)?.color || '#3b82f6';
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
-  const myTasks = mockTasks.filter((task) => task.assigneeId === 'u-1');
+
+  const myTasks = useMemo(() => {
+    const filtered = filterTasksBySprintAndMilestone(tasks, sprintFilter, milestoneFilter);
+    return filtered.filter((task) => task.assigneeId === currentUser?.id);
+  }, [tasks, currentUser?.id, sprintFilter, milestoneFilter]);
 
   // Group by project
   const grouped = useMemo(() => {
@@ -806,6 +918,10 @@ function MyTasksView() {
 
   const sl: Record<TaskStatus, string> = { todo: t.tasks.todo, in_progress: t.tasks.inProgress, review: t.tasks.inReview, done: t.tasks.done };
   const pl: Record<TaskPriority, string> = { urgent: t.tasks.urgent, high: t.tasks.high, medium: t.tasks.medium, low: t.tasks.low };
+
+  const handlePriorityChange = (taskId: string, newPriority: TaskPriority) => {
+    void updateTaskPriority(taskId, newPriority);
+  };
 
   return (
     <div className="space-y-4">
@@ -849,6 +965,12 @@ function MyTasksView() {
       </Card>
 
       {/* Grouped tasks */}
+      {grouped.size === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Target className="h-8 w-8 mb-2 opacity-40" />
+          <p className="text-sm">{t.myTasks.noResults}</p>
+        </div>
+      ) : (
       <div className="space-y-3">
         {Array.from(grouped.entries()).map(([projectId, tasks]) => {
           const collapsed = collapsedProjects.has(projectId);
@@ -936,12 +1058,39 @@ function MyTasksView() {
                                   {status.icon}
                                   {sl[task.status]}
                                 </span>
-                                <Badge
-                                  variant="outline"
-                                  className={cn('text-[10px] px-1.5 py-0 font-medium gap-0.5 h-4', priority.bg, priority.color)}
-                                >
-                                  {pl[task.priority]}
-                                </Badge>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex"
+                                    >
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          'text-[10px] px-1.5 py-0 font-medium gap-0.5 h-4 cursor-pointer hover:opacity-80 transition-opacity',
+                                          priority.bg,
+                                          priority.color
+                                        )}
+                                      >
+                                        {priority.icon}
+                                        {pl[task.priority]}
+                                      </Badge>
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="w-40" onClick={(e) => e.stopPropagation()}>
+                                    {(['urgent', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => (
+                                      <DropdownMenuItem
+                                        key={p}
+                                        onClick={() => handlePriorityChange(task.id, p)}
+                                        className={cn('gap-2 text-xs', task.priority === p && 'bg-muted')}
+                                      >
+                                        <span className={cn('w-2 h-2 rounded-full', priorityConfig[p].dotColor)} />
+                                        {pl[p]}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                             <div
@@ -964,6 +1113,7 @@ function MyTasksView() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -971,11 +1121,37 @@ function MyTasksView() {
 // ── Main Tasks View ──────────────────────────────────────────────────────────
 
 export function TasksView() {
-  const { taskViewMode, setTaskViewMode } = useAppStore();
+  const {
+    taskViewMode,
+    setTaskViewMode,
+    openCreateTaskDialog,
+    activeSprintId,
+    activeMilestoneId,
+    setActiveSprintId,
+    setActiveMilestoneId,
+  } = useAppStore();
+  const { tasks: appTasks, sprints, milestones } = useAppData();
   const { t } = useTranslation();
-  const tasks = (t.tasks || {}) as Record<string, string>;
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [sprintFilter, setSprintFilter] = useState('all');
+  const [milestoneFilter, setMilestoneFilter] = useState('all');
+
+  useEffect(() => {
+    if (activeSprintId) {
+      setSprintFilter(activeSprintId);
+      setMilestoneFilter('all');
+      setActiveSprintId(null);
+    }
+  }, [activeSprintId, setActiveSprintId]);
+
+  useEffect(() => {
+    if (activeMilestoneId) {
+      setMilestoneFilter(activeMilestoneId);
+      setSprintFilter('all');
+      setActiveMilestoneId(null);
+    }
+  }, [activeMilestoneId, setActiveMilestoneId]);
 
   return (
     <div className="space-y-4">
@@ -984,50 +1160,75 @@ export function TasksView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.tasks.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{mockTasks.length}</span> {t.dashboard.tasks} · <span className="font-semibold text-blue-600 dark:text-blue-400">{mockTasks.filter((task) => task.status === 'done').length}</span> {t.tasks.tasksCompleted}
+            <span className="font-semibold text-foreground">{appTasks.length}</span> {t.dashboard.tasks} · <span className="font-semibold text-blue-600 dark:text-blue-400">{appTasks.filter((task) => task.status === 'done').length}</span> {t.tasks.tasksCompleted}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Tabs value={taskViewMode} onValueChange={(v) => setTaskViewMode(v as typeof taskViewMode)}>
             <TabsList className="h-8 bg-muted/50 p-0.5">
-              <TabsTrigger
-                value="kanban"
-                className={cn(
-                  'text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm',
-                )}
-              >
+              <TabsTrigger value="kanban" className={VIEW_TAB_TRIGGER_CLASS}>
                 <Columns3 className="h-3.5 w-3.5" /> {t.tasks.kanban}
               </TabsTrigger>
-              <TabsTrigger
-                value="list"
-                className="text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="list" className={VIEW_TAB_TRIGGER_CLASS}>
                 <List className="h-3.5 w-3.5" /> {t.tasks.list}
               </TabsTrigger>
-              <TabsTrigger
-                value="my_tasks"
-                className="text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="my-tasks" className={VIEW_TAB_TRIGGER_CLASS}>
                 <User className="h-3.5 w-3.5" /> {t.tasks.myTasks}
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setFilterOpen(!filterOpen)}
-            className={cn(
-              'h-8 text-xs gap-1.5',
-              filterOpen && 'bg-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)]'
-            )}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            {t.tasks.filter}
-          </Button>
+          {taskViewMode === 'kanban' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilterOpen(!filterOpen)}
+              className={cn(
+                'h-8 text-xs gap-1.5',
+                (filterOpen || searchQuery.trim()) && 'bg-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)]'
+              )}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {t.tasks.filter}
+            </Button>
+          )}
+
+          <div className="inline-flex h-8 items-center justify-center rounded-lg bg-muted/50 p-0.5 gap-0.5">
+            <Select value={sprintFilter} onValueChange={setSprintFilter}>
+              <SelectTrigger
+                size="sm"
+                className={FILTER_SELECT_TRIGGER_CLASS(sprintFilter !== 'all')}
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <SelectValue placeholder={t.nav.sprints} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.myTasks.allSprints}</SelectItem>
+                {sprints.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={milestoneFilter} onValueChange={setMilestoneFilter}>
+              <SelectTrigger
+                size="sm"
+                className={FILTER_SELECT_TRIGGER_CLASS(milestoneFilter !== 'all')}
+              >
+                <Flag className="h-3.5 w-3.5 shrink-0" />
+                <SelectValue placeholder={t.nav.milestones} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.myTasks.allMilestones}</SelectItem>
+                {milestones.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <Button
             size="sm"
+            onClick={() => openCreateTaskDialog()}
             className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
           >
             <Plus className="h-3.5 w-3.5" /> {t.tasks.newTask}
@@ -1062,9 +1263,28 @@ export function TasksView() {
 
       {/* Views */}
       <AnimatePresence mode="wait">
-        {taskViewMode === 'kanban' && <KanbanView key="kanban" />}
-        {taskViewMode === 'list' && <ListView key="list" />}
-        {taskViewMode === 'my_tasks' && <MyTasksView key="my_tasks" />}
+        {taskViewMode === 'kanban' && (
+          <KanbanView
+            key="kanban"
+            sprintFilter={sprintFilter}
+            milestoneFilter={milestoneFilter}
+            searchQuery={searchQuery}
+          />
+        )}
+        {taskViewMode === 'list' && (
+          <ListView
+            key="list"
+            sprintFilter={sprintFilter}
+            milestoneFilter={milestoneFilter}
+          />
+        )}
+        {taskViewMode === 'my-tasks' && (
+          <MyTasksView
+            key="my-tasks"
+            sprintFilter={sprintFilter}
+            milestoneFilter={milestoneFilter}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

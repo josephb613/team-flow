@@ -56,7 +56,7 @@ import {
   Activity,
   Send,
 } from 'lucide-react';
-import { mockUsers, mockTasks, mockProjects } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import type { MemberRole } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -127,21 +127,33 @@ function ActivityBar({ days }: { days: number[] }) {
 // ─── Member Detail Sheet ─────────────────────────────────────────────────────
 function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const user = mockUsers.find((u) => u.id === userId);
+  const { users, tasks, projects } = useAppData();
+  const user = users.find((u) => u.id === userId);
 
   if (!user) return null;
 
   const role = roleConfig[user.role];
   const status = statusConfig[user.status];
   const RoleIcon = role.icon;
-  const gradient = avatarGradients[mockUsers.indexOf(user) % avatarGradients.length];
+  const gradient = avatarGradients[users.indexOf(user) % avatarGradients.length];
 
   // Get user's tasks
-  const userTasks = mockTasks.filter((t) => t.assigneeId === user.id);
-  const userProjects = mockProjects.filter((p) => p.members.includes(user.id));
+  const userTasks = tasks.filter((t) => t.assigneeId === user.id);
+  const userProjects = projects.filter((p) => p.memberIds.includes(user.id));
 
-  // Mock activity for last 7 days
-  const activityDays = [3, 5, 2, 7, 4, 6, 1];
+  const activityDays = useMemo(() => {
+    const counts = Array(7).fill(0);
+    const now = new Date();
+    userTasks.forEach((task) => {
+      if (!task.updatedAt) return;
+      const updated = new Date(task.updatedAt);
+      const diffDays = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays < 7) {
+        counts[6 - diffDays] += 1;
+      }
+    });
+    return counts;
+  }, [userTasks]);
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const roleLabels: Record<string, string> = {
@@ -270,6 +282,7 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function MembersView() {
   const { t } = useTranslation();
+  const { users, tasks, projects } = useAppData();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -284,7 +297,7 @@ export function MembersView() {
   };
 
   const filtered = useMemo(() => {
-    const result = mockUsers.filter((u) => {
+    const result = users.filter((u) => {
       const matchesSearch =
         u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase());
@@ -301,19 +314,19 @@ export function MembersView() {
         default: return 0;
       }
     });
-  }, [search, roleFilter, sortBy]);
+  }, [search, roleFilter, sortBy, users]);
 
-  const onlineCount = mockUsers.filter((u) => u.status === 'online').length;
-  const adminCount = mockUsers.filter((u) => u.role === 'admin').length;
+  const onlineCount = users.filter((u) => u.status === 'online').length;
+  const adminCount = users.filter((u) => u.role === 'admin').length;
 
   const roleCount = (role: string) => {
-    if (role === 'all') return mockUsers.length;
-    return mockUsers.filter((u) => u.role === role).length;
+    if (role === 'all') return users.length;
+    return users.filter((u) => u.role === role).length;
   };
 
   // Stats cards data
   const statCards = [
-    { title: t.members.totalMembers, value: mockUsers.length, icon: Users, gradient: 'from-blue-500/10 via-blue-500/5 to-transparent', iconBg: 'bg-blue-500/15 border-blue-500/15', iconColor: 'text-blue-600', borderAccent: 'border-blue-500/20' },
+    { title: t.members.totalMembers, value: users.length, icon: Users, gradient: 'from-blue-500/10 via-blue-500/5 to-transparent', iconBg: 'bg-blue-500/15 border-blue-500/15', iconColor: 'text-blue-600', borderAccent: 'border-blue-500/20' },
     { title: t.members.onlineNow, value: onlineCount, icon: Activity, gradient: 'from-blue-500/10 via-blue-500/5 to-transparent', iconBg: 'bg-blue-500/15 border-blue-500/15', iconColor: 'text-blue-600', borderAccent: 'border-blue-500/20' },
     { title: t.members.newThisMonth, value: 2, icon: UserPlus, gradient: 'from-amber-500/10 via-amber-500/5 to-transparent', iconBg: 'bg-amber-500/15 border-amber-500/15', iconColor: 'text-amber-600', borderAccent: 'border-amber-500/20' },
     { title: t.members.admins, value: adminCount, icon: Shield, gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent', iconBg: 'bg-cyan-500/15 border-cyan-500/15', iconColor: 'text-cyan-600', borderAccent: 'border-cyan-500/20' },
@@ -326,7 +339,7 @@ export function MembersView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">{t.members.title}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {mockUsers.length} {t.members.title.toLowerCase()} · {onlineCount} {t.members.online}
+            {users.length} {t.members.title.toLowerCase()} · {onlineCount} {t.members.online}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -441,8 +454,8 @@ export function MembersView() {
                 const status = statusConfig[user.status];
                 const RoleIcon = role.icon;
                 const gradient = avatarGradients[idx % avatarGradients.length];
-                const userTasks = mockTasks.filter((t) => t.assigneeId === user.id);
-                const userProjects = mockProjects.filter((p) => p.members.includes(user.id));
+                const userTasks = tasks.filter((t) => t.assigneeId === user.id);
+                const userProjects = projects.filter((p) => p.memberIds.includes(user.id));
 
                 return (
                   <motion.div key={user.id} variants={item}>
@@ -558,8 +571,8 @@ export function MembersView() {
                   const status = statusConfig[user.status];
                   const RoleIcon = role.icon;
                   const gradient = avatarGradients[idx % avatarGradients.length];
-                  const userTasks = mockTasks.filter((t) => t.assigneeId === user.id);
-                  const userProjects = mockProjects.filter((p) => p.members.includes(user.id));
+                  const userTasks = tasks.filter((t) => t.assigneeId === user.id);
+                  const userProjects = projects.filter((p) => p.memberIds.includes(user.id));
 
                   return (
                     <motion.div

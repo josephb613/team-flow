@@ -40,13 +40,13 @@ import {
   Search,
 } from 'lucide-react';
 import type { PageId, TaskStatus, TaskPriority } from '@/lib/types';
-import { mockTasks, mockProjects, mockUsers } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const pages: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
   { icon: <LayoutDashboard className="h-4 w-4" />, label: 'Dashboard', pageId: 'dashboard' },
-  { icon: <CheckSquare className="h-4 w-4" />, label: 'Tasks', pageId: 'tasks' },
+  { icon: <CheckSquare className="h-4 w-4" />, label: 'Tasks', pageId: 'my-tasks' },
   { icon: <FolderKanban className="h-4 w-4" />, label: 'Projects', pageId: 'projects' },
   { icon: <Calendar className="h-4 w-4" />, label: 'Calendar', pageId: 'calendar' },
   { icon: <MessageSquare className="h-4 w-4" />, label: 'Messages', pageId: 'messages' },
@@ -90,10 +90,12 @@ export function SearchDialog() {
     setSelectedTask,
     recentItems,
     addRecentItem,
+    openProject,
     setCreateTaskDialogOpen,
     setCreateProjectDialogOpen,
     setShortcutsHelpOpen,
   } = useAppStore();
+  const { tasks, projects, users } = useAppData();
   const { t } = useTranslation();
   const { setTheme, resolvedTheme } = useTheme();
   const [query, setQuery] = useState('');
@@ -104,26 +106,26 @@ export function SearchDialog() {
   const filteredTasks = useMemo(() => {
     if (isQueryEmpty) return [];
     const q = query.toLowerCase();
-    return mockTasks
+    return tasks
       .filter((task) => task.title.toLowerCase().includes(q))
       .slice(0, 5);
-  }, [query, isQueryEmpty]);
+  }, [query, isQueryEmpty, tasks]);
 
   const filteredProjects = useMemo(() => {
     if (isQueryEmpty) return [];
     const q = query.toLowerCase();
-    return mockProjects
+    return projects
       .filter((project) => project.name.toLowerCase().includes(q))
       .slice(0, 5);
-  }, [query, isQueryEmpty]);
+  }, [query, isQueryEmpty, projects]);
 
   const filteredUsers = useMemo(() => {
     if (isQueryEmpty) return [];
     const q = query.toLowerCase();
-    return mockUsers
+    return users
       .filter((user) => user.name.toLowerCase().includes(q))
       .slice(0, 5);
-  }, [query, isQueryEmpty]);
+  }, [query, isQueryEmpty, users]);
 
   const hasResults = filteredTasks.length > 0 || filteredProjects.length > 0 || filteredUsers.length > 0;
 
@@ -252,8 +254,8 @@ export function SearchDialog() {
                     <CommandItem
                       key={task.id}
                       onSelect={() => runCommand(() => {
-                        addRecentItem('tasks');
-                        setActivePage('tasks');
+                        addRecentItem('my-tasks');
+                        setActivePage('my-tasks');
                         setSelectedTask(task as unknown as Record<string, unknown>);
                       })}
                       className="flex items-center gap-2"
@@ -277,10 +279,7 @@ export function SearchDialog() {
                 {filteredProjects.map((project) => (
                   <CommandItem
                     key={project.id}
-                    onSelect={() => runCommand(() => {
-                      addRecentItem('projects');
-                      setActivePage('projects');
-                    })}
+                    onSelect={() => runCommand(() => openProject(project.id))}
                     className="flex items-center gap-2"
                   >
                     <span

@@ -31,9 +31,6 @@ import {
   ArrowUp,
   ArrowRight,
   ArrowDown,
-  GitBranch,
-  UserPlus,
-  CalendarClock,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -43,7 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Task, TaskStatus, TaskPriority } from '@/lib/types';
-import { mockProjects, mockUsers } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -62,35 +59,12 @@ const priorityConfig: Record<TaskPriority, { label: string; color: string; bg: s
   low: { label: 'Low', color: 'text-blue-600', bg: 'bg-blue-500/10 border-blue-200', icon: <ArrowDown className="h-3.5 w-3.5" />, solidBg: 'bg-blue-500 text-white' },
 };
 
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-function getProjectName(id: string) {
-  return mockProjects.find((p) => p.id === id)?.name || 'Unknown';
-}
-
-function getProjectColor(id: string) {
-  return mockProjects.find((p) => p.id === id)?.color || '#3b82f6';
-}
-
-interface MockComment {
+interface TaskComment {
   id: string;
   userId: string;
   text: string;
   time: string;
 }
-
-const mockComments: MockComment[] = [
-  { id: 'c1', userId: 'u-2', text: 'Looks great! Just a few tweaks on the responsive breakpoints.', time: '2h ago' },
-  { id: 'c2', userId: 'u-3', text: 'I can help with the API integration part when you\'re ready.', time: '5h ago' },
-  { id: 'c3', userId: 'u-6', text: 'Should we schedule a quick review meeting for this?', time: '1d ago' },
-];
 
 interface ActivityLogEntry {
   id: string;
@@ -99,23 +73,29 @@ interface ActivityLogEntry {
   time: string;
 }
 
-const mockActivityLog: ActivityLogEntry[] = [
-  { id: 'al1', icon: <GitBranch className="h-3 w-3" />, text: 'Status changed from To Do to In Progress', time: '2h ago' },
-  { id: 'al2', icon: <UserPlus className="h-3 w-3" />, text: 'Assigned to Sarah Chen', time: '5h ago' },
-  { id: 'al3', icon: <CalendarClock className="h-3 w-3" />, text: 'Due date set to Jan 25', time: '1d ago' },
-];
-
 export function TaskDetailDrawer() {
-  const { taskDetailOpen, setTaskDetailOpen, selectedTask, updateTaskStatus } = useAppStore();
+  const { taskDetailOpen, setTaskDetailOpen, selectedTask, currentUser, openEditTaskDialog, setSelectedTask } = useAppStore();
+  const { tasks, projects, getUserName, getUserInitials, getProjectName, updateTaskStatus, updateTaskPriority } = useAppData();
   const { t } = useTranslation();
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<MockComment[]>(mockComments);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [activityLog] = useState<ActivityLogEntry[]>([]);
+
+  const getProjectColor = (id: string) => projects.find((p) => p.id === id)?.color || '#3b82f6';
 
   if (!selectedTask) return null;
 
-  const task = selectedTask as Task;
+  const selectedId = (selectedTask as Task).id;
+  const task = tasks.find((item) => item.id === selectedId) ?? (selectedTask as Task);
   const status = statusConfig[task.status];
   const priority = priorityConfig[task.priority];
+  const projectColor = getProjectColor(task.projectId);
+  const pl: Record<TaskPriority, string> = {
+    urgent: t.tasks.urgent,
+    high: t.tasks.high,
+    medium: t.tasks.medium,
+    low: t.tasks.low,
+  };
   const subtaskDone = task.subtasks.filter((s) => s.completed).length;
   const subtaskTotal = task.subtasks.length;
   const subtaskPercent = subtaskTotal > 0 ? Math.round((subtaskDone / subtaskTotal) * 100) : 0;
@@ -123,15 +103,24 @@ export function TaskDetailDrawer() {
   const handleStatusChange = (newStatus: TaskStatus) => {
     const oldLabel = statusConfig[task.status].label;
     const newLabel = statusConfig[newStatus].label;
-    updateTaskStatus(task.id, newStatus);
+    void updateTaskStatus(task.id, newStatus);
+    setSelectedTask({ ...task, status: newStatus } as unknown as Record<string, unknown>);
     toast.success(t.taskDetail.statusChanged.replace('{from}', oldLabel).replace('{to}', newLabel));
+  };
+
+  const handlePriorityChange = (newPriority: TaskPriority) => {
+    const oldLabel = pl[task.priority];
+    const newLabel = pl[newPriority];
+    void updateTaskPriority(task.id, newPriority);
+    setSelectedTask({ ...task, priority: newPriority } as unknown as Record<string, unknown>);
+    toast.success(t.taskDetail.priorityChanged.replace('{from}', oldLabel).replace('{to}', newLabel));
   };
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    const newComment: MockComment = {
+    const newComment: TaskComment = {
       id: `c-new-${Date.now()}`,
-      userId: 'u-1',
+      userId: currentUser?.id ?? '',
       text: commentText.trim(),
       time: t.activity.justNow,
     };
@@ -147,56 +136,74 @@ export function TaskDetailDrawer() {
 
   return (
     <Sheet open={taskDetailOpen} onOpenChange={setTaskDetailOpen}>
-      <SheetContent className="w-full sm:max-w-[480px] p-0 gap-0 overflow-y-auto">
+      <SheetContent showCloseButton={false} className="w-full sm:max-w-[480px] p-0 gap-0 overflow-y-auto">
         {/* Header */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              {/* Priority Badge - Prominent */}
-              <div className="flex items-center gap-2 mb-2.5 flex-wrap">
-                <Badge className={cn('text-xs px-2.5 py-1 gap-1.5 font-semibold border-0', priority.solidBg)}>
-                  {priority.icon}
-                  {priority.label}
-                </Badge>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Badge
-                      variant="outline"
-                      className={cn('text-[10px] px-2 py-0.5 cursor-pointer hover:bg-muted/50 transition-colors', status.bg, status.color)}
-                    >
-                      {status.icon}
-                      <span className="ml-1">{status.label}</span>
-                    </Badge>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-44">
-                    {(Object.keys(statusConfig) as TaskStatus[]).map((key) => {
-                      const cfg = statusConfig[key];
-                      return (
-                        <DropdownMenuItem
-                          key={key}
-                          onClick={() => handleStatusChange(key)}
-                          className={cn('gap-2', task.status === key && 'bg-muted')}
-                        >
-                          <span className={cfg.color}>{cfg.icon}</span>
-                          <span className="text-sm">{cfg.label}</span>
-                          {task.status === key && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-blue-500" />}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <SheetTitle className="text-lg leading-tight">{task.title}</SheetTitle>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <SheetHeader className="gap-3 border-b p-0 px-6 pt-5 pb-4">
+          {/* Toolbar: metadata + actions */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Badge className={cn('text-xs px-2.5 py-1 gap-1.5 font-semibold border-0 cursor-pointer hover:opacity-90 transition-opacity', priority.solidBg)}>
+                    {priority.icon}
+                    {pl[task.priority]}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  {(Object.keys(priorityConfig) as TaskPriority[]).map((key) => {
+                    const cfg = priorityConfig[key];
+                    return (
+                      <DropdownMenuItem
+                        key={key}
+                        onClick={() => handlePriorityChange(key)}
+                        className={cn('gap-2', task.priority === key && 'bg-muted')}
+                      >
+                        <span className={cfg.color}>{cfg.icon}</span>
+                        <span className="text-sm">{pl[key]}</span>
+                        {task.priority === key && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-blue-500" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={cn('text-[10px] px-2 py-0.5 cursor-pointer hover:bg-muted/50 transition-colors', status.bg, status.color)}
+                  >
+                    {status.icon}
+                    <span className="ml-1">{status.label}</span>
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  {(Object.keys(statusConfig) as TaskStatus[]).map((key) => {
+                    const cfg = statusConfig[key];
+                    return (
+                      <DropdownMenuItem
+                        key={key}
+                        onClick={() => handleStatusChange(key)}
+                        className={cn('gap-2', task.status === key && 'bg-muted')}
+                      >
+                        <span className={cfg.color}>{cfg.icon}</span>
+                        <span className="text-sm">{cfg.label}</span>
+                        {task.status === key && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-blue-500" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-muted/50 hover:bg-muted">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem className="gap-2" onClick={() => toast.info(t.taskDetail.editMode)}>
+                  <DropdownMenuItem className="gap-2" onClick={() => openEditTaskDialog(task.id)}>
                     <Pencil className="h-3.5 w-3.5" />
                     <span className="text-sm">{t.common.edit}</span>
                   </DropdownMenuItem>
@@ -211,6 +218,17 @@ export function TaskDetailDrawer() {
                 <X className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Title — full width, visually highlighted */}
+          <div className="relative overflow-hidden rounded-lg bg-muted/40 px-4 py-3">
+            <div
+              className="absolute inset-y-0 left-0 w-1 rounded-l-lg"
+              style={{ backgroundColor: projectColor }}
+            />
+            <SheetTitle className="pl-2 text-lg font-bold leading-snug tracking-tight">
+              {task.title}
+            </SheetTitle>
           </div>
         </SheetHeader>
 
@@ -243,6 +261,13 @@ export function TaskDetailDrawer() {
                 />
                 <span className="text-sm">{getProjectName(task.projectId)}</span>
               </div>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t.taskDetail.priority}</h4>
+              <Badge variant="outline" className={cn('text-xs px-2 py-0.5 gap-1', priority.bg, priority.color)}>
+                {priority.icon}
+                {pl[task.priority]}
+              </Badge>
             </div>
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t.taskDetail.dueDate}</h4>
@@ -336,20 +361,24 @@ export function TaskDetailDrawer() {
               {/* Timeline line */}
               <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
               <div className="space-y-3">
-                {mockActivityLog.map((entry) => (
-                  <div key={entry.id} className="relative flex items-start gap-3">
-                    <div className="absolute left-[-13px] top-1.5 w-3 h-3 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-                      <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        {entry.icon}
-                        <span className="text-xs">{entry.text}</span>
+                {activityLog.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/60">{t.pmp.noData}</p>
+                ) : (
+                  activityLog.map((entry) => (
+                    <div key={entry.id} className="relative flex items-start gap-3">
+                      <div className="absolute left-[-13px] top-1.5 w-3 h-3 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                        <div className="w-1 h-1 rounded-full bg-muted-foreground" />
                       </div>
-                      <span className="text-[10px] text-muted-foreground/60">{entry.time}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          {entry.icon}
+                          <span className="text-xs">{entry.text}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60">{entry.time}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -365,7 +394,9 @@ export function TaskDetailDrawer() {
             {/* Comment input */}
             <div className="flex items-start gap-2 mb-4">
               <Avatar className="h-7 w-7 mt-0.5">
-                <AvatarFallback className="text-[9px] bg-blue-500 text-white">AT</AvatarFallback>
+                <AvatarFallback className="text-[9px] bg-blue-500 text-white">
+                  {currentUser ? getUserInitials(currentUser.id) : '??'}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 relative">
                 <Input
@@ -394,6 +425,9 @@ export function TaskDetailDrawer() {
 
             {/* Comments list */}
             <div className="space-y-3">
+              {comments.length === 0 && (
+                <p className="text-xs text-muted-foreground/60 text-center py-2">{t.pmp.noData}</p>
+              )}
               <AnimatePresence initial={false}>
                 {comments.map((comment) => (
                   <motion.div

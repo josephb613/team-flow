@@ -31,14 +31,13 @@ import {
   CheckCircle2,
   PauseCircle,
   Archive,
-  Clock,
-  MoreHorizontal,
   Users,
-  TrendingUp,
   ArrowUpRight,
   Sparkles,
+  Pencil,
 } from 'lucide-react';
-import { mockProjects, mockUsers, mockTeams } from '@/lib/mock-data';
+import { useAppData } from '@/hooks/use-app-data';
+import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import type { Project, ProjectStatus } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -83,33 +82,8 @@ const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: Rea
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getUserInitials(id: string) {
-  const user = mockUsers.find((u) => u.id === id);
-  return user ? user.name.split(' ').map((n) => n[0]).join('') : '??';
-}
-
-function getUserName(id: string) {
-  return mockUsers.find((u) => u.id === id)?.name || 'Unknown';
-}
-
-// ── Animation Variants ───────────────────────────────────────────────────────
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
-};
-
-// ── Avatar Stack ─────────────────────────────────────────────────────────────
-
 function AvatarStack({ memberIds, max = 4, size = 'sm' }: { memberIds: string[]; max?: number; size?: 'sm' | 'md' }) {
+  const { getUserName, getUserInitials } = useAppData();
   const dims = size === 'sm' ? { avatar: 'h-6 w-6', text: 'text-[8px]', overlap: '-space-x-2', moreText: 'text-[10px]' }
     : { avatar: 'h-7 w-7', text: 'text-[9px]', overlap: '-space-x-2', moreText: 'text-[10px]' };
 
@@ -142,6 +116,31 @@ function AvatarStack({ memberIds, max = 4, size = 'sm' }: { memberIds: string[];
   );
 }
 
+// ── Animation Variants ───────────────────────────────────────────────────────
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
+
+function formatProjectDueDate(dueDate: string, locale: string, fallback: string): string {
+  if (!dueDate) return fallback;
+  const date = new Date(dueDate);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 // ── Progress Bar with Label ──────────────────────────────────────────────────
 
 function ProgressBar({ value, color, size = 'md' }: { value: number; color: string; size?: 'sm' | 'md' | 'lg' }) {
@@ -163,99 +162,111 @@ function ProgressBar({ value, color, size = 'md' }: { value: number; color: stri
 
 // ── Project Grid Card ────────────────────────────────────────────────────────
 
-function ProjectGridCard({ project }: { project: Project }) {
-  const { t } = useTranslation();
+function ProjectGridCard({
+  project,
+  onOpen,
+  onEdit,
+}: {
+  project: Project;
+  onOpen: (project: Project) => void;
+  onEdit: (project: Project) => void;
+}) {
+  const { t, locale } = useTranslation();
   const status = statusConfig[project.status];
   const statusLabels: Record<ProjectStatus, string> = { active: t.projects.active, on_hold: t.projects.onHold, completed: t.projects.completed, archived: t.projects.archived };
-  const remainingTasks = project.taskCount - project.completedTasks;
+  const dueDateLabel = formatProjectDueDate(project.dueDate, locale, t.projects.noDueDate);
 
   return (
     <motion.div
       variants={item}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
       className="group"
     >
-      <Card className="overflow-hidden cursor-pointer hover:shadow-xl transition-shadow duration-300 border-0 shadow-sm">
-        {/* Accent strip / gradient top border */}
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(project)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(project);
+          }
+        }}
+        className="relative overflow-hidden cursor-pointer gap-0 py-0 rounded-2xl border border-border/50 bg-card shadow-none hover:shadow-md hover:border-border/80 transition-all duration-300"
+      >
         <div
-          className="h-1.5 w-full"
-          style={{
-            background: `linear-gradient(90deg, ${project.color}, ${project.color}88)`,
-          }}
+          className="absolute inset-0 opacity-[0.04] group-hover:opacity-[0.07] transition-opacity pointer-events-none"
+          style={{ background: `linear-gradient(145deg, ${project.color}, transparent 65%)` }}
+        />
+        <div
+          className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full"
+          style={{ backgroundColor: project.color }}
         />
 
-        <CardContent className="p-5">
-          {/* Header: Icon + Name + Status badge + Menu */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
+        <CardContent className="relative p-5 pl-6">
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div className="flex items-center gap-3 min-w-0">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-semibold shrink-0 shadow-sm"
-                style={{ backgroundColor: project.color + '18', color: project.color }}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 ring-1 ring-black/[0.04] dark:ring-white/[0.08]"
+                style={{ backgroundColor: `${project.color}14`, color: project.color }}
               >
                 {project.icon}
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm font-bold truncate">{project.name}</h3>
-                <div className="mt-1">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                      status.solidBg,
-                      status.solidText
-                    )}
-                  >
-                    {status.icon}
-                    {statusLabels[project.status]}
-                  </span>
-                </div>
+                <h3 className="text-[15px] font-semibold truncate tracking-tight">{project.name}</h3>
+                {project.description ? (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{project.description}</p>
+                ) : null}
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(project);
+                }}
+                aria-label={t.projectDetail.editProject}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full',
+                  status.solidBg,
+                  status.solidText
+                )}
+              >
+                <span className={cn('w-1.5 h-1.5 rounded-full', status.dotColor)} />
+                {statusLabels[project.status]}
+              </span>
+            </div>
           </div>
 
-          {/* Description */}
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">{project.description}</p>
-
-          {/* Progress */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t.dashboard.projectProgress}</span>
-              <span className="text-xs font-bold" style={{ color: project.color }}>{project.progress}%</span>
+          <div className="mb-5">
+            <div className="flex items-end justify-between mb-2.5">
+              <span className="text-[11px] font-medium text-muted-foreground">{t.dashboard.projectProgress}</span>
+              <span className="text-2xl font-bold tabular-nums leading-none" style={{ color: project.color }}>
+                {project.progress}
+                <span className="text-sm font-semibold opacity-60">%</span>
+              </span>
             </div>
             <ProgressBar value={project.progress} color={project.color} size="md" />
           </div>
 
-          {/* Stats row */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3 text-blue-500" />
-              <span className="font-medium">{project.completedTasks}/{project.taskCount}</span>
-            </div>
-            {remainingTasks > 0 && (
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <Clock className="h-3 w-3 text-amber-500" />
-                <span className="font-medium">{remainingTasks} left</span>
-              </div>
-            )}
-            {project.progress >= 80 && project.status === 'active' && (
-              <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
-                <TrendingUp className="h-3 w-3" />
-                On track
-              </div>
-            )}
-          </div>
-
-          {/* Footer: Members + Due Date */}
-          <div className="flex items-center justify-between pt-3 border-t">
-            <AvatarStack memberIds={project.members} max={4} size="sm" />
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-              <Calendar className="h-3 w-3" />
-              {new Date(project.dueDate).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })}
+          <div className="flex items-center justify-between pt-4 border-t border-border/40">
+            <AvatarStack memberIds={project.memberIds} max={4} size="sm" />
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1 font-medium">
+                <CheckCircle2 className="h-3 w-3 opacity-50" />
+                {project.completedTasks}/{project.taskCount}
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium">
+                <Calendar className="h-3 w-3 opacity-50" />
+                {dueDateLabel}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -266,8 +277,16 @@ function ProjectGridCard({ project }: { project: Project }) {
 
 // ── Project List Row ─────────────────────────────────────────────────────────
 
-function ProjectListRow({ project }: { project: Project }) {
-  const { t } = useTranslation();
+function ProjectListRow({
+  project,
+  onOpen,
+  onEdit,
+}: {
+  project: Project;
+  onOpen: (project: Project) => void;
+  onEdit: (project: Project) => void;
+}) {
+  const { t, locale } = useTranslation();
   const status = statusConfig[project.status];
   const statusLabels: Record<ProjectStatus, string> = { active: t.projects.active, on_hold: t.projects.onHold, completed: t.projects.completed, archived: t.projects.archived };
 
@@ -275,6 +294,15 @@ function ProjectListRow({ project }: { project: Project }) {
     <motion.div
       variants={item}
       whileHover={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(project)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen(project);
+        }
+      }}
       className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-4 py-3.5 items-center cursor-pointer transition-colors"
     >
       {/* Icon */}
@@ -315,17 +343,26 @@ function ProjectListRow({ project }: { project: Project }) {
 
       {/* Members */}
       <div className="hidden lg:flex items-center w-24">
-        <AvatarStack memberIds={project.members} max={3} size="sm" />
+        <AvatarStack memberIds={project.memberIds} max={3} size="sm" />
       </div>
 
       {/* Due Date + Task count */}
-      <div className="flex items-center gap-3 w-32">
+      <div className="flex items-center gap-2 w-36 justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(project);
+          }}
+          aria-label={t.projectDetail.editProject}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
         <div className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
           <Calendar className="h-3 w-3" />
-          {new Date(project.dueDate).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          })}
+          {formatProjectDueDate(project.dueDate, locale, t.projects.noDueDate)}
         </div>
       </div>
     </motion.div>
@@ -337,9 +374,11 @@ function ProjectListRow({ project }: { project: Project }) {
 function StatusFilterTabs({
   statusFilter,
   setStatusFilter,
+  projects,
 }: {
   statusFilter: string;
   setStatusFilter: (v: string) => void;
+  projects: import('@/lib/types').Project[];
 }) {
   const { t } = useTranslation();
   const tabs = [
@@ -351,11 +390,11 @@ function StatusFilterTabs({
   ];
 
   const counts: Record<string, number> = {
-    all: mockProjects.length,
-    active: mockProjects.filter((p) => p.status === 'active').length,
-    on_hold: mockProjects.filter((p) => p.status === 'on_hold').length,
-    completed: mockProjects.filter((p) => p.status === 'completed').length,
-    archived: mockProjects.filter((p) => p.status === 'archived').length,
+    all: projects.length,
+    active: projects.filter((p) => p.status === 'active').length,
+    on_hold: projects.filter((p) => p.status === 'on_hold').length,
+    completed: projects.filter((p) => p.status === 'completed').length,
+    archived: projects.filter((p) => p.status === 'archived').length,
   };
 
   return (
@@ -399,27 +438,39 @@ function StatusFilterTabs({
 
 export function ProjectsView() {
   const { t } = useTranslation();
+  const { projects, teams } = useAppData();
+  const setCreateProjectDialogOpen = useAppStore((s) => s.setCreateProjectDialogOpen);
+  const openProject = useAppStore((s) => s.openProject);
+  const openEditProjectDialog = useAppStore((s) => s.openEditProjectDialog);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
 
+  const handleOpenProject = (project: Project) => {
+    openProject(project.id);
+  };
+
+  const handleEditProject = (project: Project) => {
+    openEditProjectDialog(project.id);
+  };
+
   // Filter projects
-  const filteredProjects = mockProjects.filter((project) => {
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     const matchesTeam =
       teamFilter === 'all' ||
-      mockTeams.some(
-        (team) => team.id === teamFilter && team.projects.includes(project.id)
+      teams.some(
+        (team) => team.id === teamFilter && team.projectIds.includes(project.id)
       );
     return matchesSearch && matchesStatus && matchesTeam;
   });
 
-  const activeCount = mockProjects.filter((p) => p.status === 'active').length;
-  const totalCount = mockProjects.length;
+  const activeCount = projects.filter((p) => p.status === 'active').length;
+  const totalCount = projects.length;
 
   return (
     <div className="space-y-5">
@@ -451,6 +502,7 @@ export function ProjectsView() {
 
           <Button
             size="sm"
+            onClick={() => setCreateProjectDialogOpen(true)}
             className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
           >
             <Sparkles className="h-3.5 w-3.5" /> {t.projects.newProject}
@@ -461,7 +513,7 @@ export function ProjectsView() {
       {/* Filters bar */}
       <div className="flex flex-col gap-3">
         {/* Status filter tabs */}
-        <StatusFilterTabs statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+        <StatusFilterTabs statusFilter={statusFilter} setStatusFilter={setStatusFilter} projects={projects} />
 
         {/* Search + team filter */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -481,7 +533,7 @@ export function ProjectsView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t.projects.all} {t.projects.team}s</SelectItem>
-              {mockTeams.map((team) => (
+              {teams.map((team) => (
                 <SelectItem key={team.id} value={team.id}>
                   {team.name}
                 </SelectItem>
@@ -515,7 +567,12 @@ export function ProjectsView() {
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
               >
                 {filteredProjects.map((project) => (
-                  <ProjectGridCard key={project.id} project={project} />
+                  <ProjectGridCard
+                    key={project.id}
+                    project={project}
+                    onOpen={handleOpenProject}
+                    onEdit={handleEditProject}
+                  />
                 ))}
               </motion.div>
             )}
@@ -554,7 +611,12 @@ export function ProjectsView() {
                   className="divide-y"
                 >
                   {filteredProjects.map((project) => (
-                    <ProjectListRow key={project.id} project={project} />
+                    <ProjectListRow
+                      key={project.id}
+                      project={project}
+                      onOpen={handleOpenProject}
+                      onEdit={handleEditProject}
+                    />
                   ))}
                 </motion.div>
               </div>
