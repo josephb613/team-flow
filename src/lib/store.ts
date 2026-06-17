@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { PageId, Organization, Notification, UserRole, TaskStatus } from './types';
+import { authClient } from '@/lib/auth/client';
 
 export type CreateTaskDefaults = {
   status?: TaskStatus;
@@ -197,14 +198,19 @@ interface AppState {
     organizationId: string;
     organizationName: string;
   } | null;
-  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   register: (
     email: string,
     password: string,
     name: string,
     workspaceName?: string
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
-  logout: () => void;
+  hydrateSession: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -477,20 +483,59 @@ export const useAppStore = create<AppState>((set) => ({
   // Auth
   isAuthenticated: false,
   currentUser: null,
-  login: async (email, password) => {
+  hydrateSession: async () => {
+    try {
+      const { data: session } = await authClient.getSession();
+      if (!session?.user) {
+        set({ isAuthenticated: false, currentUser: null });
+        return;
+      }
+
+      const res = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        set({ isAuthenticated: false, currentUser: null });
+        return;
+      }
+
+      set({
+        isAuthenticated: true,
+        currentUser: data.user,
+        activeOrganizationId: data.user.organizationId ?? '',
+        activeTenantId: data.user.organizationId ?? '',
+      });
+    } catch {
+      set({ isAuthenticated: false, currentUser: null });
+    }
+  },
+  login: async (email, password, rememberMe = false) => {
     if (!email || !password) {
       return { ok: false, error: 'Email et mot de passe requis' };
     }
     try {
-      const res = await fetch('/api/auth/login', {
+      const { error } = await authClient.signIn.email({
+        email,
+        password,
+        rememberMe,
+      });
+      if (error) {
+        return { ok: false, error: error.message ?? 'Échec de connexion' };
+      }
+
+      const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: '{}',
       });
       const data = await res.json();
       if (!res.ok) {
-        return { ok: false, error: data.error ?? 'Échec de connexion' };
+        return { ok: false, error: data.error ?? 'Échec de synchronisation du compte' };
       }
+
       set({
         isAuthenticated: true,
         currentUser: data.user,
@@ -507,15 +552,21 @@ export const useAppStore = create<AppState>((set) => ({
       return { ok: false, error: 'Tous les champs sont requis' };
     }
     try {
-      const res = await fetch('/api/auth/register', {
+      const { error } = await authClient.signUp.email({ email, password, name });
+      if (error) {
+        return { ok: false, error: error.message ?? 'Échec de la création du compte' };
+      }
+
+      const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, workspaceName }),
+        body: JSON.stringify({ workspaceName: workspaceName || name }),
       });
       const data = await res.json();
       if (!res.ok) {
-        return { ok: false, error: data.error ?? 'Échec de la création du compte' };
+        return { ok: false, error: data.error ?? 'Échec de synchronisation du compte' };
       }
+
       set({
         isAuthenticated: true,
         currentUser: data.user,
@@ -527,5 +578,19 @@ export const useAppStore = create<AppState>((set) => ({
       return { ok: false, error: 'Échec de la création du compte' };
     }
   },
-  logout: () => set({ isAuthenticated: false, currentUser: null }),
+  logout: async () => {
+    try {
+      await authClient.signOut();
+    } catch {
+      // Clear local state even if sign-out request fails
+    }
+    set({
+      isAuthenticated: false,
+      currentUser: null,
+      organizations: [],
+      tenants: [],
+      activeOrganizationId: '',
+      activeTenantId: '',
+    });
+  },
 }));

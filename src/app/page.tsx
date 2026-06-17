@@ -5,6 +5,14 @@ import { useAppStore } from '@/lib/store';
 import { LoginPage } from '@/components/login-page';
 import { MainApp } from '@/components/main-app';
 
+function AuthLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-2 border-[oklch(0.55_0.18_250)]/30 border-t-[oklch(0.55_0.18_250)] rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function isChunkLoadError(message: string) {
   return (
     message.includes('ChunkLoadError') ||
@@ -62,7 +70,19 @@ class ErrorBoundary extends React.Component<
 
 export default function Home() {
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
+  const hydrateSession = useAppStore((s) => s.hydrateSession);
+  const [authReady, setAuthReady] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void hydrateSession().finally(() => {
+      if (!cancelled) setAuthReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrateSession]);
 
   useEffect(() => {
     const reloadOnChunkError = (message: string) => {
@@ -98,6 +118,10 @@ export default function Home() {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
+
+  if (!authReady) {
+    return <AuthLoading />;
+  }
 
   return (
     <ErrorBoundary

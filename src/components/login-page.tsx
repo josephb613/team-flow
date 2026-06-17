@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { authClient } from '@/lib/auth/client';
 
 // Animated counter component for stats
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
@@ -70,18 +71,18 @@ export function LoginPage() {
   const register = useAppStore((s) => s.register);
   const { locale, setLocale } = useAppStore();
   const { t } = useTranslation();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [name, setName] = useState('');
   const [workspaceName, setWorkspaceName] = useState('');
-  const [email, setEmail] = useState('josephbasix@gmail.com');
-  const [password, setPassword] = useState('123456Test');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const switchMode = (nextMode: 'login' | 'signup') => {
+  const switchMode = (nextMode: 'login' | 'signup' | 'forgot') => {
     setMode(nextMode);
     setError('');
   };
@@ -90,6 +91,34 @@ export function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    if (mode === 'forgot') {
+      if (!email) {
+        setError(t.login.enterCredentials);
+        setIsLoading(false);
+        return;
+      }
+
+      const redirectTo =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/reset-password`
+          : '/reset-password';
+
+      const { error: resetError } = await authClient.requestPasswordReset({
+        email,
+        redirectTo,
+      });
+
+      if (resetError) {
+        setError(resetError.message ?? t.login.resetFailed);
+      } else {
+        toast.success(t.login.resetLinkSent);
+        switchMode('login');
+      }
+
+      setIsLoading(false);
+      return;
+    }
 
     if (mode === 'signup') {
       if (password.length < 6) {
@@ -111,7 +140,7 @@ export function LoginPage() {
       }
     } else {
       if (email && password) {
-        const result = await login(email, password);
+        const result = await login(email, password, rememberMe);
         if (result.ok) {
           toast.success(t.toast.welcomeBack);
         } else {
@@ -317,10 +346,18 @@ export function LoginPage() {
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-2">
-              {mode === 'signup' ? t.login.signUpTitle : t.login.welcomeBack}
+              {mode === 'signup'
+                ? t.login.signUpTitle
+                : mode === 'forgot'
+                  ? t.login.forgotPasswordTitle
+                  : t.login.welcomeBack}
             </h2>
             <p className="text-muted-foreground">
-              {mode === 'signup' ? t.login.signUpSubtitle : t.login.subtitle}
+              {mode === 'signup'
+                ? t.login.signUpSubtitle
+                : mode === 'forgot'
+                  ? t.login.forgotPasswordSubtitle
+                  : t.login.subtitle}
             </p>
           </div>
 
@@ -363,11 +400,16 @@ export function LoginPage() {
                 className="h-11"
               />
             </div>
+            {mode !== 'forgot' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t.login.password}</Label>
                 {mode === 'login' && (
-                  <button type="button" className="text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
+                    className="text-xs text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium"
+                  >
                     {t.login.forgotPassword}
                   </button>
                 )}
@@ -395,6 +437,7 @@ export function LoginPage() {
                 </button>
               </div>
             </div>
+            )}
 
             {mode === 'signup' && (
               <div className="space-y-2">
@@ -463,10 +506,18 @@ export function LoginPage() {
                   {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {mode === 'signup' ? t.login.signingUp : t.login.signingIn}
+                      {mode === 'signup'
+                        ? t.login.signingUp
+                        : mode === 'forgot'
+                          ? t.login.sendingResetLink
+                          : t.login.signingIn}
                     </div>
                   ) : (
-                    mode === 'signup' ? t.login.signUp : t.login.signIn
+                    mode === 'signup'
+                      ? t.login.signUp
+                      : mode === 'forgot'
+                        ? t.login.sendResetLink
+                        : t.login.signIn
                   )}
                 </span>
               </Button>
@@ -479,6 +530,7 @@ export function LoginPage() {
               <>
                 <button
                   type="button"
+                  onClick={() => switchMode('forgot')}
                   className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors"
                 >
                   {t.login.forgotPasswordLink}
@@ -491,6 +543,14 @@ export function LoginPage() {
                   {t.login.signUpLink}
                 </button>
               </>
+            ) : mode === 'forgot' ? (
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors ml-auto"
+              >
+                {t.login.backToSignIn}
+              </button>
             ) : (
               <button
                 type="button"
