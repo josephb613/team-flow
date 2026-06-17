@@ -45,14 +45,54 @@ model Workspace {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members     WorkspaceMember[]
-  projects    Project[]
-  channels    Channel[]
-  teams       Team[]
-  automations Automation[]
-  files       FileItem[]
-  wikiPages   WikiPage[]
-  activityLogs ActivityLog[]
+  members        WorkspaceMember[]
+  projects       Project[]
+  channels       Channel[]
+  teams          Team[]
+  automations    Automation[]
+  files          FileItem[]
+  wikiPages      WikiPage[]
+  activityLogs     ActivityLog[]
+  documentChunks   DocumentChunk[]
+  aiPendingActions AiPendingAction[]
+}
+
+model AiPendingAction {
+  id          String   @id @default(uuid()) @db.Uuid
+  toolName    String
+  args        Json
+  workspaceId String
+  userId      String?
+  preview     Json
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([expiresAt])
+}
+
+/// RAG document chunks — embedding column managed via raw SQL (pgvector vector(1024))
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  workspaceId String
+  sourceType  String
+  sourceId    String
+  title       String
+  content     String
+  chunkIndex  Int
+  contentHash String
+  embedding   Unsupported("vector(1024)")
+  metadata    Json     @default("{}")
+  indexedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId, chunkIndex])
+  @@index([workspaceId])
+  @@map("DocumentChunk")
 }
 
 model WorkspaceMember {

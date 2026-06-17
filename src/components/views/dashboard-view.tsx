@@ -481,10 +481,6 @@ export function DashboardView() {
             <span className="text-sm text-muted-foreground">
               {mounted ? new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
             </span>
-            <span className="text-muted-foreground/40">·</span>
-            <span className="text-sm text-teal-600 font-medium">
-              {t.dashboard.motivationalMessage}
-            </span>
           </motion.div>
         </div>
       </motion.div>

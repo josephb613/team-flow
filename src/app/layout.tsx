@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   keywords: ["TeamFlow", "Project Management", "Collaboration", "Tasks", "Kanban", "Team"],
   authors: [{ name: "TeamFlow" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

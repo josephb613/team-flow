@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,6 +25,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
       include: { requestedBy: true, project: true },
     });
+
+    if (changeRequest.project?.workspaceId) {
+      triggerReindex(changeRequest.project.workspaceId, 'change_request', changeRequest.id);
+    }
 
     return NextResponse.json(changeRequest);
   } catch (error) {
