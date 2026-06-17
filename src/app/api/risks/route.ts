@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import {
   buildProjectScopedWhere,
   getWorkspaceIdFromRequest,
@@ -78,6 +79,10 @@ export async function POST(request: Request) {
 
     const taskMap = await loadRelatedTasksForRisks([risk], projectId);
     const relatedTasks = parseRelatedTasks(risk.taskIds, taskMap);
+
+    if (risk.project?.workspaceId) {
+      triggerReindex(risk.project.workspaceId, 'risk', risk.id);
+    }
 
     return NextResponse.json(formatRiskResponse(risk, relatedTasks), { status: 201 });
   } catch (error) {

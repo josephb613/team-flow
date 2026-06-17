@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import {
   assertProjectInWorkspace,
   getWorkspaceIdFromRequest,
@@ -58,6 +59,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
       },
     });
+
+    if (description !== undefined) {
+      triggerReindex(project.workspaceId, 'project', project.id);
+    }
 
     return NextResponse.json(project);
   } catch (error) {

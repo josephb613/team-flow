@@ -2,15 +2,22 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { useAppData } from '@/hooks/use-app-data';
+import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AiToolConfirmation,
+  type PendingActionPreview,
+} from '@/components/ai-tool-confirmation';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'ai' | 'error';
   content: string;
   timestamp: Date;
+  pendingActions?: PendingActionPreview[];
 }
 
 interface AiChatPanelProps {
@@ -19,8 +26,43 @@ interface AiChatPanelProps {
   style?: React.CSSProperties;
 }
 
+interface SseEvent {
+  type?: string;
+  content?: string;
+  actionId?: string;
+  toolName?: string;
+  preview?: Record<string, unknown>;
+}
+
+function parseSseChunk(
+  buffer: string,
+  onEvent: (event: SseEvent) => void
+): string {
+  const lines = buffer.split('\n');
+  const remainder = lines.pop() ?? '';
+
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    const payload = line.slice(6).trim();
+    if (payload === '[DONE]') continue;
+
+    try {
+      const event = JSON.parse(payload) as SseEvent;
+      onEvent(event);
+    } catch {
+      // ignore malformed SSE frames
+    }
+  }
+
+  return remainder;
+}
+
 export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const { refetch } = useAppData();
+  const workspaceId = useAppStore((s) => s.activeOrganizationId);
+  const projectId = useAppStore((s) => s.activeProjectId);
+  const userId = useAppStore((s) => s.currentUser?.id);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -52,45 +94,169 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const callLlmApi = useCallback(async (message: string) => {
-    setIsLoading(true);
-    setIsTyping(true);
-    setLastFailedMessage(null);
+  const buildHistory = useCallback(
+    (currentMessages: ChatMessage[]) =>
+      currentMessages
+        .filter((m) => m.role === 'user' || m.role === 'ai')
+        .filter((m) => m.id !== 'welcome')
+        .slice(-10)
+        .map((m) => ({
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: m.content,
+        })),
+    []
+  );
 
-    try {
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'API request failed');
+  const callLlmApi = useCallback(
+    async (message: string, priorMessages: ChatMessage[]) => {
+      if (!workspaceId) {
+        const errorMsg: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: 'error',
+          content: t.aiChat.errorMessage,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+        setLastFailedMessage(message);
+        return;
       }
 
-      const aiMsg: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        role: 'ai',
-        content: data.message || data.fallback || t.aiChat.errorMessage,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch {
-      const errorMsg: ChatMessage = {
-        id: `error-${Date.now()}`,
-        role: 'error',
-        content: t.aiChat.errorMessage,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-      setLastFailedMessage(message);
-    } finally {
-      setIsLoading(false);
-      setIsTyping(false);
-    }
-  }, [t]);
+      setIsLoading(true);
+      setIsTyping(true);
+      setLastFailedMessage(null);
+
+      const aiMsgId = `ai-${Date.now()}`;
+
+      try {
+        const response = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
+          },
+          body: JSON.stringify({
+            message,
+            workspaceId,
+            projectId: projectId ?? undefined,
+            locale,
+            userId: userId ?? undefined,
+            history: buildHistory(priorMessages),
+          }),
+        });
+
+        const contentType = response.headers.get('content-type') ?? '';
+
+        if (contentType.includes('text/event-stream') && response.body) {
+          setIsTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: aiMsgId,
+              role: 'ai',
+              content: '',
+              timestamp: new Date(),
+              pendingActions: [],
+            },
+          ]);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            buffer = parseSseChunk(buffer, (event) => {
+              if (event.type === 'token' && event.content) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMsgId
+                      ? { ...m, content: m.content + event.content }
+                      : m
+                  )
+                );
+              } else if (
+                event.type === 'pending_action' &&
+                event.actionId &&
+                event.toolName
+              ) {
+                const pending: PendingActionPreview = {
+                  actionId: event.actionId,
+                  toolName: event.toolName,
+                  preview: (event.preview as Record<string, unknown>) ?? {},
+                };
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiMsgId
+                      ? {
+                          ...m,
+                          pendingActions: [
+                            ...(m.pendingActions ?? []),
+                            pending,
+                          ],
+                        }
+                      : m
+                  )
+                );
+              }
+            });
+          }
+
+          setMessages((prev) => {
+            const aiMsg = prev.find((m) => m.id === aiMsgId);
+            if (aiMsg && !aiMsg.content.trim()) {
+              return prev.map((m) =>
+                m.id === aiMsgId
+                  ? { ...m, content: t.aiChat.errorMessage }
+                  : m
+              );
+            }
+            return prev;
+          });
+        } else {
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'API request failed');
+          }
+
+          const aiMsg: ChatMessage = {
+            id: aiMsgId,
+            role: 'ai',
+            content: data.message || data.fallback || t.aiChat.errorMessage,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+        }
+      } catch {
+        const errorMsg: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: 'error',
+          content: t.aiChat.errorMessage,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev.filter((m) => m.id !== aiMsgId), errorMsg]);
+        setLastFailedMessage(message);
+      } finally {
+        setIsLoading(false);
+        setIsTyping(false);
+      }
+    },
+    [workspaceId, projectId, locale, userId, t, buildHistory]
+  );
+
+  const handleActionConfirmed = useCallback(
+    async (_result: { toolName: string; data: unknown }) => {
+      await refetch();
+    },
+    [refetch]
+  );
+
+  const handleActionCancelled = useCallback(() => {
+    // AiToolConfirmation shows its own cancelled state
+  }, []);
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
@@ -103,31 +269,36 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput('');
-    callLlmApi(trimmed);
-  }, [input, isLoading, callLlmApi]);
+    callLlmApi(trimmed, nextMessages);
+  }, [input, isLoading, messages, callLlmApi]);
 
   const handleRetry = useCallback(() => {
     if (lastFailedMessage) {
       setMessages((prev) => prev.filter((m) => m.role !== 'error'));
       setLastFailedMessage(null);
-      callLlmApi(lastFailedMessage);
+      callLlmApi(lastFailedMessage, messages);
     }
-  }, [lastFailedMessage, callLlmApi]);
+  }, [lastFailedMessage, messages, callLlmApi]);
 
-  const handleQuickAction = useCallback((action: string) => {
-    if (isLoading) return;
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: action,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    callLlmApi(action);
-  }, [isLoading, callLlmApi]);
+  const handleQuickAction = useCallback(
+    (action: string) => {
+      if (isLoading) return;
+      const userMsg: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: action,
+        timestamp: new Date(),
+      };
+      const nextMessages = [...messages, userMsg];
+      setMessages(nextMessages);
+      setInput('');
+      callLlmApi(action, nextMessages);
+    },
+    [isLoading, messages, callLlmApi]
+  );
 
   const quickActions = [
     t.aiChat.summarizeTasks,
@@ -190,8 +361,23 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
                 <p className="whitespace-pre-wrap">{msg.content}</p>
               </div>
             ) : (
-              <div className="max-w-[88%] text-sm leading-relaxed text-foreground/90">
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+              <div className="max-w-[88%] space-y-2">
+                {msg.content && (
+                  <div className="text-sm leading-relaxed text-foreground/90">
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                )}
+                {workspaceId &&
+                  msg.pendingActions?.map((action) => (
+                    <AiToolConfirmation
+                      key={action.actionId}
+                      action={action}
+                      workspaceId={workspaceId}
+                      userId={userId}
+                      onConfirmed={handleActionConfirmed}
+                      onCancelled={handleActionCancelled}
+                    />
+                  ))}
               </div>
             )}
           </motion.div>
