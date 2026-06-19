@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import { getWorkspaceIdFromRequest } from '@/lib/workspace-query';
 import { assertTaskInWorkspace, assertUserInWorkspace } from '@/lib/workspace-api';
 
@@ -63,6 +64,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
       include: { assignee: true, subtasks: true, project: true },
     });
+
+    if (task.project?.workspaceId) {
+      triggerReindex(task.project.workspaceId, 'task', task.id);
+    }
 
     return NextResponse.json(task);
   } catch (error) {

@@ -1,11 +1,99 @@
 import { create } from 'zustand';
 import type { PageId, Organization, Notification, UserRole, TaskStatus } from './types';
+import { authClient } from '@/lib/auth/client';
 
 export type CreateTaskDefaults = {
   status?: TaskStatus;
   projectId?: string;
 };
 import type { Locale } from './i18n';
+
+const DUPLICATE_ACCOUNT_CODES = new Set([
+  'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL',
+  'USER_ALREADY_EXISTS',
+]);
+
+const EMAIL_NOT_VERIFIED_CODES = new Set([
+  'EMAIL_NOT_VERIFIED',
+  'email_not_confirmed',
+]);
+
+type AuthClientError = {
+  code?: string;
+  message?: string;
+  status?: number | string;
+  statusText?: number | string;
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+function getAuthHttpStatus(
+  error: AuthClientError | null | undefined
+): number | undefined {
+  if (!error) return undefined;
+  if (typeof error.status === 'number') return error.status;
+  if (typeof error.statusText === 'number') return error.statusText;
+  const statusFromStatus = Number(error.status);
+  if (!Number.isNaN(statusFromStatus) && error.status !== undefined) {
+    return statusFromStatus;
+  }
+  const statusFromStatusText = Number(error.statusText);
+  if (!Number.isNaN(statusFromStatusText) && error.statusText !== undefined) {
+    return statusFromStatusText;
+  }
+  return undefined;
+}
+
+function getAuthErrorCode(
+  error: AuthClientError | null | undefined
+): string | undefined {
+  if (!error) return undefined;
+  return error.code ?? error.error?.code;
+}
+
+function getAuthErrorMessage(
+  error: AuthClientError | null | undefined
+): string {
+  if (!error) return '';
+  return error.error?.message ?? error.message ?? '';
+}
+
+function isDuplicateAccountError(
+  error: AuthClientError | null | undefined
+): boolean {
+  if (!error) return false;
+  const code = getAuthErrorCode(error);
+  if (code && DUPLICATE_ACCOUNT_CODES.has(code)) return true;
+  const message = getAuthErrorMessage(error).toLowerCase();
+  return message.includes('already exist');
+}
+
+function isEmailNotVerifiedError(
+  error: AuthClientError | null | undefined
+): boolean {
+  if (!error) return false;
+  const code = getAuthErrorCode(error);
+  if (code === 'MISSING_OR_NULL_ORIGIN') return false;
+  if (code && EMAIL_NOT_VERIFIED_CODES.has(code)) return true;
+  if (getAuthHttpStatus(error) === 403) return true;
+  return /verif/i.test(getAuthErrorMessage(error));
+}
+
+async function handleUnverifiedEmailLogin(
+  email: string
+): Promise<{ ok: false; error: string; needsEmailVerification: true }> {
+  try {
+    await authClient.sendVerificationEmail({
+      email: email.trim(),
+      callbackURL: `${window.location.origin}/`,
+    });
+  } catch {
+    // Still guide the user to the verification screen.
+  }
+  return { ok: false, error: '', needsEmailVerification: true };
+}
 
 export type TaskViewMode = 'kanban' | 'list' | 'my-tasks';
 export type SprintViewMode = 'board' | 'list' | 'timeline';
@@ -197,14 +285,36 @@ interface AppState {
     organizationId: string;
     organizationName: string;
   } | null;
-  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean
+  ) => Promise<
+    | { ok: true }
+    | { ok: false; error: string; needsEmailVerification?: boolean }
+  >;
   register: (
     email: string,
     password: string,
     name: string,
     workspaceName?: string
+  ) => Promise<
+    | { ok: true; needsEmailVerification?: boolean }
+    | {
+        ok: false;
+        error: string;
+        accountExists?: boolean;
+        needsEmailVerification?: boolean;
+      }
+  >;
+  verifyEmailAndSync: (
+    email: string,
+    otp: string,
+    workspaceName?: string
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
-  logout: () => void;
+  resendVerificationEmail: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  hydrateSession: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -477,20 +587,65 @@ export const useAppStore = create<AppState>((set) => ({
   // Auth
   isAuthenticated: false,
   currentUser: null,
-  login: async (email, password) => {
+  hydrateSession: async () => {
+    try {
+      const { data: session } = await authClient.getSession();
+      if (!session?.user) {
+        set({ isAuthenticated: false, currentUser: null });
+        return;
+      }
+
+      const res = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        set({ isAuthenticated: false, currentUser: null });
+        return;
+      }
+
+      set({
+        isAuthenticated: true,
+        currentUser: data.user,
+        activeOrganizationId: data.user.organizationId ?? '',
+        activeTenantId: data.user.organizationId ?? '',
+      });
+    } catch {
+      set({ isAuthenticated: false, currentUser: null });
+    }
+  },
+  login: async (email, password, rememberMe = false) => {
     if (!email || !password) {
       return { ok: false, error: 'Email et mot de passe requis' };
     }
     try {
-      const res = await fetch('/api/auth/login', {
+      const { error } = await authClient.signIn.email({
+        email,
+        password,
+        rememberMe,
+      });
+      if (error) {
+        if (isEmailNotVerifiedError(error)) {
+          return handleUnverifiedEmailLogin(email);
+        }
+        return {
+          ok: false,
+          error: getAuthErrorMessage(error) || 'Échec de connexion',
+        };
+      }
+
+      const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: '{}',
       });
       const data = await res.json();
       if (!res.ok) {
-        return { ok: false, error: data.error ?? 'Échec de connexion' };
+        return { ok: false, error: data.error ?? 'Échec de synchronisation du compte' };
       }
+
       set({
         isAuthenticated: true,
         currentUser: data.user,
@@ -498,7 +653,11 @@ export const useAppStore = create<AppState>((set) => ({
         activeTenantId: data.user.organizationId ?? '',
       });
       return { ok: true };
-    } catch {
+    } catch (err) {
+      const authError = err as AuthClientError;
+      if (isEmailNotVerifiedError(authError)) {
+        return handleUnverifiedEmailLogin(email);
+      }
       return { ok: false, error: 'Échec de connexion' };
     }
   },
@@ -507,15 +666,80 @@ export const useAppStore = create<AppState>((set) => ({
       return { ok: false, error: 'Tous les champs sont requis' };
     }
     try {
-      const res = await fetch('/api/auth/register', {
+      const { data, error } = await authClient.signUp.email({ email, password, name });
+      if (error) {
+        if (isDuplicateAccountError(error)) {
+          const trimmedEmail = email.trim();
+          const { error: resendError } = await authClient.sendVerificationEmail({
+            email: trimmedEmail,
+            callbackURL: `${window.location.origin}/`,
+          });
+          if (!resendError) {
+            return {
+              ok: false,
+              error: '',
+              accountExists: true,
+              needsEmailVerification: true,
+            };
+          }
+          return {
+            ok: false,
+            error: error.message ?? 'Échec de la création du compte',
+            accountExists: true,
+          };
+        }
+        return { ok: false, error: error.message ?? 'Échec de la création du compte' };
+      }
+
+      const { data: session } = await authClient.getSession();
+      const needsEmailVerification =
+        Boolean(data?.user && !data.user.emailVerified) || !session?.user;
+
+      if (needsEmailVerification) {
+        return { ok: true, needsEmailVerification: true };
+      }
+
+      const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, workspaceName }),
+        body: JSON.stringify({ workspaceName: workspaceName || name }),
+      });
+      const syncData = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: syncData.error ?? 'Échec de synchronisation du compte' };
+      }
+
+      set({
+        isAuthenticated: true,
+        currentUser: syncData.user,
+        activeOrganizationId: syncData.user.organizationId ?? '',
+        activeTenantId: syncData.user.organizationId ?? '',
+      });
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Échec de la création du compte' };
+    }
+  },
+  verifyEmailAndSync: async (email, otp, workspaceName) => {
+    if (!email || !otp) {
+      return { ok: false, error: 'E-mail et code de vérification requis' };
+    }
+    try {
+      const { error } = await authClient.emailOtp.verifyEmail({ email, otp });
+      if (error) {
+        return { ok: false, error: error.message ?? 'Code de vérification invalide' };
+      }
+
+      const res = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceName: workspaceName?.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
-        return { ok: false, error: data.error ?? 'Échec de la création du compte' };
+        return { ok: false, error: data.error ?? 'Échec de synchronisation du compte' };
       }
+
       set({
         isAuthenticated: true,
         currentUser: data.user,
@@ -524,8 +748,40 @@ export const useAppStore = create<AppState>((set) => ({
       });
       return { ok: true };
     } catch {
-      return { ok: false, error: 'Échec de la création du compte' };
+      return { ok: false, error: 'Échec de la vérification' };
     }
   },
-  logout: () => set({ isAuthenticated: false, currentUser: null }),
+  resendVerificationEmail: async (email) => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return { ok: false, error: 'E-mail requis' };
+    }
+    try {
+      const { error } = await authClient.sendVerificationEmail({
+        email: trimmedEmail,
+        callbackURL: `${window.location.origin}/`,
+      });
+      if (error) {
+        return { ok: false, error: error.message ?? 'Échec de l\'envoi du code' };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Échec de l\'envoi du code' };
+    }
+  },
+  logout: async () => {
+    try {
+      await authClient.signOut();
+    } catch {
+      // Clear local state even if sign-out request fails
+    }
+    set({
+      isAuthenticated: false,
+      currentUser: null,
+      organizations: [],
+      tenants: [],
+      activeOrganizationId: '',
+      activeTenantId: '',
+    });
+  },
 }));

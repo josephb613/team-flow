@@ -682,7 +682,7 @@ export function TopBar() {
               {t.topbar.settings}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+            <DropdownMenuItem onClick={() => void logout()} className="text-destructive cursor-pointer">
               <LogOut className="h-4 w-4 mr-2" />
               {t.topbar.signOut}
             </DropdownMenuItem>
@@ -746,7 +746,7 @@ export function TopBar() {
               {t.topbar.toggleTheme}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+            <DropdownMenuItem onClick={() => void logout()} className="text-destructive cursor-pointer">
               <LogOut className="h-4 w-4 mr-2" />
               {t.topbar.signOut}
             </DropdownMenuItem>

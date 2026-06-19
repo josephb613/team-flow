@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import { getWorkspaceIdFromRequest } from '@/lib/workspace-api';
 
 export async function GET(request: NextRequest) {
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
         workspaceId,
       },
     });
+
+    if (description && workspaceId) {
+      triggerReindex(workspaceId, 'project', project.id);
+    }
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {

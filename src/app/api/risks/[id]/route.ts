@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import {
   buildRiskWriteData,
   formatRiskResponse,
@@ -40,6 +41,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .filter(Boolean)
       .map((taskId) => taskMap.get(taskId))
       .filter((task): task is { id: string; title: string; status: string } => Boolean(task));
+
+    if (risk.project?.workspaceId) {
+      triggerReindex(risk.project.workspaceId, 'risk', risk.id);
+    }
 
     return NextResponse.json(formatRiskResponse(risk, relatedTasks));
   } catch (error) {

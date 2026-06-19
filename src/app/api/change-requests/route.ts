@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { triggerReindex } from '@/lib/ai/embeddings/indexer';
 import {
   buildProjectScopedWhere,
   getWorkspaceIdFromRequest,
@@ -46,6 +47,10 @@ export async function POST(request: Request) {
       },
       include: { requestedBy: true, project: true },
     });
+
+    if (changeRequest.project?.workspaceId) {
+      triggerReindex(changeRequest.project.workspaceId, 'change_request', changeRequest.id);
+    }
 
     return NextResponse.json(changeRequest, { status: 201 });
   } catch (error) {

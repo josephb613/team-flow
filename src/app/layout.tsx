@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   keywords: ["TeamFlow", "Project Management", "Collaboration", "Tasks", "Kanban", "Team"],
   authors: [{ name: "TeamFlow" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

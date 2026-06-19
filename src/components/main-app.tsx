@@ -16,7 +16,6 @@ import { TaskDetailDrawer } from '@/components/task-detail-drawer';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { Toaster } from '@/components/ui/sonner';
 
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
@@ -318,10 +317,6 @@ export function MainApp() {
 
       {/* Keyboard Shortcuts Dialog (new, triggered by ⌘/) */}
       <KeyboardShortcutsDialog />
-
-      {/* Toast Notifications */}
-      <Toaster />
-
 
     </div>
     </AppDataProvider>
