@@ -69,22 +69,67 @@ function Particle({ delay, x, y, size }: { delay: number; x: number; y: number; 
 export function LoginPage() {
   const login = useAppStore((s) => s.login);
   const register = useAppStore((s) => s.register);
+  const verifyEmailAndSync = useAppStore((s) => s.verifyEmailAndSync);
+  const resendVerificationEmail = useAppStore((s) => s.resendVerificationEmail);
   const { locale, setLocale } = useAppStore();
   const { t } = useTranslation();
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'verify'>('login');
   const [name, setName] = useState('');
   const [workspaceName, setWorkspaceName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [pendingWorkspaceName, setPendingWorkspaceName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const switchMode = (nextMode: 'login' | 'signup' | 'forgot') => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('verifyAfterReset') === '1') {
+      toast.info(t.login.resetVerifyRequired);
+      window.history.replaceState({}, '', '/');
+    }
+  }, [t.login.resetVerifyRequired]);
+
+  const switchMode = (nextMode: 'login' | 'signup' | 'forgot' | 'verify') => {
     setMode(nextMode);
     setError('');
+    if (nextMode !== 'verify') {
+      setVerificationCode('');
+    }
+  };
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    const result = await verifyEmailAndSync(email, verificationCode, pendingWorkspaceName);
+    if (result.ok) {
+      toast.success(t.toast.welcomeBack);
+    } else {
+      setError(result.error);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleResendCode = async () => {
+    setIsResending(true);
+    setError('');
+
+    const result = await resendVerificationEmail(email);
+    if (result.ok) {
+      toast.success(t.login.verificationCodeSent);
+    } else {
+      setError(result.error);
+    }
+
+    setIsResending(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,30 +138,32 @@ export function LoginPage() {
     setError('');
 
     if (mode === 'forgot') {
-      if (!email) {
-        setError(t.login.enterCredentials);
+      const trimmedEmail = email.trim();
+      if (!trimmedEmail) {
+        setError(t.login.enterEmail);
         setIsLoading(false);
         return;
       }
 
-      const redirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/reset-password`
-          : '/reset-password';
+      const redirectTo = `${window.location.origin}/reset-password`;
 
-      const { error: resetError } = await authClient.requestPasswordReset({
-        email,
-        redirectTo,
-      });
+      try {
+        const { error: resetError } = await authClient.requestPasswordReset({
+          email: trimmedEmail,
+          redirectTo,
+        });
 
-      if (resetError) {
-        setError(resetError.message ?? t.login.resetFailed);
-      } else {
-        toast.success(t.login.resetLinkSent);
-        switchMode('login');
+        if (resetError) {
+          setError(resetError.message ?? t.login.resetFailed);
+        } else {
+          toast.success(t.login.resetLinkSent);
+          switchMode('login');
+        }
+      } catch {
+        setError(t.login.resetFailed);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
       return;
     }
 
@@ -134,7 +181,19 @@ export function LoginPage() {
 
       const result = await register(email, password, name, workspaceName || name);
       if (result.ok) {
-        toast.success(t.toast.accountCreated);
+        if (result.needsEmailVerification) {
+          setPendingWorkspaceName(workspaceName || name);
+          switchMode('verify');
+          toast.success(t.toast.emailVerificationSent);
+        } else {
+          toast.success(t.toast.accountCreated);
+        }
+      } else if (result.accountExists && result.needsEmailVerification) {
+        setPendingWorkspaceName(workspaceName || name);
+        switchMode('verify');
+        toast.success(t.login.accountExistsVerificationSent);
+      } else if (result.accountExists) {
+        setError(t.login.accountExistsSignIn);
       } else {
         setError(result.error);
       }
@@ -143,6 +202,9 @@ export function LoginPage() {
         const result = await login(email, password, rememberMe);
         if (result.ok) {
           toast.success(t.toast.welcomeBack);
+        } else if (result.needsEmailVerification) {
+          switchMode('verify');
+          toast.info(t.login.loginVerifyRequired);
         } else {
           setError(result.error);
         }
@@ -350,17 +412,78 @@ export function LoginPage() {
                 ? t.login.signUpTitle
                 : mode === 'forgot'
                   ? t.login.forgotPasswordTitle
-                  : t.login.welcomeBack}
+                  : mode === 'verify'
+                    ? t.login.verifyEmailTitle
+                    : t.login.welcomeBack}
             </h2>
             <p className="text-muted-foreground">
               {mode === 'signup'
                 ? t.login.signUpSubtitle
                 : mode === 'forgot'
                   ? t.login.forgotPasswordSubtitle
-                  : t.login.subtitle}
+                  : mode === 'verify'
+                    ? t.login.verifyEmailSubtitle.replace('{email}', email)
+                    : t.login.subtitle}
             </p>
           </div>
 
+          {mode === 'verify' ? (
+            <form onSubmit={handleVerifyEmail} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">{t.login.verificationCode}</Label>
+                <Input
+                  id="verificationCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.trim())}
+                  className="h-11 tracking-widest"
+                  required
+                />
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-[oklch(0.55_0.18_250)] hover:bg-[oklch(0.48_0.18_250)] text-white font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? t.login.verifyingEmail : t.login.verifyEmail}
+              </Button>
+
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending}
+                  className="text-[oklch(0.55_0.18_250)] hover:text-[oklch(0.45_0.18_250)] font-medium transition-colors disabled:opacity-50"
+                >
+                  {isResending ? t.login.resendingCode : t.login.resendCode}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  {t.login.backToSignIn}
+                </button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === 'signup' && (
               <>
@@ -398,6 +521,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-11"
+                required={mode === 'forgot'}
               />
             </div>
             {mode !== 'forgot' && (
@@ -523,8 +647,10 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
+          )}
 
           {/* Footer links below sign-in button */}
+          {mode !== 'verify' && (
           <div className="mt-4 flex items-center justify-between text-xs">
             {mode === 'login' ? (
               <>
@@ -561,6 +687,7 @@ export function LoginPage() {
               </button>
             )}
           </div>
+          )}
 
           {mode === 'login' && (
           <p className="mt-5 text-center text-sm text-muted-foreground">

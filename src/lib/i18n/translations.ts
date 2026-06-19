@@ -14,6 +14,7 @@ export const translations = {
       noAccount: "Pas de compte ?",
       createOne: 'Créer un compte',
       enterCredentials: 'Veuillez entrer vos identifiants',
+      enterEmail: 'Veuillez entrer votre adresse e-mail',
       leftTitle1: 'Gérez vos projets.',
       leftTitle2: 'Coordonnez vos équipes.',
       leftSubtitle: "La plateforme de gestion de projet pour les équipes ambitieuses. Planifiez, suivez et livrez — tout en un seul endroit.",
@@ -52,7 +53,8 @@ export const translations = {
       forgotPasswordSubtitle: 'Entrez votre e-mail pour recevoir un lien de réinitialisation',
       sendResetLink: 'Envoyer le lien',
       sendingResetLink: 'Envoi en cours...',
-      resetLinkSent: 'Un lien de réinitialisation a été envoyé à votre adresse e-mail',
+      resetLinkSent:
+        'Si cet e-mail existe dans notre système, consultez votre boîte de réception pour le lien de réinitialisation',
       resetPasswordTitle: 'Nouveau mot de passe',
       resetPasswordSubtitle: 'Choisissez un nouveau mot de passe pour votre compte',
       newPassword: 'Nouveau mot de passe',
@@ -62,6 +64,24 @@ export const translations = {
       resetFailed: 'Échec de la réinitialisation du mot de passe',
       resetLinkInvalid: 'Lien de réinitialisation invalide ou expiré',
       backToSignIn: 'Retour à la connexion',
+      verifyEmailTitle: 'Vérifiez votre e-mail',
+      verifyEmailSubtitle: 'Entrez le code à 6 chiffres envoyé à {email}',
+      verificationCode: 'Code de vérification',
+      verifyEmail: 'Vérifier',
+      verifyingEmail: 'Vérification...',
+      resendCode: 'Renvoyer le code',
+      resendingCode: 'Envoi en cours...',
+      verificationCodeSent: 'Un nouveau code a été envoyé à votre adresse e-mail',
+      emailVerificationRequired: 'Consultez votre boîte mail pour le code de vérification',
+      emailNotVerified: 'Veuillez vérifier votre e-mail avant de vous connecter',
+      loginVerifyRequired:
+        'Votre e-mail n\'est pas encore vérifié. Un code vient d\'être envoyé — consultez votre boîte mail.',
+      resetVerifyRequired:
+        'Mot de passe mis à jour. Connectez-vous, puis saisissez le code de vérification envoyé par e-mail.',
+      accountExistsVerificationSent:
+        'Un compte existe déjà avec cet e-mail. Un nouveau code de vérification a été envoyé.',
+      accountExistsSignIn:
+        'Un compte existe déjà avec cet e-mail. Connectez-vous avec votre mot de passe.',
     },
 
     // Sidebar
@@ -1314,6 +1334,7 @@ export const translations = {
       workspaceCreated: 'Organisation créée avec succès',
       welcomeBack: 'Bienvenue !',
       accountCreated: 'Compte créé avec succès',
+      emailVerificationSent: 'Compte créé — vérifiez votre e-mail pour continuer',
       taskCompleted: 'Tâche marquée comme terminée',
       timeLogged: 'Temps enregistré avec succès',
       sprintStarted: 'Sprint démarré avec succès',
@@ -1373,6 +1394,7 @@ export const translations = {
       noAccount: "Don't have an account?",
       createOne: 'Create one',
       enterCredentials: 'Please enter your credentials',
+      enterEmail: 'Please enter your email address',
       leftTitle1: 'Manage your projects.',
       leftTitle2: 'Coordinate your teams.',
       leftSubtitle: 'The project management platform for ambitious teams. Plan, track, and deliver — all in one place.',
@@ -1411,7 +1433,8 @@ export const translations = {
       forgotPasswordSubtitle: 'Enter your email to receive a reset link',
       sendResetLink: 'Send reset link',
       sendingResetLink: 'Sending...',
-      resetLinkSent: 'A password reset link has been sent to your email',
+      resetLinkSent:
+        'If this email exists in our system, check your email for the reset link',
       resetPasswordTitle: 'New password',
       resetPasswordSubtitle: 'Choose a new password for your account',
       newPassword: 'New password',
@@ -1421,6 +1444,24 @@ export const translations = {
       resetFailed: 'Failed to reset password',
       resetLinkInvalid: 'Invalid or expired reset link',
       backToSignIn: 'Back to sign in',
+      verifyEmailTitle: 'Verify your email',
+      verifyEmailSubtitle: 'Enter the 6-digit code sent to {email}',
+      verificationCode: 'Verification code',
+      verifyEmail: 'Verify',
+      verifyingEmail: 'Verifying...',
+      resendCode: 'Resend code',
+      resendingCode: 'Sending...',
+      verificationCodeSent: 'A new code has been sent to your email',
+      emailVerificationRequired: 'Check your inbox for the verification code',
+      emailNotVerified: 'Please verify your email before signing in',
+      loginVerifyRequired:
+        'Your email is not verified yet. A new code has been sent — check your inbox.',
+      resetVerifyRequired:
+        'Password updated. Sign in, then enter the verification code sent to your email.',
+      accountExistsVerificationSent:
+        'An account already exists with this email. A new verification code has been sent.',
+      accountExistsSignIn:
+        'An account already exists with this email. Sign in with your password.',
     },
 
     // Sidebar
@@ -2673,6 +2714,7 @@ export const translations = {
       workspaceCreated: 'Organization created successfully',
       welcomeBack: 'Welcome back!',
       accountCreated: 'Account created successfully',
+      emailVerificationSent: 'Account created — check your email to continue',
       taskCompleted: 'Task marked as done',
       timeLogged: 'Time logged successfully',
       sprintStarted: 'Sprint started successfully',

@@ -20,7 +20,8 @@ function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const token = searchParams.get('token');
-  const tokenError = !token ? t.login.resetLinkInvalid : '';
+  const linkError = searchParams.get('error');
+  const tokenError = linkError || !token ? t.login.resetLinkInvalid : '';
   const error = submitError || tokenError;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,21 +40,32 @@ function ResetPasswordForm() {
     setIsLoading(true);
     setSubmitError('');
 
-    const { error: resetError } = await authClient.resetPassword({
-      newPassword: password,
-      token,
-    });
+    try {
+      const { error: resetError } = await authClient.resetPassword({
+        newPassword: password,
+        token,
+      });
 
-    if (resetError) {
-      setSubmitError(resetError.message ?? t.login.resetFailed);
+      if (resetError) {
+        setSubmitError(resetError.message ?? t.login.resetFailed);
+        return;
+      }
+
+      const { data: session } = await authClient.getSession();
+      if (session?.user?.emailVerified) {
+        await hydrateSession();
+        toast.success(t.login.resetSuccess);
+        router.replace('/');
+        return;
+      }
+
+      toast.success(t.login.resetVerifyRequired);
+      router.replace('/?verifyAfterReset=1');
+    } catch {
+      setSubmitError(t.login.resetFailed);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    await hydrateSession();
-    toast.success(t.login.resetSuccess);
-    router.replace('/');
-    setIsLoading(false);
   };
 
   return (
