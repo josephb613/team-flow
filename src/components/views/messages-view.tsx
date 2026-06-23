@@ -30,7 +30,8 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useAppData } from '@/hooks/use-app-data';
-import type { Channel, Message } from '@/lib/types';
+import type { AppChannel as Channel } from '@/lib/data-mappers';
+import type { Message } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
@@ -166,9 +167,9 @@ function ChannelListItem({
       <span className="truncate flex-1">
         {channel.name}
       </span>
-      {channel.unreadCountCount > 0 && (
+      {channel.unreadCount > 0 && (
         <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-[oklch(0.55_0.18_250)] text-white hover:bg-[oklch(0.48_0.18_250)] shadow-sm">
-          {channel.unreadCountCount}
+          {channel.unreadCount}
         </Badge>
       )}
     </button>
@@ -274,7 +275,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, x: -8 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  show: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
 };
 
 export function MessagesView() {
@@ -635,7 +636,7 @@ export function MessagesView() {
                     <motion.div
                       className="relative mb-6"
                       animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' as const }}
                     >
                       <div className="relative h-28 w-28">
                         {/* Back bubble */}
@@ -654,12 +655,12 @@ export function MessagesView() {
                         <motion.div
                           className="absolute -top-1 left-8 h-2 w-2 rounded-full bg-[oklch(0.55_0.18_250)/0.3]"
                           animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' as const }}
                         />
                         <motion.div
                           className="absolute top-6 -left-1 h-1.5 w-1.5 rounded-full bg-blue-400/40"
                           animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.7, 0.4] }}
-                          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+                          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.3 }}
                         />
                       </div>
                     </motion.div>

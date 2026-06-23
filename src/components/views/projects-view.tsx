@@ -128,7 +128,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 function formatProjectDueDate(dueDate: string, locale: string, fallback: string): string {
@@ -150,7 +150,7 @@ function ProgressBar({ value, color, size = 'md' }: { value: number; color: stri
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${value}%` }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
+        transition={{ duration: 0.8, ease: 'easeOut' as const }}
         className={cn('h-full rounded-full', height)}
         style={{
           background: `linear-gradient(90deg, ${color}, ${color}dd)`,

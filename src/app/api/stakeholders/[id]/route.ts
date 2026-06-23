@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-query';
+import { assertStakeholderInWorkspace } from '@/lib/workspace-api';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const workspaceId = getWorkspaceIdFromRequest(request);
+    const access = await assertStakeholderInWorkspace(id, workspaceId);
+    if (!access.ok) return access.response;
+
     const body = await request.json();
     const { name, organization, role, email, phone, website, logo, influence, interest, engagement, strategy } = body;
 
@@ -27,18 +33,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(stakeholder);
   } catch (error) {
-    console.error('PATCH /api/stakeholders/[id] error:', error);
+    console.error('PATCH /api/stakeholders/[id] error');
     return NextResponse.json({ error: 'Failed to update stakeholder' }, { status: 500 });
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const workspaceId = getWorkspaceIdFromRequest(request);
+    const access = await assertStakeholderInWorkspace(id, workspaceId);
+    if (!access.ok) return access.response;
+
     await db.stakeholder.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('DELETE /api/stakeholders/[id] error:', error);
+    console.error('DELETE /api/stakeholders/[id] error');
     return NextResponse.json({ error: 'Failed to delete stakeholder' }, { status: 500 });
   }
 }

@@ -81,6 +81,8 @@ const SUCCESS_MESSAGE_KEYS = {
   update_task: 'taskUpdated',
   create_risk: 'riskCreated',
   update_risk: 'riskUpdated',
+  create_stakeholder: 'stakeholderCreated',
+  update_stakeholder: 'stakeholderUpdated',
   create_change_request: 'changeRequestCreated',
   update_change_request_status: 'changeRequestStatusUpdated',
   log_time_entry: 'timeEntryLogged',
@@ -93,6 +95,8 @@ const TITLE_MESSAGE_KEYS = {
   update_task: 'updateTaskTitle',
   create_risk: 'createRiskTitle',
   update_risk: 'updateRiskTitle',
+  create_stakeholder: 'createStakeholderTitle',
+  update_stakeholder: 'updateStakeholderTitle',
   create_change_request: 'createChangeRequestTitle',
   update_change_request_status: 'updateChangeRequestStatusTitle',
   log_time_entry: 'logTimeEntryTitle',
@@ -229,6 +233,35 @@ export function AiToolConfirmation({
             <ChangeRow formatBoolean={formatBoolean} label={tc.fieldResponse} from={preview.currentResponse} to={preview.newResponse} />
             <PreviewRow formatBoolean={formatBoolean} label={tc.fieldMitigationPlan} value={preview.newMitigationPlan} />
             <ChangeRow formatBoolean={formatBoolean} label={tc.fieldOwner} from={preview.currentOwnerName} to={preview.newOwnerName} />
+          </>
+        )}
+
+        {action.toolName === 'create_stakeholder' && (
+          <>
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldName} value={preview.name} highlight />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldProject} value={preview.projectName} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldOrganization} value={preview.organization} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldRole} value={preview.role} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldEmail} value={preview.email} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldInfluence} value={preview.influence} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldInterest} value={preview.interest} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldEngagement} value={preview.engagement} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldStrategy} value={preview.strategy} />
+          </>
+        )}
+
+        {action.toolName === 'update_stakeholder' && (
+          <>
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldStakeholder} value={preview.stakeholderName} highlight />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldProject} value={preview.projectName} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldName} value={preview.newName} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldOrganization} value={preview.newOrganization} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldRole} value={preview.newRole} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldEmail} value={preview.newEmail} />
+            <ChangeRow formatBoolean={formatBoolean} label={tc.fieldInfluence} from={preview.currentInfluence} to={preview.newInfluence} />
+            <ChangeRow formatBoolean={formatBoolean} label={tc.fieldInterest} from={preview.currentInterest} to={preview.newInterest} />
+            <ChangeRow formatBoolean={formatBoolean} label={tc.fieldEngagement} from={preview.currentEngagement} to={preview.newEngagement} />
+            <PreviewRow formatBoolean={formatBoolean} label={tc.fieldStrategy} value={preview.newStrategy} />
           </>
         )}
 

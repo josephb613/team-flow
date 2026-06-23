@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireApiAuth } from '@/lib/auth/api-auth';
 import { saveWorkspaceLogo } from '@/lib/workspace-logo';
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -23,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'too_large' }, { status: 400 });
     }
 
-    console.error('POST /api/workspaces/logo error:', error);
+    console.error('POST /api/workspaces/logo error');
     return NextResponse.json({ error: 'Failed to upload logo' }, { status: 500 });
   }
 }

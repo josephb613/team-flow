@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import type { PendingAction, WriteToolName } from './types';
 
@@ -46,10 +47,10 @@ export async function storePendingAction(
     data: {
       id: actionId,
       toolName: input.toolName,
-      args: input.args,
+      args: input.args as Prisma.InputJsonValue,
       workspaceId: input.workspaceId,
       userId: input.userId ?? null,
-      preview: input.preview as object,
+      preview: input.preview as Prisma.InputJsonValue,
       createdAt,
       expiresAt,
     },

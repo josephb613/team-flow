@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceAiRouteAccess } from '@/lib/ai/ai-route-auth';
 import {
   buildToolAuthContext,
   deletePendingAction,
@@ -9,21 +10,20 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { actionId, workspaceId, userId } = body as {
+    const { actionId } = body as {
       actionId?: string;
       workspaceId?: string;
       userId?: string;
     };
 
+    const access = await enforceAiRouteAccess(request, body);
+    if (!access.ok) return access.response;
+
     if (!actionId || typeof actionId !== 'string') {
       return NextResponse.json({ error: 'actionId is required' }, { status: 400 });
     }
 
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      return NextResponse.json({ error: 'workspaceId is required' }, { status: 400 });
-    }
-
-    const pending = await getPendingAction(actionId, workspaceId);
+    const pending = await getPendingAction(actionId, access.workspaceId);
     if (!pending) {
       return NextResponse.json(
         { error: 'Action not found or expired' },
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     }
 
     const authCtx = buildToolAuthContext({
-      workspaceId,
-      userId: typeof userId === 'string' ? userId : pending.userId,
+      workspaceId: access.workspaceId,
+      userId: access.appUserId,
     });
 
     const result = await executeConfirmedAction(
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       data: result.data,
     });
   } catch (error) {
-    console.error('POST /api/ai/confirm-action error:', error);
+    console.error('POST /api/ai/confirm-action error');
     return NextResponse.json({ error: 'Failed to confirm action' }, { status: 500 });
   }
 }

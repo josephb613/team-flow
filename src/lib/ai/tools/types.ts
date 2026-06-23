@@ -30,6 +30,8 @@ export type WriteToolName =
   | 'update_task_status'
   | 'create_risk'
   | 'update_risk'
+  | 'create_stakeholder'
+  | 'update_stakeholder'
   | 'create_change_request'
   | 'update_change_request_status'
   | 'update_task'

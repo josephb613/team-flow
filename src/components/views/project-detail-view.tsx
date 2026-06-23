@@ -23,6 +23,7 @@ import {
   PauseCircle,
   Archive,
   Pencil,
+  Lightbulb,
   Target,
   Users,
 } from 'lucide-react';
@@ -71,7 +72,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
@@ -80,7 +81,7 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
       <motion.div
         initial={{ width: 0 }}
         animate={{ width: `${value}%` }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
+        transition={{ duration: 0.8, ease: 'easeOut' as const }}
         className="h-full rounded-full"
         style={{ background: `linear-gradient(90deg, ${color}, ${color}dd)` }}
       />
@@ -154,6 +155,7 @@ export function ProjectDetailView() {
   const { projects, tasks, milestones, sprints, teams, getUserName } = useAppData();
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const setActivePage = useAppStore((s) => s.setActivePage);
+  const navigateToProjectLessons = useAppStore((s) => s.navigateToProjectLessons);
   const openEditProjectDialog = useAppStore((s) => s.openEditProjectDialog);
 
   const project = useMemo(
@@ -340,6 +342,15 @@ export function ProjectDetailView() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => navigateToProjectLessons(project.id)}
+                >
+                  <Lightbulb className="h-3.5 w-3.5" />
+                  {t.projectDetail.viewLessons}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

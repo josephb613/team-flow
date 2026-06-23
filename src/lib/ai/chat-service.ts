@@ -4,6 +4,8 @@ import { getGroqClient } from './groq-client';
 import { buildWorkspaceContext } from './context/context-builder';
 import { buildRagContext } from './rag/rag-context';
 import { buildSystemChatPrompt } from './prompts/system-chat';
+import { sanitizeChatResponse } from './sanitize-chat-response';
+import { wrapUserContentForPrompt } from './sanitize-prompt-content';
 import {
   buildToolAuthContext,
   executeTool,
@@ -19,8 +21,10 @@ function buildMessages(
   context: string,
   ragContext?: string
 ): ChatCompletionMessageParam[] {
-  const ragSection = ragContext ? `\n\n--- Relevant Documents ---\n${ragContext}` : '';
-  const systemContent = `${buildSystemChatPrompt(request.locale)}\n\n--- Workspace Context ---\n${context}${ragSection}`;
+  const ragSection = ragContext
+    ? `\n\n--- Relevant Documents ---\n${wrapUserContentForPrompt('rag_documents', ragContext)}`
+    : '';
+  const systemContent = `${buildSystemChatPrompt(request.locale)}\n\n--- Workspace Context ---\n${wrapUserContentForPrompt('workspace_context', context)}${ragSection}`;
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemContent },
   ];
@@ -60,14 +64,25 @@ async function runToolLoop(
   let directContent: string | undefined;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const response = await groq.chat.completions.create({
-      model: chatModel,
-      messages,
-      tools,
-      tool_choice: 'auto',
-      temperature: 0.7,
-      max_tokens: 2048,
-    });
+    let response;
+    try {
+      response = await groq.chat.completions.create({
+        model: chatModel,
+        messages,
+        tools,
+        tool_choice: 'auto',
+        temperature: 0.7,
+        max_tokens: 2048,
+      });
+    } catch (error) {
+      console.error('[ai/chat] Groq tool-loop error:', {
+        round,
+        model: chatModel,
+        workspaceId: request.workspaceId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw error;
+    }
 
     const msg = response.choices?.[0]?.message;
     if (!msg) break;
@@ -117,6 +132,9 @@ export async function generateChatResponse(
   request: AiChatRequest
 ): Promise<ChatResponseWithActions> {
   assertGroqConfigured();
+  console.log('[ai/chat] generateChatResponse start', {
+    workspaceId: request.workspaceId,
+  });
 
   const [context, ragContext] = await Promise.all([
     buildWorkspaceContext({
@@ -136,7 +154,7 @@ export async function generateChatResponse(
   );
 
   if (directContent) {
-    return { message: directContent, pendingActions };
+    return { message: sanitizeChatResponse(directContent), pendingActions };
   }
 
   const response = await groq.chat.completions.create({
@@ -152,13 +170,16 @@ export async function generateChatResponse(
     throw new Error('No response from AI');
   }
 
-  return { message: content, pendingActions };
+  return { message: sanitizeChatResponse(content), pendingActions };
 }
 
 export async function* streamChatResponse(
   request: AiChatRequest
 ): AsyncGenerator<ChatStreamEvent, void, unknown> {
   assertGroqConfigured();
+  console.log('[ai/chat] streamChatResponse start', {
+    workspaceId: request.workspaceId,
+  });
 
   const [context, ragContext] = await Promise.all([
     buildWorkspaceContext({
@@ -182,24 +203,43 @@ export async function* streamChatResponse(
   }
 
   if (directContent) {
-    yield { type: 'token', content: directContent };
+    yield { type: 'token', content: sanitizeChatResponse(directContent) };
     return;
   }
 
-  const stream = await groq.chat.completions.create({
-    model: chatModel,
-    messages,
-    tools: getGroqToolDefinitions(),
-    temperature: 0.7,
-    max_tokens: 2048,
-    stream: true,
-  });
+  let stream;
+  try {
+    stream = await groq.chat.completions.create({
+      model: chatModel,
+      messages,
+      tools: getGroqToolDefinitions(),
+      temperature: 0.7,
+      max_tokens: 2048,
+      stream: true,
+    });
+  } catch (error) {
+    console.error('[ai/chat] Groq stream create error:', {
+      model: chatModel,
+      workspaceId: request.workspaceId,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
+  }
 
+  let yieldedTokens = 0;
   for await (const chunk of stream) {
     const token = chunk.choices?.[0]?.delta?.content;
     if (token) {
-      yield { type: 'token', content: token };
+      yieldedTokens += 1;
+      yield { type: 'token', content: sanitizeChatResponse(token) };
     }
+  }
+
+  if (yieldedTokens === 0 && !directContent) {
+    console.warn('[ai/chat] Stream finished with no tokens', {
+      workspaceId: request.workspaceId,
+      pendingActions: pendingActions.length,
+    });
   }
 }
 

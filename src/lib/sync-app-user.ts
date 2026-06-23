@@ -16,7 +16,10 @@ async function uniqueSlug(base: string): Promise<string> {
 
 const userInclude = {
   assignedTasks: { select: { id: true } },
-  workspaceMembers: { include: { workspace: { select: { id: true, name: true } } } },
+  workspaceMembers: {
+    orderBy: { joinedAt: 'asc' },
+    include: { workspace: { select: { id: true, name: true } } },
+  },
 } as const;
 
 export type AppAuthUser = {
@@ -39,16 +42,21 @@ export async function syncAppUser(params: {
   const displayName = params.name.trim() || email.split('@')[0];
 
   let user = await db.user.findFirst({
-    where: {
-      OR: [{ neonAuthUserId: params.neonAuthUserId }, { email }],
-    },
+    where: { neonAuthUserId: params.neonAuthUserId },
     include: userInclude,
   });
+
+  if (!user) {
+    user = await db.user.findFirst({
+      where: { email, neonAuthUserId: null },
+      include: userInclude,
+    });
+  }
 
   if (user) {
     const updates: { neonAuthUserId?: string; name?: string } = {};
 
-    if (user.neonAuthUserId !== params.neonAuthUserId) {
+    if (!user.neonAuthUserId) {
       updates.neonAuthUserId = params.neonAuthUserId;
     }
     if (displayName && user.name !== displayName) {
@@ -71,7 +79,7 @@ export async function syncAppUser(params: {
         email,
         name: displayName,
         neonAuthUserId: params.neonAuthUserId,
-        role: 'admin',
+        role: 'member',
         status: 'online',
         workspaceMembers: {
           create: {

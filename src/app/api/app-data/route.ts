@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
           assignedTasks: { select: { id: true } },
           workspaceMembers: {
             where: workspaceId ? { workspaceId } : undefined,
+            orderBy: { joinedAt: 'asc' },
             include: { workspace: { select: { id: true, name: true } } },
           },
         },

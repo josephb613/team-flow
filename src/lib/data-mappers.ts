@@ -511,6 +511,7 @@ export type AppChannel = {
 export type AppMeeting = {
   id: string;
   title: string;
+  description?: string;
   date: string;
   time: string;
   duration: number;

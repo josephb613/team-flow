@@ -107,6 +107,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const updateTaskStatus = useCallback(
     async (taskId: string, status: TaskStatus) => {
+      if (status === 'done') {
+        useAppStore.getState().openTaskClosureDialog(taskId);
+        return false;
+      }
+
       const previousTasks = rawData.tasks;
       updateRawTasks((tasks) =>
         tasks.map((task) =>

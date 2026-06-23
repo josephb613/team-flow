@@ -8,12 +8,12 @@ export type { Locale, TranslationKey };
 export function useTranslation() {
   const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
-  const t = translations[locale] as TranslationKey;
+  const t: any = translations[locale];
 
   return { t, locale, setLocale };
 }
 
 // Helper for non-hook usage
-export function getTranslation(locale: Locale): TranslationKey {
-  return translations[locale] as TranslationKey;
+export function getTranslation(locale: Locale): any {
+  return translations[locale];
 }

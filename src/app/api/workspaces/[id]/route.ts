@@ -1,12 +1,26 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slugify } from '@/lib/utils';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-query';
+import { assertWorkspaceMembership } from '@/lib/workspace-api';
+import { requireApiAuth } from '@/lib/auth/api-auth';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+
     const { id } = await context.params;
+    const workspaceId = getWorkspaceIdFromRequest(request) ?? id;
+    const access = await assertWorkspaceMembership(workspaceId, auth.appUser.id);
+    if (!access.ok) return access.response;
+
+    if (workspaceId !== id) {
+      return NextResponse.json({ error: 'Workspace mismatch' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { name, slug, description, logo } = body;
 
@@ -61,7 +75,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json(workspace);
   } catch (error) {
-    console.error('PATCH /api/workspaces/[id] error:', error);
+    console.error('PATCH /api/workspaces/[id] error');
     return NextResponse.json({ error: 'Failed to update workspace' }, { status: 500 });
   }
 }

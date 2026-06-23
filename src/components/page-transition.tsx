@@ -23,7 +23,7 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
         transition={{
           duration: 0.5,
           times: [0, 0.6, 1],
-          ease: 'easeOut',
+          ease: 'easeOut' as const,
         }}
       />
 
@@ -37,7 +37,7 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
             y: 0,
             transition: {
               type: 'tween',
-              ease: [0.25, 0.46, 0.45, 0.94],
+              ease: [0.25, 0.46, 0.45, 0.94] as const,
               duration: 0.2, // enter: 0.2s
             },
           }}
@@ -46,7 +46,7 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
             y: -8,
             transition: {
               type: 'tween',
-              ease: [0.25, 0.46, 0.45, 0.94],
+              ease: [0.25, 0.46, 0.45, 0.94] as const,
               duration: 0.15, // exit: 0.15s
             },
           }}
@@ -57,7 +57,7 @@ export function PageTransition({ pageId, children }: PageTransitionProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: 0.25,
-              ease: 'easeOut',
+              ease: 'easeOut' as const,
               delay: 0.05,
             }}
           >

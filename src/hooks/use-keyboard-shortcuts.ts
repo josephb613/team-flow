@@ -125,7 +125,7 @@ export function useKeyboardShortcuts() {
       if (isMeta && !e.altKey && !e.shiftKey) {
         const pageMap: Record<string, Parameters<typeof setActivePage>[0]> = {
           '1': 'dashboard',
-          '2': 'tasks',
+          '2': 'my-tasks',
           '3': 'projects',
           '4': 'calendar',
           '5': 'messages',

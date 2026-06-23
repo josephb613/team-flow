@@ -140,6 +140,51 @@ const createSprintSchema = z.object({
   status: z.enum(['planning', 'active', 'completed']).optional(),
 });
 
+const engagementEnum = z.enum(['unaware', 'resistant', 'neutral', 'supportive', 'leading']);
+
+const createStakeholderSchema = z.object({
+  name: z.string().min(1),
+  projectId: z.string().optional(),
+  organization: z.string().optional(),
+  role: z.string().optional(),
+  email: z.string().optional(),
+  influence: z.number().int().min(1).max(5).optional(),
+  interest: z.number().int().min(1).max(5).optional(),
+  engagement: engagementEnum.optional(),
+  strategy: z.string().optional(),
+});
+
+const updateStakeholderSchema = z
+  .object({
+    stakeholderId: z.string().min(1),
+    name: z.string().optional(),
+    organization: z.string().optional(),
+    role: z.string().optional(),
+    email: z.string().optional(),
+    influence: z.number().int().min(1).max(5).optional(),
+    interest: z.number().int().min(1).max(5).optional(),
+    engagement: engagementEnum.optional(),
+    strategy: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.organization !== undefined ||
+      data.role !== undefined ||
+      data.email !== undefined ||
+      data.influence !== undefined ||
+      data.interest !== undefined ||
+      data.engagement !== undefined ||
+      data.strategy !== undefined,
+    { message: 'At least one field to update is required' }
+  );
+
+const listStakeholdersSchema = z.object({
+  projectId: z.string().optional(),
+  engagement: engagementEnum.optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+
 async function assertRiskInWorkspace(
   riskId: string,
   workspaceId: string
@@ -166,6 +211,53 @@ async function assertChangeRequestInWorkspace(
     return { ok: false, error: 'Change request not found in workspace' };
   }
   return { ok: true };
+}
+
+async function assertStakeholderInWorkspace(
+  stakeholderId: string,
+  workspaceId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const stakeholder = await db.stakeholder.findUnique({
+    where: { id: stakeholderId },
+    select: { project: { select: { workspaceId: true } } },
+  });
+  if (!stakeholder || stakeholder.project.workspaceId !== workspaceId) {
+    return { ok: false, error: 'Stakeholder not found in workspace' };
+  }
+  return { ok: true };
+}
+
+function clampStakeholderRating(value: number | undefined, fallback: number): number {
+  if (value === undefined) return fallback;
+  return Math.min(5, Math.max(1, value));
+}
+
+function formatStakeholderResponse(stakeholder: {
+  id: string;
+  name: string;
+  organization: string | null;
+  role: string | null;
+  email: string | null;
+  influence: number;
+  interest: number;
+  engagement: string;
+  strategy: string | null;
+  projectId: string;
+  project: { id: string; name: string };
+}) {
+  return {
+    id: stakeholder.id,
+    name: stakeholder.name,
+    organization: stakeholder.organization,
+    role: stakeholder.role,
+    email: stakeholder.email,
+    influence: stakeholder.influence,
+    interest: stakeholder.interest,
+    engagement: stakeholder.engagement,
+    strategy: stakeholder.strategy,
+    projectId: stakeholder.projectId,
+    projectName: stakeholder.project.name,
+  };
 }
 
 function buildPendingResult(pending: PendingAction, message: string): ToolResult {
@@ -342,6 +434,14 @@ async function handleUpdateTaskStatus(
 
   if (!task) {
     return { success: false, error: 'Task not found' };
+  }
+
+  if (args.status === 'done') {
+    return {
+      success: false,
+      error:
+        'Cannot mark task as done via AI. Task closure requires resolution summary and lessons learned via the UI.',
+    };
   }
 
   const preview = {
@@ -564,6 +664,95 @@ async function handleUpdateRisk(
   });
 
   return buildPendingResult(pending, 'Risk update pending user confirmation');
+}
+
+async function handleCreateStakeholder(
+  args: z.infer<typeof createStakeholderSchema>,
+  ctx: ToolAuthContext
+): Promise<ToolResult> {
+  const projectId = args.projectId ?? ctx.projectId;
+  if (!projectId) {
+    return { success: false, error: 'projectId is required to create a stakeholder' };
+  }
+
+  const projectAccess = await assertProjectInWorkspace(projectId, ctx.workspaceId);
+  if (!projectAccess.ok) {
+    return { success: false, error: 'Project not found in workspace' };
+  }
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, name: true },
+  });
+
+  const preview = {
+    name: args.name,
+    organization: args.organization ?? null,
+    role: args.role ?? null,
+    email: args.email ?? null,
+    influence: args.influence ?? 3,
+    interest: args.interest ?? 3,
+    engagement: args.engagement ?? 'neutral',
+    strategy: args.strategy ?? null,
+    projectId,
+    projectName: project?.name,
+  };
+
+  const pending = await storePendingAction({
+    toolName: 'create_stakeholder',
+    args: { ...args, projectId },
+    workspaceId: ctx.workspaceId,
+    userId: ctx.userId,
+    preview,
+  });
+
+  return buildPendingResult(pending, 'Stakeholder creation pending user confirmation');
+}
+
+async function handleUpdateStakeholder(
+  args: z.infer<typeof updateStakeholderSchema>,
+  ctx: ToolAuthContext
+): Promise<ToolResult> {
+  const access = await assertStakeholderInWorkspace(args.stakeholderId, ctx.workspaceId);
+  if (!access.ok) {
+    return { success: false, error: access.error };
+  }
+
+  const stakeholder = await db.stakeholder.findUnique({
+    where: { id: args.stakeholderId },
+    include: { project: { select: { id: true, name: true } } },
+  });
+
+  if (!stakeholder) {
+    return { success: false, error: 'Stakeholder not found' };
+  }
+
+  const preview = {
+    stakeholderId: stakeholder.id,
+    stakeholderName: stakeholder.name,
+    projectName: stakeholder.project.name,
+    newName: args.name ?? null,
+    newOrganization: args.organization ?? null,
+    newRole: args.role ?? null,
+    newEmail: args.email ?? null,
+    currentInfluence: stakeholder.influence,
+    newInfluence: args.influence ?? null,
+    currentInterest: stakeholder.interest,
+    newInterest: args.interest ?? null,
+    currentEngagement: stakeholder.engagement,
+    newEngagement: args.engagement ?? null,
+    newStrategy: args.strategy ?? null,
+  };
+
+  const pending = await storePendingAction({
+    toolName: 'update_stakeholder',
+    args,
+    workspaceId: ctx.workspaceId,
+    userId: ctx.userId,
+    preview,
+  });
+
+  return buildPendingResult(pending, 'Stakeholder update pending user confirmation');
 }
 
 async function handleCreateChangeRequest(
@@ -848,6 +1037,30 @@ async function handleListRisks(
   return { success: true, data: formatted };
 }
 
+async function handleListStakeholders(
+  args: z.infer<typeof listStakeholdersSchema>,
+  ctx: ToolAuthContext
+): Promise<ToolResult> {
+  const limit = args.limit ?? 20;
+  const projectId = args.projectId ?? ctx.projectId ?? null;
+  const scopedWhere = buildProjectScopedWhere(ctx.workspaceId, projectId);
+
+  const stakeholders = await db.stakeholder.findMany({
+    where: {
+      ...(scopedWhere ?? {}),
+      ...(args.engagement ? { engagement: args.engagement } : {}),
+    },
+    include: { project: { select: { id: true, name: true } } },
+    orderBy: [{ influence: 'desc' }, { interest: 'desc' }],
+    take: limit,
+  });
+
+  return {
+    success: true,
+    data: stakeholders.map(formatStakeholderResponse),
+  };
+}
+
 async function handleGetEvmSummary(
   args: z.infer<typeof getEvmSchema>,
   ctx: ToolAuthContext
@@ -983,6 +1196,14 @@ export async function executeConfirmedAction(
       return { success: false, error: parsed.error.message };
     }
 
+    if (parsed.data.status === 'done') {
+      return {
+        success: false,
+        error:
+          'Cannot mark task as done via this tool. Task closure requires resolution summary and lessons learned via the UI.',
+      };
+    }
+
     const access = await assertTaskInWorkspace(parsed.data.taskId, ctx.workspaceId);
     if (!access.ok) return { success: false, error: 'Task not found in workspace' };
 
@@ -1008,6 +1229,14 @@ export async function executeConfirmedAction(
 
     const access = await assertTaskInWorkspace(parsed.data.taskId, ctx.workspaceId);
     if (!access.ok) return { success: false, error: 'Task not found in workspace' };
+
+    if (parsed.data.status === 'done') {
+      return {
+        success: false,
+        error:
+          'Cannot mark task as done via this tool. Task closure requires resolution summary and lessons learned via the UI.',
+      };
+    }
 
     if (parsed.data.assigneeId) {
       const userAccess = await assertUserInWorkspace(parsed.data.assigneeId, ctx.workspaceId);
@@ -1127,6 +1356,73 @@ export async function executeConfirmedAction(
     triggerReindex(ctx.workspaceId, 'risk', risk.id);
 
     return { success: true, data: formatRiskResponse(risk, relatedTasks) };
+  }
+
+  if (toolName === 'create_stakeholder') {
+    const parsed = createStakeholderSchema.safeParse(args);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.message };
+    }
+
+    const projectId = parsed.data.projectId ?? ctx.projectId;
+    if (!projectId) return { success: false, error: 'projectId is required' };
+
+    const projectAccess = await assertProjectInWorkspace(projectId, ctx.workspaceId);
+    if (!projectAccess.ok) return { success: false, error: 'Project not found in workspace' };
+
+    const stakeholder = await db.stakeholder.create({
+      data: {
+        name: parsed.data.name,
+        organization: parsed.data.organization ?? null,
+        role: parsed.data.role ?? null,
+        email: parsed.data.email ?? null,
+        influence: clampStakeholderRating(parsed.data.influence, 3),
+        interest: clampStakeholderRating(parsed.data.interest, 3),
+        engagement: parsed.data.engagement ?? 'neutral',
+        strategy: parsed.data.strategy ?? null,
+        projectId,
+      },
+      include: { project: { select: { id: true, name: true } } },
+    });
+
+    triggerReindex(ctx.workspaceId, 'stakeholder', stakeholder.id);
+
+    return { success: true, data: formatStakeholderResponse(stakeholder) };
+  }
+
+  if (toolName === 'update_stakeholder') {
+    const parsed = updateStakeholderSchema.safeParse(args);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.message };
+    }
+
+    const access = await assertStakeholderInWorkspace(parsed.data.stakeholderId, ctx.workspaceId);
+    if (!access.ok) return { success: false, error: access.error };
+
+    const { stakeholderId, ...body } = parsed.data;
+    const data: Record<string, unknown> = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.organization !== undefined) data.organization = body.organization;
+    if (body.role !== undefined) data.role = body.role;
+    if (body.email !== undefined) data.email = body.email;
+    if (body.influence !== undefined) data.influence = clampStakeholderRating(body.influence, 3);
+    if (body.interest !== undefined) data.interest = clampStakeholderRating(body.interest, 3);
+    if (body.engagement !== undefined) data.engagement = body.engagement;
+    if (body.strategy !== undefined) data.strategy = body.strategy;
+
+    if (Object.keys(data).length === 0) {
+      return { success: false, error: 'No valid fields to update' };
+    }
+
+    const stakeholder = await db.stakeholder.update({
+      where: { id: stakeholderId },
+      data,
+      include: { project: { select: { id: true, name: true } } },
+    });
+
+    triggerReindex(ctx.workspaceId, 'stakeholder', stakeholder.id);
+
+    return { success: true, data: formatStakeholderResponse(stakeholder) };
   }
 
   if (toolName === 'create_change_request') {
@@ -1293,6 +1589,16 @@ const HANDLERS: Record<string, HandlerFn> = {
     if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
     return handleUpdateRisk(parsed.data, ctx);
   },
+  create_stakeholder: (args, ctx) => {
+    const parsed = createStakeholderSchema.safeParse(args);
+    if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
+    return handleCreateStakeholder(parsed.data, ctx);
+  },
+  update_stakeholder: (args, ctx) => {
+    const parsed = updateStakeholderSchema.safeParse(args);
+    if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
+    return handleUpdateStakeholder(parsed.data, ctx);
+  },
   create_change_request: (args, ctx) => {
     const parsed = createChangeRequestSchema.safeParse(args);
     if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
@@ -1318,6 +1624,11 @@ const HANDLERS: Record<string, HandlerFn> = {
     const parsed = listRisksSchema.safeParse(args);
     if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
     return handleListRisks(parsed.data, ctx);
+  },
+  list_stakeholders: (args, ctx) => {
+    const parsed = listStakeholdersSchema.safeParse(args);
+    if (!parsed.success) return Promise.resolve({ success: false, error: parsed.error.message });
+    return handleListStakeholders(parsed.data, ctx);
   },
   get_evm_summary: (args, ctx) => {
     const parsed = getEvmSchema.safeParse(args);

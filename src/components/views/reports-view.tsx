@@ -77,7 +77,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const COLORS = ['#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#8b5cf6'];
@@ -153,17 +153,17 @@ export function ReportsView() {
   }, []);
 
   const handleExportCSV = useCallback((type: ExportType) => {
-    const data = getExportData(type);
+    const data = getExportData(type) as Record<string, unknown>[];
     exportToCSV(data, `teamflow-${type}-${new Date().toISOString().split('T')[0]}`);
   }, [getExportData]);
 
   const handleExportJSON = useCallback((type: ExportType) => {
-    const data = getExportData(type);
+    const data = getExportData(type) as Record<string, unknown>[];
     exportToJSON(data, `teamflow-${type}-${new Date().toISOString().split('T')[0]}`);
   }, [getExportData]);
 
   const handleCopyToClipboard = useCallback(async (type: ExportType) => {
-    const data = getExportData(type);
+    const data = getExportData(type) as Record<string, unknown>[];
     const success = await copyToClipboard(data, 'csv');
     if (success) {
       setCopiedType(type);
@@ -354,7 +354,7 @@ export function ReportsView() {
               <motion.div
                 initial="rest"
                 whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
+                transition={{ duration: 0.25, ease: 'easeOut' as const }}
                 className="relative group"
               >
                 <Card className={`relative overflow-hidden border ${stat.borderAccent} shadow-md ${stat.glowColor} hover:shadow-lg transition-shadow duration-300`}>
@@ -582,7 +582,7 @@ export function ReportsView() {
                           }}
                           initial={{ width: 0 }}
                           animate={{ width: `${project.progress}%` }}
-                          transition={{ duration: 1, delay: 0.2 + idx * 0.1, ease: 'easeOut' }}
+                          transition={{ duration: 1, delay: 0.2 + idx * 0.1, ease: 'easeOut' as const }}
                         />
                       </div>
                     </div>

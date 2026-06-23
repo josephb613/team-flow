@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { triggerReindex } from '@/lib/ai/embeddings/indexer';
+import { getWorkspaceIdFromRequest } from '@/lib/workspace-query';
+import { assertRiskInWorkspace } from '@/lib/workspace-api';
 import {
   buildRiskWriteData,
   formatRiskResponse,
@@ -11,6 +13,10 @@ import {
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const workspaceId = getWorkspaceIdFromRequest(request);
+    const access = await assertRiskInWorkspace(id, workspaceId);
+    if (!access.ok) return access.response;
+
     const body = await request.json();
 
     const existing = await db.risk.findUnique({ where: { id } });
@@ -48,18 +54,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(formatRiskResponse(risk, relatedTasks));
   } catch (error) {
-    console.error('PATCH /api/risks/[id] error:', error);
+    console.error('PATCH /api/risks/[id] error');
     return NextResponse.json({ error: 'Failed to update risk' }, { status: 500 });
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const workspaceId = getWorkspaceIdFromRequest(request);
+    const access = await assertRiskInWorkspace(id, workspaceId);
+    if (!access.ok) return access.response;
+
     await db.risk.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('DELETE /api/risks/[id] error:', error);
+    console.error('DELETE /api/risks/[id] error');
     return NextResponse.json({ error: 'Failed to delete risk' }, { status: 500 });
   }
 }

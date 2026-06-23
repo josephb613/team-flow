@@ -60,7 +60,7 @@ function Particle({ delay, x, y, size }: { delay: number; x: number; y: number; 
         duration: 6 + Math.random() * 4,
         delay,
         repeat: Infinity,
-        ease: 'easeInOut',
+        ease: 'easeInOut' as const,
       }}
     />
   );
@@ -168,7 +168,7 @@ export function LoginPage() {
     }
 
     if (mode === 'signup') {
-      if (password.length < 6) {
+      if (password.length < 8) {
         setError(t.login.passwordTooShort);
         setIsLoading(false);
         return;
@@ -285,7 +285,7 @@ export function LoginPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ duration: 0.6, ease: 'easeOut' as const }}
           >
             <div className="flex items-center gap-3 mb-8">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center shadow-lg shadow-[oklch(0.55_0.18_250)/20]">
@@ -358,7 +358,7 @@ export function LoginPage() {
             >
               <motion.div
                 animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' as const }}
                 className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4"
               >
                 <p className="text-sm text-white/70 italic leading-relaxed mb-3">
@@ -391,7 +391,7 @@ export function LoginPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+          transition={{ duration: 0.4, ease: 'easeOut' as const }}
           className="w-full max-w-md"
         >
           {/* Mobile logo */}

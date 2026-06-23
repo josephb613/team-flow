@@ -13,6 +13,7 @@ import { EditTaskDialog } from '@/components/edit-task-dialog';
 import { CreateSprintDialog } from '@/components/create-sprint-dialog';
 import { CreateMilestoneDialog } from '@/components/create-milestone-dialog';
 import { TaskDetailDrawer } from '@/components/task-detail-drawer';
+import { TaskClosureDialog } from '@/components/task-closure-dialog';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
 import { KeyboardShortcutsDialog } from '@/components/keyboard-shortcuts-dialog';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -57,6 +58,8 @@ const RisksView = dynamic(() => import('@/components/views/risks-view').then(m =
 const StakeholdersView = dynamic(() => import('@/components/views/stakeholders-view').then(m => ({ default: m.StakeholdersView })), { ssr: false });
 const ChangeRequestsView = dynamic(() => import('@/components/views/change-requests-view').then(m => ({ default: m.ChangeRequestsView })), { ssr: false });
 const WorkloadView = dynamic(() => import('@/components/views/workload-view').then(m => ({ default: m.WorkloadView })), { ssr: false });
+const WikiView = dynamic(() => import('@/components/views/wiki-view').then(m => ({ default: m.WikiView })), { ssr: false });
+const SkillsView = dynamic(() => import('@/components/views/skills-view').then(m => ({ default: m.SkillsView })), { ssr: false });
 
 const viewMap: Record<string, React.ComponentType> = {
   // Favoris
@@ -72,9 +75,12 @@ const viewMap: Record<string, React.ComponentType> = {
   // Communication
   messages: MessagesView,
   meetings: MeetingsView,
+  // Knowledge
+  wiki: WikiView,
   // Équipe
   members: MembersView,
   teams: TeamsView,
+  skills: SkillsView,
   // Analyse
   statistics: StatisticsView,
   reports: ReportsView,
@@ -290,6 +296,7 @@ export function MainApp() {
 
       {/* Task Detail Drawer */}
       <TaskDetailDrawer />
+      <TaskClosureDialog />
 
       {/* Create Task Dialog */}
       {createTaskDialogOpen && <CreateTaskDialog />}

@@ -4,6 +4,7 @@ import {
   parseChatHistory,
   streamChatResponse,
 } from '@/lib/ai/chat-service';
+import { enforceAiRouteAccess } from '@/lib/ai/ai-route-auth';
 import type { ChatLocale } from '@/lib/ai/types';
 
 function wantsStreaming(request: NextRequest): boolean {
@@ -33,7 +34,6 @@ export async function POST(request: NextRequest) {
       projectId,
       history,
       locale,
-      userId,
     } = body as {
       message?: string;
       workspaceId?: string;
@@ -43,24 +43,25 @@ export async function POST(request: NextRequest) {
       userId?: string;
     };
 
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      return NextResponse.json({ error: 'workspaceId is required' }, { status: 400 });
-    }
+    const access = await enforceAiRouteAccess(request, body);
+    if (!access.ok) return access.response;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    const streaming = wantsStreaming(request);
+
     const chatRequest = {
       message,
-      workspaceId,
+      workspaceId: access.workspaceId,
       projectId: typeof projectId === 'string' ? projectId : undefined,
       history: parseChatHistory(history),
       locale: parseLocale(locale),
-      userId: typeof userId === 'string' ? userId : undefined,
+      userId: access.appUserId,
     };
 
-    if (!wantsStreaming(request)) {
+    if (!streaming) {
       const { message: content, pendingActions } = await generateChatResponse(chatRequest);
       return NextResponse.json({ message: content, pendingActions });
     }
@@ -74,9 +75,8 @@ export async function POST(request: NextRequest) {
           }
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         } catch (error) {
-          const errMsg =
-            error instanceof Error ? error.message : 'Stream failed';
-          const event = JSON.stringify({ type: 'error', content: errMsg });
+          console.error('[ai/chat] Stream error');
+          const event = JSON.stringify({ type: 'error', content: 'Stream failed' });
           controller.enqueue(encoder.encode(`data: ${event}\n\n`));
         } finally {
           controller.close();
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('POST /api/ai/chat error:', error);
+    console.error('[ai/chat] Fatal error');
 
     const message =
       error instanceof Error && error.message === 'Workspace not found'

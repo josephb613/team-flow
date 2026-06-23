@@ -43,6 +43,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const { title, description, status, priority, tags, dueDate, startDate, estimatedHours, assigneeId, projectId } = body;
 
+    if (status === 'done') {
+      return NextResponse.json(
+        { error: 'Use POST /api/tasks/[id]/close to mark a task as done with resolution and lessons learned' },
+        { status: 400 }
+      );
+    }
+
     if (assigneeId !== undefined && assigneeId !== null) {
       const assigneeAccess = await assertUserInWorkspace(assigneeId, workspaceId);
       if (!assigneeAccess.ok) return assigneeAccess.response;

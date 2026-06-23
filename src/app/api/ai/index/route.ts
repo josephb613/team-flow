@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { indexWorkspace } from '@/lib/ai/embeddings/indexer';
-import { validateWorkspace } from '@/lib/ai/context/context-builder';
+import { enforceAiRouteAccess } from '@/lib/ai/ai-route-auth';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workspaceId } = body as { workspaceId?: string };
 
-    if (!workspaceId || typeof workspaceId !== 'string') {
-      return NextResponse.json({ error: 'workspaceId is required' }, { status: 400 });
-    }
+    const access = await enforceAiRouteAccess(request, body);
+    if (!access.ok) return access.response;
 
-    await validateWorkspace(workspaceId);
-    const result = await indexWorkspace(workspaceId);
+    const result = await indexWorkspace(access.workspaceId);
 
     return NextResponse.json({
       success: true,
       ...result,
     });
   } catch (error) {
-    console.error('POST /api/ai/index error:', error);
+    console.error('POST /api/ai/index error');
 
     const message = error instanceof Error ? error.message : 'Indexing failed';
     const status = message === 'Workspace not found' ? 404 : 500;

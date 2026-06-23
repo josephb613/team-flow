@@ -123,7 +123,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
@@ -268,7 +268,7 @@ function MilestoneCard({ milestone }: { milestone: Milestone }) {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  transition={{ duration: 0.8, ease: 'easeOut' as const }}
                   className="h-full rounded-full"
                   style={{
                     background: `linear-gradient(90deg, ${milestone.color}, ${milestone.color}dd)`,

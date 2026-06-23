@@ -234,7 +234,7 @@ export function CreateTaskDialog() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.2, ease: 'easeOut' as const }}
         >
           {/* Gradient Header */}
           <div className="relative px-6 pt-6 pb-4 shrink-0 bg-gradient-to-r from-[oklch(0.55_0.18_250/0.08)] via-[oklch(0.55_0.18_250/0.04)] to-transparent border-b">

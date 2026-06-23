@@ -28,7 +28,7 @@ function ResetPasswordForm() {
     e.preventDefault();
     if (!token) return;
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setSubmitError(t.login.passwordTooShort);
       return;
     }

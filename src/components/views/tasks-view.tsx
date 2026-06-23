@@ -193,7 +193,7 @@ const FILTER_SELECT_TRIGGER_CLASS = (isActive: boolean) =>
 
 // ── Sort types ───────────────────────────────────────────────────────────────
 
-type SortField = 'title' | 'priority' | 'dueDate' | 'status' | 'project';
+type SortField = 'title' | 'priority' | 'dueDate' | 'status' | 'project' | 'assignee';
 type SortDirection = 'asc' | 'desc';
 
 const priorityOrder: Record<TaskPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -209,7 +209,7 @@ function TaskCardContent({
   onClick?: () => void;
   dragHandleProps?: {
     attributes: React.HTMLAttributes<HTMLButtonElement>;
-    listeners: React.HTMLAttributes<HTMLButtonElement>;
+    listeners?: React.HTMLAttributes<HTMLButtonElement>;
   };
 }) {
   const { openEditTaskDialog } = useAppStore();
@@ -221,14 +221,18 @@ function TaskCardContent({
   const overdue = isOverdue(task.dueDate, task.status);
   const pl: Record<TaskPriority, string> = { urgent: t.tasks.urgent, high: t.tasks.high, medium: t.tasks.medium, low: t.tasks.low };
   const assigneeStatus = users.find((u) => u.id === task.assigneeId)?.status || 'offline';
+  const isClosed = task.status === 'done';
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'group relative bg-card rounded-xl border shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden',
+        'group relative rounded-xl border shadow-sm transition-all duration-200 cursor-pointer overflow-hidden',
         'border-l-[3px]',
-        priority.strip
+        isClosed
+          ? 'bg-muted/50 border-border/60 border-l-slate-300 dark:border-l-slate-600 hover:shadow-md opacity-90'
+          : 'bg-card hover:shadow-lg',
+        !isClosed && priority.strip
       )}
     >
       <div className="p-3 pl-3.5">
@@ -239,8 +243,8 @@ function TaskCardContent({
               variant="outline"
               className={cn(
                 'text-[10px] px-1.5 py-0 font-semibold gap-0.5 flex items-center',
-                priority.bg,
-                priority.color
+                isClosed ? 'bg-muted border-border/60 text-muted-foreground' : priority.bg,
+                !isClosed && priority.color
               )}
             >
               {priority.icon}
@@ -283,16 +287,32 @@ function TaskCardContent({
         </div>
 
         {/* Title */}
-        <h4 className="text-sm font-medium mb-1.5 leading-snug">{task.title}</h4>
+        <h4
+          className={cn(
+            'text-sm font-medium mb-1.5 leading-snug',
+            isClosed && 'text-muted-foreground line-through'
+          )}
+        >
+          {task.title}
+        </h4>
 
         {/* Description */}
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{task.description}</p>
+        <p className={cn('text-xs line-clamp-2 mb-3', isClosed ? 'text-muted-foreground/70' : 'text-muted-foreground')}>
+          {task.description}
+        </p>
 
         {/* Tags */}
         {task.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {task.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-muted/80 font-medium">
+              <Badge
+                key={tag}
+                variant="secondary"
+                className={cn(
+                  'text-[10px] px-1.5 py-0 h-5 font-medium',
+                  isClosed ? 'bg-muted/80 text-muted-foreground' : 'bg-muted/80'
+                )}
+              >
                 {tag}
               </Badge>
             ))}
@@ -728,12 +748,15 @@ function ListView({
         case 'project':
           cmp = getProjectName(a.projectId).localeCompare(getProjectName(b.projectId));
           break;
+        case 'assignee':
+          cmp = getUserName(a.assigneeId).localeCompare(getUserName(b.assigneeId));
+          break;
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
 
     return result;
-  }, [searchQuery, sortField, sortDir, filterPriority, tasks, getProjectName, sprintFilter, milestoneFilter]);
+  }, [searchQuery, sortField, sortDir, filterPriority, tasks, getProjectName, getUserName, sprintFilter, milestoneFilter]);
 
   return (
     <div className="space-y-3">
@@ -941,7 +964,7 @@ function MyTasksView({
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
+              transition={{ duration: 0.8, ease: 'easeOut' as const }}
               className="h-full rounded-full bg-gradient-to-r from-[oklch(0.60_0.18_250)] to-[oklch(0.50_0.18_250)]"
             />
           </div>

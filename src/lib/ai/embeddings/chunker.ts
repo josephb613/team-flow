@@ -167,10 +167,30 @@ export function chunkRisk(
   return [{ title, content: text, chunkIndex: 0, metadata: { entity: 'risk' } }];
 }
 
+export function chunkStakeholder(
+  name: string,
+  organization: string | null | undefined,
+  role: string | null | undefined,
+  engagement: string,
+  strategy: string | null | undefined
+): ChunkInput[] {
+  const parts = [
+    organization ? `Organization: ${normalizeText(organization)}` : '',
+    role ? `Role: ${normalizeText(role)}` : '',
+    `Engagement: ${engagement}`,
+    strategy ? `Strategy: ${normalizeText(strategy)}` : '',
+  ].filter(Boolean);
+  const text = parts.join('\n');
+  if (!text) return [];
+
+  return [{ title: name, content: text, chunkIndex: 0, metadata: { entity: 'stakeholder' } }];
+}
+
 export function chunkTask(
   title: string,
   description: string | null | undefined,
-  comments: string[]
+  comments: string[],
+  closure?: { resolutionSummary?: string | null; lessonsLearned?: string | null }
 ): ChunkInput[] {
   const desc = normalizeText(description ?? '');
   const commentBlock = comments
@@ -179,9 +199,19 @@ export function chunkTask(
   const commentText =
     commentBlock.length > 0 ? `Comments:\n${commentBlock.map((c) => `- ${c}`).join('\n')}` : '';
 
+  const closureParts: string[] = [];
+  if (closure?.resolutionSummary?.trim()) {
+    closureParts.push(`Resolution:\n${normalizeText(closure.resolutionSummary)}`);
+  }
+  if (closure?.lessonsLearned?.trim()) {
+    closureParts.push(`Lessons learned:\n${normalizeText(closure.lessonsLearned)}`);
+  }
+  const closureText = closureParts.length > 0 ? closureParts.join('\n\n') : '';
+
   const sections: string[] = [];
   if (desc) sections.push(desc);
   if (commentText) sections.push(commentText);
+  if (closureText) sections.push(closureText);
 
   if (sections.length === 0) return [];
 

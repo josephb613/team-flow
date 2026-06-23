@@ -6,6 +6,7 @@ import {
   chunkMeeting,
   chunkProject,
   chunkRisk,
+  chunkStakeholder,
   chunkTask,
   chunkWikiPage,
   computeContentHash,
@@ -147,13 +148,18 @@ async function loadTaskChunks(
     select: {
       title: true,
       description: true,
+      resolutionSummary: true,
+      lessonsLearned: true,
       comments: { select: { content: true }, orderBy: { createdAt: 'asc' } },
     },
   });
   if (!task) return [];
 
   const comments = task.comments.map((c) => c.content);
-  return chunkTask(task.title, task.description, comments);
+  return chunkTask(task.title, task.description, comments, {
+    resolutionSummary: task.resolutionSummary,
+    lessonsLearned: task.lessonsLearned,
+  });
 }
 
 async function loadChangeRequestChunks(
@@ -205,6 +211,30 @@ async function loadRiskChunks(
   return chunkRisk(risk.title, risk.description, risk.mitigationPlan);
 }
 
+async function loadStakeholderChunks(
+  workspaceId: string,
+  sourceId: string
+): Promise<ChunkInput[]> {
+  const stakeholder = await db.stakeholder.findFirst({
+    where: { id: sourceId, project: { workspaceId } },
+    select: {
+      name: true,
+      organization: true,
+      role: true,
+      engagement: true,
+      strategy: true,
+    },
+  });
+  if (!stakeholder) return [];
+  return chunkStakeholder(
+    stakeholder.name,
+    stakeholder.organization,
+    stakeholder.role,
+    stakeholder.engagement,
+    stakeholder.strategy
+  );
+}
+
 async function loadChunksForEntity(
   workspaceId: string,
   sourceType: DocumentSourceType,
@@ -223,6 +253,8 @@ async function loadChunksForEntity(
       return loadMeetingChunks(workspaceId, sourceId);
     case 'risk':
       return loadRiskChunks(workspaceId, sourceId);
+    case 'stakeholder':
+      return loadStakeholderChunks(workspaceId, sourceId);
     default:
       return [];
   }
@@ -339,6 +371,18 @@ export async function indexWorkspace(workspaceId: string): Promise<IndexWorkspac
   for (const risk of risks) {
     const count = await reindexEntity(workspaceId, 'risk', risk.id);
     result.byType.risk = (result.byType.risk ?? 0) + count;
+    if (count > 0) result.indexed += count;
+    else result.skipped += 1;
+  }
+
+  const stakeholders = await db.stakeholder.findMany({
+    where: { project: { workspaceId } },
+    select: { id: true },
+  });
+
+  for (const stakeholder of stakeholders) {
+    const count = await reindexEntity(workspaceId, 'stakeholder', stakeholder.id);
+    result.byType.stakeholder = (result.byType.stakeholder ?? 0) + count;
     if (count > 0) result.indexed += count;
     else result.skipped += 1;
   }

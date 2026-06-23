@@ -58,25 +58,35 @@ import {
 } from 'lucide-react';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
-import type { MemberRole } from '@/lib/types';
+import type { UserRole, UserStatus } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 // ─── Role Config ─────────────────────────────────────────────────────────────
-const roleConfig: Record<MemberRole, {
+const roleConfig: Record<UserRole, {
   color: string;
   bg: string;
   border: string;
   icon: React.ElementType;
   gradient: string;
 }> = {
-  admin: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Crown, gradient: 'from-blue-500 to-blue-600' },
+  super_admin: { color: 'text-rose-700', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: Crown, gradient: 'from-rose-500 to-rose-600' },
+  org_admin: { color: 'text-emerald-700', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Shield, gradient: 'from-emerald-500 to-emerald-600' },
+  project_manager: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Users, gradient: 'from-amber-500 to-amber-600' },
   member: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: User, gradient: 'from-blue-500 to-blue-600' },
-  guest: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Eye, gradient: 'from-amber-500 to-amber-600' },
+  viewer: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Eye, gradient: 'from-amber-500 to-amber-600' },
 };
 
+const defaultRoleConfig = roleConfig.member;
+
+function getRoleConfig(role: UserRole) {
+  return roleConfig[role] ?? defaultRoleConfig;
+}
+
+const FILTER_ROLES: UserRole[] = ['org_admin', 'project_manager', 'member', 'viewer'];
+
 // ─── Status Config ───────────────────────────────────────────────────────────
-const statusConfig: Record<string, { color: string; ring: string; label: string; pulse: boolean }> = {
+const statusConfig: Record<UserStatus, { color: string; ring: string; label: string; pulse: boolean }> = {
   online: { color: 'bg-blue-500', ring: 'ring-blue-500/20', label: 'Online', pulse: true },
   away: { color: 'bg-amber-500', ring: 'ring-amber-500/20', label: 'Away', pulse: false },
   busy: { color: 'bg-rose-500', ring: 'ring-rose-500/20', label: 'Busy', pulse: false },
@@ -103,7 +113,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ─── Mini Activity Bar ───────────────────────────────────────────────────────
@@ -132,8 +142,8 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
 
   if (!user) return null;
 
-  const role = roleConfig[user.role];
-  const status = statusConfig[user.status];
+  const role = getRoleConfig(user.role);
+  const status = statusConfig[user.status] ?? statusConfig.offline;
   const RoleIcon = role.icon;
   const gradient = avatarGradients[users.indexOf(user) % avatarGradients.length];
 
@@ -156,10 +166,12 @@ function MemberDetailSheet({ userId, open, onClose }: { userId: string | null; o
   }, [userTasks]);
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  const roleLabels: Record<string, string> = {
-    admin: t.members.admin,
+  const roleLabels: Record<UserRole, string> = {
+    super_admin: t.members.superAdmin,
+    org_admin: t.members.orgAdmin,
+    project_manager: t.members.projectManager,
     member: t.members.member,
-    guest: t.members.guest,
+    viewer: t.members.viewer,
   };
 
   const taskStatusIcons: Record<string, { icon: React.ElementType; color: string }> = {
@@ -291,9 +303,11 @@ export function MembersView() {
 
   const roleLabels: Record<string, string> = {
     all: t.members.all,
-    admin: t.members.admin,
+    super_admin: t.members.superAdmin,
+    org_admin: t.members.orgAdmin,
+    project_manager: t.members.projectManager,
     member: t.members.member,
-    guest: t.members.guest,
+    viewer: t.members.viewer,
   };
 
   const filtered = useMemo(() => {
@@ -317,7 +331,7 @@ export function MembersView() {
   }, [search, roleFilter, sortBy, users]);
 
   const onlineCount = users.filter((u) => u.status === 'online').length;
-  const adminCount = users.filter((u) => u.role === 'admin').length;
+  const adminCount = users.filter((u) => u.role === 'super_admin' || u.role === 'org_admin').length;
 
   const roleCount = (role: string) => {
     if (role === 'all') return users.length;
@@ -390,16 +404,17 @@ export function MembersView() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t.members.searchMembers}
+            placeholder={t.members.search}
             className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250/0.3)] focus:bg-background transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['all', 'admin', 'member', 'guest'].map((role) => {
+          {['all', ...FILTER_ROLES].map((role) => {
             const isActive = roleFilter === role;
-            const rc = role !== 'all' ? roleConfig[role as MemberRole] : null;
+            const rc = role !== 'all' ? getRoleConfig(role as UserRole) : null;
+            const RoleFilterIcon = rc?.icon;
             return (
               <motion.button
                 key={role}
@@ -415,7 +430,7 @@ export function MembersView() {
                     : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
                 )}
               >
-                {rc && <rc.icon className="h-3 w-3" />}
+                {RoleFilterIcon && <RoleFilterIcon className="h-3 w-3" />}
                 {roleLabels[role]}
                 <span
                   className={cn(
@@ -450,8 +465,8 @@ export function MembersView() {
           <motion.div key="grid" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
             <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((user, idx) => {
-                const role = roleConfig[user.role];
-                const status = statusConfig[user.status];
+                const role = getRoleConfig(user.role);
+                const status = statusConfig[user.status] ?? statusConfig.offline;
                 const RoleIcon = role.icon;
                 const gradient = avatarGradients[idx % avatarGradients.length];
                 const userTasks = tasks.filter((t) => t.assigneeId === user.id);
@@ -567,8 +582,8 @@ export function MembersView() {
               {/* Table rows */}
               <motion.div variants={container} initial="hidden" animate="show" className="divide-y">
                 {filtered.map((user, idx) => {
-                  const role = roleConfig[user.role];
-                  const status = statusConfig[user.status];
+                  const role = getRoleConfig(user.role);
+                  const status = statusConfig[user.status] ?? statusConfig.offline;
                   const RoleIcon = role.icon;
                   const gradient = avatarGradients[idx % avatarGradients.length];
                   const userTasks = tasks.filter((t) => t.assigneeId === user.id);

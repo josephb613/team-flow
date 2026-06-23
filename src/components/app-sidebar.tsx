@@ -58,6 +58,8 @@ import {
   Handshake,
   FileDiff,
   Gauge,
+  BookOpen,
+  Brain,
 } from 'lucide-react';
 import type { PageId } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -430,9 +432,17 @@ const communicationItems: NavItemConfig[] = [
   { icon: <Video className="h-4 w-4" />, label: 'Meetings', pageId: 'meetings' },
 ];
 
+const knowledgeItems: NavItemConfig[] = [
+  { icon: <BookOpen className="h-4 w-4" />, label: 'Wiki', pageId: 'wiki' },
+];
+
 const teamItems: NavItemConfig[] = [
   { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
   { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
+];
+
+const skillsItems: NavItemConfig[] = [
+  { icon: <Brain className="h-4 w-4" />, label: 'Skills', pageId: 'skills' },
 ];
 
 const analysisItems: NavItemConfig[] = [
@@ -468,7 +478,9 @@ const allNavItems: NavItemConfig[] = [
   ...favoritesItems,
   ...projectsItems,
   ...communicationItems,
+  ...knowledgeItems,
   ...teamItems,
+  ...skillsItems,
   ...analysisItems,
   ...pmpItems,
   settingsNavItem,
@@ -478,6 +490,7 @@ const allNavItems: NavItemConfig[] = [
 const favoritesPageIds: Set<string> = new Set(favoritesItems.map(i => i.pageId));
 const projectsPageIds: Set<string> = new Set(projectsItems.map(i => i.pageId));
 const communicationPageIds: Set<string> = new Set(communicationItems.map(i => i.pageId));
+const knowledgePageIds: Set<string> = new Set(knowledgeItems.map(i => i.pageId));
 const teamPageIds: Set<string> = new Set(teamItems.map(i => i.pageId));
 const analysisPageIds: Set<string> = new Set(analysisItems.map(i => i.pageId));
 
@@ -545,7 +558,9 @@ export function AppSidebar() {
   const mainNavItems = favoritesItems.filter((i) => !favorites.includes(i.pageId));
   const projItems = projectsItems.filter((i) => !favorites.includes(i.pageId));
   const commItems = communicationItems.filter((i) => !favorites.includes(i.pageId));
+  const knowledgeItemsFiltered = knowledgeItems.filter((i) => !favorites.includes(i.pageId));
   const teamItemsFiltered = teamItems.filter((i) => !favorites.includes(i.pageId));
+  const skillsItemsFiltered = skillsItems.filter((i) => !favorites.includes(i.pageId));
   const anaItems = analysisItems.filter((i) => !favorites.includes(i.pageId));
   const pmpItemsFiltered = pmpItems.filter((i) => !favorites.includes(i.pageId));
   const favoriteItems = allNavItems.filter((i) => favorites.includes(i.pageId));
@@ -865,12 +880,32 @@ export function AppSidebar() {
           </>
         )}
 
+        {/* Knowledge Section */}
+        {knowledgeItemsFiltered.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.knowledge}</SectionLabel>
+            <div className="space-y-0.5">
+              {knowledgeItemsFiltered.map((item) => renderNavItem(item))}
+            </div>
+          </>
+        )}
+
         {/* Team Section */}
         {teamItemsFiltered.length > 0 && (
           <>
             <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.team}</SectionLabel>
             <div className="space-y-0.5">
               {teamItemsFiltered.map((item) => renderNavItem(item))}
+            </div>
+          </>
+        )}
+
+        {/* Skills Section */}
+        {skillsItemsFiltered.length > 0 && (
+          <>
+            <SectionLabel collapsed={sidebarCollapsed}>{t.sidebar.skills}</SectionLabel>
+            <div className="space-y-0.5">
+              {skillsItemsFiltered.map((item) => renderNavItem(item))}
             </div>
           </>
         )}

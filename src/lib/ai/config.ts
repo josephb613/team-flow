@@ -1,3 +1,5 @@
+import 'server-only';
+
 export interface AiConfig {
   groqApiKey: string;
   chatModel: string;
@@ -24,6 +26,7 @@ export function getAiConfig(): AiConfig {
 export function assertGroqConfigured(): void {
   const { groqApiKey, chatProvider } = getAiConfig();
   if (chatProvider === 'groq' && !groqApiKey) {
+    console.error('[ai/chat] GROQ_API_KEY is not configured');
     throw new Error('GROQ_API_KEY is not configured');
   }
 }

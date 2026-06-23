@@ -5,12 +5,22 @@ import { useTranslation } from '@/lib/i18n';
 import { useAppData } from '@/hooks/use-app-data';
 import { useAppStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, RotateCcw } from 'lucide-react';
+import { X, Send, RotateCcw, Wand2, Loader2, Clock, Plus, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   AiToolConfirmation,
   type PendingActionPreview,
 } from '@/components/ai-tool-confirmation';
+import { sanitizeChatResponse } from '@/lib/ai/sanitize-chat-response';
+import {
+  loadConversations,
+  upsertConversation,
+  deriveConversationTitle,
+  formatConversationDate,
+  type StoredConversation,
+  type StoredChatMessage,
+} from '@/lib/ai/chat-history-storage';
 
 interface ChatMessage {
   id: string;
@@ -32,6 +42,30 @@ interface SseEvent {
   actionId?: string;
   toolName?: string;
   preview?: Record<string, unknown>;
+}
+
+const DRAFT_STORAGE_KEY = 'teamflow-ai-chat-draft';
+
+function readChatDraft(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return sessionStorage.getItem(DRAFT_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeChatDraft(draft: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (draft) {
+      sessionStorage.setItem(DRAFT_STORAGE_KEY, draft);
+    } else {
+      sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  } catch {
+    // ignore quota / private mode
+  }
 }
 
 function parseSseChunk(
@@ -57,6 +91,75 @@ function parseSseChunk(
   return remainder;
 }
 
+function toStoredMessages(messages: ChatMessage[]): StoredChatMessage[] {
+  return messages
+    .filter((m) => m.id !== 'welcome' && m.content.trim())
+    .map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp.toISOString(),
+    }));
+}
+
+function fromStoredMessages(stored: StoredChatMessage[]): ChatMessage[] {
+  return stored.map((m) => ({
+    ...m,
+    timestamp: new Date(m.timestamp),
+  }));
+}
+
+function ChatHistoryList({
+  conversations,
+  activeId,
+  locale,
+  historyLabel,
+  emptyLabel,
+  onSelect,
+}: {
+  conversations: StoredConversation[];
+  activeId: string | null;
+  locale: 'fr' | 'en';
+  historyLabel: string;
+  emptyLabel: string;
+  onSelect: (conv: StoredConversation) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium text-muted-foreground/70 mb-1.5">
+        {historyLabel}
+      </p>
+      {conversations.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/50 py-0.5">{emptyLabel}</p>
+      ) : (
+        <ul className="space-y-0.5">
+          {conversations.map((conv) => (
+            <li key={conv.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(conv)}
+                className={cn(
+                  'w-full text-left py-1.5 px-1 -mx-1 rounded-md flex items-baseline justify-between gap-2 transition-colors',
+                  conv.id === activeId
+                    ? 'bg-muted/50'
+                    : 'hover:bg-muted/35'
+                )}
+              >
+                <span className="text-xs text-foreground/75 truncate min-w-0">
+                  {conv.title}
+                </span>
+                <span className="text-[10px] text-muted-foreground/50 shrink-0 tabular-nums">
+                  {formatConversationDate(conv.updatedAt, locale)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
   const { t, locale } = useTranslation();
   const { refetch } = useAppData();
@@ -72,12 +175,23 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
       timestamp: new Date(),
     },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(() => readChatDraft());
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCorrecting, setIsCorrecting] = useState(false);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<StoredConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [showHistoryView, setShowHistoryView] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustInputHeight = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, []);
 
   const hasConversation = messages.some((m) => m.role === 'user');
 
@@ -90,9 +204,78 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
   }, [messages, isTyping, scrollToBottom]);
 
   useEffect(() => {
+    writeChatDraft(input);
+  }, [input]);
+
+  useEffect(() => {
+    adjustInputHeight();
+  }, [input, adjustInputHeight]);
+
+  useEffect(() => {
     const timer = setTimeout(() => inputRef.current?.focus(), 300);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!workspaceId) {
+      setConversations([]);
+      return;
+    }
+    setConversations(loadConversations(workspaceId, userId));
+  }, [workspaceId, userId]);
+
+  const persistCurrentConversation = useCallback(() => {
+    if (!workspaceId || !messages.some((m) => m.role === 'user')) return null;
+
+    const stored = toStoredMessages(messages);
+    if (!stored.some((m) => m.role === 'user')) return null;
+
+    const id = activeConversationId ?? `conv-${Date.now()}`;
+    const conv: StoredConversation = {
+      id,
+      title: deriveConversationTitle(messages) || t.aiChat.newConversation,
+      messages: stored,
+      updatedAt: new Date().toISOString(),
+      workspaceId,
+    };
+    const next = upsertConversation(conv, workspaceId, userId);
+    setConversations(next);
+    if (!activeConversationId) setActiveConversationId(id);
+    return id;
+  }, [workspaceId, userId, messages, activeConversationId, t]);
+
+  useEffect(() => {
+    if (!hasConversation || isLoading || isTyping) return;
+    persistCurrentConversation();
+  }, [hasConversation, isLoading, isTyping, messages, persistCurrentConversation]);
+
+  const handleSelectConversation = useCallback(
+    (conv: StoredConversation) => {
+      if (hasConversation && activeConversationId !== conv.id) {
+        persistCurrentConversation();
+      }
+      setActiveConversationId(conv.id);
+      setMessages(fromStoredMessages(conv.messages));
+      setShowHistoryView(false);
+      setLastFailedMessage(null);
+    },
+    [hasConversation, activeConversationId, persistCurrentConversation]
+  );
+
+  const handleNewConversation = useCallback(() => {
+    persistCurrentConversation();
+    setActiveConversationId(null);
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'ai',
+        content: t.aiChat.welcomeMessage,
+        timestamp: new Date(),
+      },
+    ]);
+    setShowHistoryView(false);
+    setLastFailedMessage(null);
+  }, [persistCurrentConversation, t]);
 
   const buildHistory = useCallback(
     (currentMessages: ChatMessage[]) =>
@@ -258,6 +441,36 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
     // AiToolConfirmation shows its own cancelled state
   }, []);
 
+  const handleCorrectText = useCallback(async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading || isCorrecting) return;
+
+    setIsCorrecting(true);
+    try {
+      const response = await fetch('/api/ai/correct-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed, workspaceId, locale }),
+      });
+
+      const data = (await response.json()) as { text?: string; error?: string };
+
+      if (!response.ok || !data.text) {
+        throw new Error(data.error || 'Correction failed');
+      }
+
+      setInput(data.text);
+      requestAnimationFrame(() => {
+        adjustInputHeight();
+        inputRef.current?.focus();
+      });
+    } catch {
+      toast.error(t.aiChat.correctTextError);
+    } finally {
+      setIsCorrecting(false);
+    }
+  }, [input, isLoading, isCorrecting, locale, t, adjustInputHeight]);
+
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
@@ -324,16 +537,63 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-medium text-foreground">{t.aiChat.title}</h3>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Close chat"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => setShowHistoryView(true)}
+            className={cn(
+              'relative inline-flex items-center gap-1 px-1.5 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+              showHistoryView && 'bg-muted text-foreground'
+            )}
+            aria-label={t.aiChat.history}
+            title={t.aiChat.history}
+          >
+            <Clock className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[11px] font-medium">{t.aiChat.history}</span>
+          </button>
+          {hasConversation && (
+            <button
+              type="button"
+              onClick={handleNewConversation}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={t.aiChat.newConversation}
+              title={t.aiChat.newConversation}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Close chat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+        {showHistoryView ? (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowHistoryView(false)}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="h-3 w-3" />
+              {t.aiChat.backToChat}
+            </button>
+            <ChatHistoryList
+              conversations={conversations}
+              activeId={activeConversationId}
+              locale={locale}
+              historyLabel={t.aiChat.history}
+              emptyLabel={t.aiChat.noHistory}
+              onSelect={handleSelectConversation}
+            />
+          </div>
+        ) : (
+          <>
         {messages.map((msg) => (
           <motion.div
             key={msg.id}
@@ -364,7 +624,7 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
               <div className="max-w-[88%] space-y-2">
                 {msg.content && (
                   <div className="text-sm leading-relaxed text-foreground/90">
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <p className="whitespace-pre-wrap">{sanitizeChatResponse(msg.content)}</p>
                   </div>
                 )}
                 {workspaceId &&
@@ -406,28 +666,42 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
         </AnimatePresence>
 
         {!hasConversation && !isTyping && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {quickActions.map((action) => (
-              <button
-                key={action}
-                onClick={() => handleQuickAction(action)}
-                disabled={isLoading}
-                className="px-2.5 py-1 rounded-md text-xs text-muted-foreground border border-border/60 hover:text-foreground hover:border-border hover:bg-muted/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {action}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {quickActions.map((action) => (
+                <button
+                  key={action}
+                  onClick={() => handleQuickAction(action)}
+                  disabled={isLoading}
+                  className="px-2.5 py-1 rounded-md text-xs text-muted-foreground border border-border/60 hover:text-foreground hover:border-border hover:bg-muted/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+            <div className="pt-3 mt-2 border-t border-border/50">
+              <ChatHistoryList
+                conversations={conversations}
+                activeId={activeConversationId}
+                locale={locale}
+                historyLabel={t.aiChat.history}
+                emptyLabel={t.aiChat.noHistory}
+                onSelect={handleSelectConversation}
+              />
+            </div>
+          </>
         )}
 
         <div ref={messagesEndRef} />
+          </>
+        )}
       </div>
 
       <div className="px-4 pb-4 pt-2 shrink-0 border-t border-border/40">
-        <div className="flex items-center gap-2 pt-3">
-          <input
+        <div className="flex items-end gap-2 pt-3">
+          <textarea
             ref={inputRef}
-            type="text"
+            rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -437,12 +711,27 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
               }
             }}
             placeholder={t.aiChat.placeholder}
-            disabled={isLoading}
-            className="flex-1 h-9 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
+            disabled={isLoading || isCorrecting}
+            className="flex-1 min-h-9 max-h-[120px] resize-none overflow-y-auto bg-transparent py-2 text-sm leading-normal outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
           />
           <button
+            type="button"
+            onClick={handleCorrectText}
+            disabled={!input.trim() || isLoading || isCorrecting}
+            title={t.aiChat.correctText}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            aria-label={t.aiChat.correctText}
+          >
+            {isCorrecting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wand2 className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            type="button"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || isCorrecting}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             aria-label="Send message"
           >

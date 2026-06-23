@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Task, TaskStatus, TaskPriority } from '@/lib/types';
 import { useAppData } from '@/hooks/use-app-data';
+import { appendWorkspaceQuery } from '@/lib/workspace-query';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -74,7 +75,15 @@ interface ActivityLogEntry {
 }
 
 export function TaskDetailDrawer() {
-  const { taskDetailOpen, setTaskDetailOpen, selectedTask, currentUser, openEditTaskDialog, setSelectedTask } = useAppStore();
+  const {
+    taskDetailOpen,
+    setTaskDetailOpen,
+    selectedTask,
+    currentUser,
+    activeOrganizationId,
+    openEditTaskDialog,
+    setSelectedTask,
+  } = useAppStore();
   const { tasks, projects, getUserName, getUserInitials, getProjectName, updateTaskStatus, updateTaskPriority } = useAppData();
   const { t } = useTranslation();
   const [commentText, setCommentText] = useState('');
@@ -83,10 +92,33 @@ export function TaskDetailDrawer() {
 
   const getProjectColor = (id: string) => projects.find((p) => p.id === id)?.color || '#3b82f6';
 
+  const selectedId = selectedTask ? (selectedTask as unknown as Task).id : null;
+
+  useEffect(() => {
+    if (!taskDetailOpen || !selectedId || !activeOrganizationId) {
+      setComments([]);
+      return;
+    }
+
+    const url = appendWorkspaceQuery(`/api/tasks/${selectedId}/comments`, activeOrganizationId);
+    fetch(url)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: { id: string; userId: string; content: string; createdAt: string }[]) => {
+        setComments(
+          data.map((c) => ({
+            id: c.id,
+            userId: c.userId,
+            text: c.content,
+            time: new Date(c.createdAt).toLocaleString(),
+          }))
+        );
+      })
+      .catch(() => setComments([]));
+  }, [taskDetailOpen, selectedId, activeOrganizationId]);
+
   if (!selectedTask) return null;
 
-  const selectedId = (selectedTask as Task).id;
-  const task = tasks.find((item) => item.id === selectedId) ?? (selectedTask as Task);
+  const task = tasks.find((item) => item.id === selectedId) ?? (selectedTask as unknown as Task);
   const status = statusConfig[task.status];
   const priority = priorityConfig[task.priority];
   const projectColor = getProjectColor(task.projectId);
@@ -101,6 +133,10 @@ export function TaskDetailDrawer() {
   const subtaskPercent = subtaskTotal > 0 ? Math.round((subtaskDone / subtaskTotal) * 100) : 0;
 
   const handleStatusChange = (newStatus: TaskStatus) => {
+    if (newStatus === 'done') {
+      void updateTaskStatus(task.id, newStatus);
+      return;
+    }
     const oldLabel = statusConfig[task.status].label;
     const newLabel = statusConfig[newStatus].label;
     void updateTaskStatus(task.id, newStatus);
@@ -116,17 +152,30 @@ export function TaskDetailDrawer() {
     toast.success(t.taskDetail.priorityChanged.replace('{from}', oldLabel).replace('{to}', newLabel));
   };
 
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
-    const newComment: TaskComment = {
-      id: `c-new-${Date.now()}`,
-      userId: currentUser?.id ?? '',
-      text: commentText.trim(),
-      time: t.activity.justNow,
-    };
-    setComments([newComment, ...comments]);
-    setCommentText('');
-    toast.success(t.taskDetail.commentAdded);
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !selectedId || !currentUser?.id || !activeOrganizationId) return;
+
+    try {
+      const url = appendWorkspaceQuery(`/api/tasks/${selectedId}/comments`, activeOrganizationId);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: commentText.trim(), userId: currentUser.id }),
+      });
+      if (!res.ok) throw new Error('comment_failed');
+      const created = (await res.json()) as { id: string; userId: string; content: string; createdAt: string };
+      const newComment: TaskComment = {
+        id: created.id,
+        userId: created.userId,
+        text: created.content,
+        time: t.activity.justNow,
+      };
+      setComments([newComment, ...comments]);
+      setCommentText('');
+      toast.success(t.taskDetail.commentAdded);
+    } catch {
+      toast.error(t.editTask.error);
+    }
   };
 
   const handleDelete = () => {
@@ -326,7 +375,7 @@ export function TaskDetailDrawer() {
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${subtaskPercent}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    transition={{ duration: 0.8, ease: 'easeOut' as const }}
                     className={cn(
                       'h-full rounded-full',
                       subtaskPercent === 100

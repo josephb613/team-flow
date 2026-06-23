@@ -26,7 +26,7 @@ import {
   Radio,
 } from 'lucide-react';
 import { useAppData } from '@/hooks/use-app-data';
-import type { Meeting, MeetingStatus } from '@/lib/types';
+import type { AppMeeting as Meeting } from '@/lib/data-mappers';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
@@ -123,7 +123,7 @@ function MeetingDurationBar({ meeting }: { meeting: Meeting }) {
           className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 0.8, ease: 'easeOut' as const }}
         />
       </div>
       <div className="flex items-center justify-between mt-1">
@@ -136,7 +136,7 @@ function MeetingDurationBar({ meeting }: { meeting: Meeting }) {
 
 // Status configuration with gradient border colors
 const statusConfig: Record<
-  MeetingStatus,
+  string,
   { label: string; color: string; bg: string; borderGradient: string; icon: React.ReactNode; dotColor: string }
 > = {
   scheduled: {
@@ -184,7 +184,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 };
 
 // Meeting card component with gradient left border

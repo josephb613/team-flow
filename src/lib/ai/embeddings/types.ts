@@ -4,7 +4,8 @@ export type DocumentSourceType =
   | 'task'
   | 'change_request'
   | 'meeting'
-  | 'risk';
+  | 'risk'
+  | 'stakeholder';
 
 export interface ChunkInput {
   title: string;

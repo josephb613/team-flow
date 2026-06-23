@@ -155,6 +155,7 @@ interface AppState {
   // Sidebar
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
 
@@ -166,6 +167,7 @@ interface AppState {
   notifications: Notification[];
   notificationPanelOpen: boolean;
   setNotificationPanelOpen: (open: boolean) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'timestamp'>) => void;
   markAllNotificationsRead: () => void;
   markNotificationRead: (id: string) => void;
   removeNotification: (id: string) => void;
@@ -200,6 +202,11 @@ interface AppState {
   editTaskId: string | null;
   openEditTaskDialog: (id: string) => void;
   closeEditTaskDialog: () => void;
+
+  // Task closure dialog (lessons learned)
+  closureTaskId: string | null;
+  openTaskClosureDialog: (id: string) => void;
+  closeTaskClosureDialog: () => void;
 
   // Create sprint dialog
   createSprintDialogOpen: boolean;
@@ -241,6 +248,28 @@ interface AppState {
   stopTimer: () => void;
   tickTimer: () => void;
 
+  // Time tracker widget state
+  timeTracker: {
+    isTracking: boolean;
+    isPaused: boolean;
+    activeTaskId: string | null;
+    activeTaskName: string;
+    activeProjectColor: string;
+    elapsedSeconds: number;
+    todayTotal: number;
+    todayTasksCount: number;
+    timeEntries: Array<{
+      id: string;
+      taskName: string;
+      projectColor: string;
+      duration: number;
+    }>;
+  };
+  startTracking: (taskId: string, taskName: string, projectColor: string) => void;
+  stopTracking: () => void;
+  pauseTracking: () => void;
+  resumeTracking: () => void;
+
   // Shortcuts help dialog
   shortcutsHelpOpen: boolean;
   setShortcutsHelpOpen: (open: boolean) => void;
@@ -273,6 +302,11 @@ interface AppState {
   // i18n / Locale
   locale: Locale;
   setLocale: (locale: Locale) => void;
+
+  // Wiki navigation helpers
+  wikiLessonsProjectId: string | null;
+  navigateToProjectLessons: (projectId: string) => void;
+  clearWikiLessonsProjectId: () => void;
 
   // Auth
   isAuthenticated: boolean;
@@ -395,6 +429,7 @@ export const useAppStore = create<AppState>((set) => ({
   // Sidebar
   sidebarCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   mobileSidebarOpen: false,
   setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
 
@@ -406,6 +441,18 @@ export const useAppStore = create<AppState>((set) => ({
   notifications: [],
   notificationPanelOpen: false,
   setNotificationPanelOpen: (open) => set({ notificationPanelOpen: open }),
+  addNotification: (notification) =>
+    set((s) => ({
+      notifications: [
+        {
+          ...notification,
+          id: `notif-${Date.now()}`,
+          read: false,
+          timestamp: new Date().toISOString(),
+        },
+        ...s.notifications,
+      ],
+    })),
   markAllNotificationsRead: () =>
     set((s) => ({
       notifications: s.notifications.map((n) => ({ ...n, read: true })),
@@ -460,6 +507,10 @@ export const useAppStore = create<AppState>((set) => ({
   editTaskId: null,
   openEditTaskDialog: (id) => set({ editTaskId: id }),
   closeEditTaskDialog: () => set({ editTaskId: null }),
+
+  closureTaskId: null,
+  openTaskClosureDialog: (id) => set({ closureTaskId: id }),
+  closeTaskClosureDialog: () => set({ closureTaskId: null }),
 
   // Create sprint dialog
   createSprintDialogOpen: false,
@@ -528,9 +579,71 @@ export const useAppStore = create<AppState>((set) => ({
   startTimer: (taskId) => set({ timerRunning: true, timerTaskId: taskId, timerStartTime: Date.now(), timerElapsed: 0 }),
   stopTimer: () => set((s) => ({ timerRunning: false, timerElapsed: s.timerStartTime ? s.timerElapsed + (Date.now() - s.timerStartTime) : s.timerElapsed, timerStartTime: null })),
   tickTimer: () => set((s) => {
-    if (!s.timerRunning || !s.timerStartTime) return {};
-    return { timerElapsed: s.timerElapsed + (Date.now() - s.timerStartTime), timerStartTime: Date.now() };
+    const timerUpdate =
+      s.timerRunning && s.timerStartTime
+        ? {
+            timerElapsed: s.timerElapsed + (Date.now() - s.timerStartTime),
+            timerStartTime: Date.now(),
+          }
+        : {};
+
+    const trackerUpdate =
+      s.timeTracker.isTracking && !s.timeTracker.isPaused
+        ? {
+            timeTracker: {
+              ...s.timeTracker,
+              elapsedSeconds: s.timeTracker.elapsedSeconds + 1,
+            },
+          }
+        : {};
+
+    return { ...timerUpdate, ...trackerUpdate };
   }),
+
+  timeTracker: {
+    isTracking: false,
+    isPaused: false,
+    activeTaskId: null,
+    activeTaskName: '',
+    activeProjectColor: '#3b82f6',
+    elapsedSeconds: 0,
+    todayTotal: 0,
+    todayTasksCount: 0,
+    timeEntries: [],
+  },
+  startTracking: (taskId, taskName, projectColor) =>
+    set({
+      timeTracker: {
+        isTracking: true,
+        isPaused: false,
+        activeTaskId: taskId,
+        activeTaskName: taskName,
+        activeProjectColor: projectColor,
+        elapsedSeconds: 0,
+        todayTotal: 0,
+        todayTasksCount: 0,
+        timeEntries: [],
+      },
+    }),
+  stopTracking: () =>
+    set((s) => ({
+      timeTracker: {
+        ...s.timeTracker,
+        isTracking: false,
+        isPaused: false,
+        activeTaskId: null,
+        activeTaskName: '',
+        elapsedSeconds: 0,
+      },
+    })),
+  pauseTracking: () =>
+    set((s) => ({
+      timeTracker: { ...s.timeTracker, isPaused: true },
+    })),
+  resumeTracking: () =>
+    set((s) => ({
+      timeTracker: { ...s.timeTracker, isPaused: false },
+    })),
 
   // Shortcuts help dialog
   shortcutsHelpOpen: false,
@@ -583,6 +696,11 @@ export const useAppStore = create<AppState>((set) => ({
   // i18n / Locale
   locale: 'fr',
   setLocale: (locale) => set({ locale }),
+
+  wikiLessonsProjectId: null,
+  navigateToProjectLessons: (projectId) =>
+    set({ activePage: 'wiki', wikiLessonsProjectId: projectId }),
+  clearWikiLessonsProjectId: () => set({ wikiLessonsProjectId: null }),
 
   // Auth
   isAuthenticated: false,

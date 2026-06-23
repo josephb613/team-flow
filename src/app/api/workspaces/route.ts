@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slugify } from '@/lib/utils';
+import { requireApiAuth } from '@/lib/auth/api-auth';
 
 async function uniqueSlug(base: string): Promise<string> {
   let slug = base;
@@ -16,7 +17,13 @@ async function uniqueSlug(base: string): Promise<string> {
 
 export async function GET() {
   try {
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+
     const workspaces = await db.workspace.findMany({
+      where: {
+        members: { some: { userId: auth.appUser.id } },
+      },
       include: {
         members: {
           include: {
@@ -35,8 +42,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+
     const body = await request.json();
-    const { name, slug, description, color, icon, logo, userId } = body;
+    const { name, slug, description, color, icon, logo } = body;
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -53,16 +63,12 @@ export async function POST(request: Request) {
         color: color || '#10b981',
         icon: icon || '🏢',
         logo: logo?.trim() || null,
-        ...(userId
-          ? {
-              members: {
-                create: {
-                  userId: String(userId),
-                  role: 'admin',
-                },
-              },
-            }
-          : {}),
+        members: {
+          create: {
+            userId: auth.appUser.id,
+            role: 'admin',
+          },
+        },
       },
       include: {
         members: { select: { userId: true } },
@@ -72,7 +78,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(workspace, { status: 201 });
   } catch (error) {
-    console.error('POST /api/workspaces error:', error);
+    console.error('POST /api/workspaces error');
     return NextResponse.json({ error: 'Failed to create workspace' }, { status: 500 });
   }
 }

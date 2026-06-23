@@ -1,16 +1,25 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { verifyChatSocketToken, sanitizeChatMessageContent } from './auth.mjs'
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
 
 const httpServer = createServer()
 const io = new Server(httpServer, {
   path: '/',
   cors: {
-    origin: '*',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
   pingTimeout: 60000,
   pingInterval: 25000,
 })
+
+const authenticatedSockets = new Map()
 
 interface ChatUser {
   id: string
@@ -37,7 +46,6 @@ const channelMessages = new Map<string, ChatMessage[]>()
 
 const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36)
 
-// Ensure all channels have an empty message list
 for (let i = 1; i <= 7; i++) {
   const chId = `ch-${i}`
   if (!channelMessages.has(chId)) {
@@ -52,7 +60,6 @@ function getMessagesForChannel(channelId: string): ChatMessage[] {
 function addMessageToChannel(channelId: string, message: ChatMessage) {
   const messages = channelMessages.get(channelId) || []
   messages.push(message)
-  // Keep only last 50 messages per channel
   if (messages.length > 50) {
     channelMessages.set(channelId, messages.slice(-50))
   } else {
@@ -61,70 +68,77 @@ function addMessageToChannel(channelId: string, message: ChatMessage) {
 }
 
 io.on('connection', (socket) => {
-  console.log(`[Chat] User connected: ${socket.id}`)
+  socket.on('authenticate', (data: { token?: string }, callback?: (result: { ok: boolean; error?: string }) => void) => {
+    const token = typeof data?.token === 'string' ? data.token : ''
+    const identity = verifyChatSocketToken(token)
 
-  // User joins the chat
-  socket.on('join', (data: { userId: string; userName: string; userAvatar: string; channel: string }) => {
-    const { userId, userName, userAvatar, channel } = data
+    if (!identity) {
+      callback?.({ ok: false, error: 'invalid_token' })
+      socket.disconnect(true)
+      return
+    }
 
+    authenticatedSockets.set(socket.id, identity)
+    callback?.({ ok: true })
+  })
+
+  socket.on('join', (data: { channel: string }) => {
+    const identity = authenticatedSockets.get(socket.id)
+    if (!identity) {
+      socket.emit('auth_error', { error: 'not_authenticated' })
+      return
+    }
+
+    const channel = data.channel
     const user: ChatUser = {
-      id: userId,
-      name: userName,
-      avatar: userAvatar,
+      id: identity.userId,
+      name: identity.userName,
+      avatar: identity.userAvatar,
       socketId: socket.id,
       currentChannel: channel,
     }
 
     connectedUsers.set(socket.id, user)
-
-    // Join the channel room
     socket.join(channel)
 
-    // Send existing messages for the channel
     const messages = getMessagesForChannel(channel)
     socket.emit('channel_messages', { channelId: channel, messages })
 
-    // Notify others in the channel
     socket.to(channel).emit('user_joined', {
-      user: { id: userId, name: userName, avatar: userAvatar },
+      user: { id: user.id, name: user.name, avatar: user.avatar },
       channel,
     })
 
-    // Send connected users list
     const usersList = Array.from(connectedUsers.values()).map((u) => ({
       id: u.id,
       name: u.name,
       avatar: u.avatar,
     }))
     io.emit('connected_users', { users: usersList })
-
-    console.log(`[Chat] ${userName} joined channel ${channel}`)
   })
 
-  // Switch channel
   socket.on('switch_channel', (data: { channel: string }) => {
     const user = connectedUsers.get(socket.id)
     if (!user) return
 
-    // Leave old channel room
     socket.leave(user.currentChannel)
-    // Join new channel room
     socket.join(data.channel)
     user.currentChannel = data.channel
 
-    // Send existing messages for the new channel
     const messages = getMessagesForChannel(data.channel)
     socket.emit('channel_messages', { channelId: data.channel, messages })
   })
 
-  // New message
   socket.on('send_message', (data: { channelId: string; content: string }) => {
     const user = connectedUsers.get(socket.id)
-    if (!user || !data.content.trim()) return
+    if (!user) return
+
+    const content = sanitizeChatMessageContent(data.content)
+    if (!content) return
 
     const message: ChatMessage = {
       id: generateId(),
-      content: data.content.trim(),
+      content,
       senderId: user.id,
       senderName: user.name,
       senderAvatar: user.avatar,
@@ -135,14 +149,9 @@ io.on('connection', (socket) => {
     }
 
     addMessageToChannel(data.channelId, message)
-
-    // Broadcast to all users in the channel
     io.to(data.channelId).emit('new_message', message)
-
-    console.log(`[Chat] ${user.name}: ${data.content.trim()} (in ${data.channelId})`)
   })
 
-  // Typing indicator
   socket.on('typing', (data: { channelId: string }) => {
     const user = connectedUsers.get(socket.id)
     if (!user) return
@@ -154,7 +163,6 @@ io.on('connection', (socket) => {
     })
   })
 
-  // Stop typing
   socket.on('stop_typing', (data: { channelId: string }) => {
     const user = connectedUsers.get(socket.id)
     if (!user) return
@@ -165,29 +173,23 @@ io.on('connection', (socket) => {
     })
   })
 
-  // Disconnect
   socket.on('disconnect', () => {
+    authenticatedSockets.delete(socket.id)
     const user = connectedUsers.get(socket.id)
     if (user) {
       connectedUsers.delete(socket.id)
 
-      // Notify others
       socket.to(user.currentChannel).emit('user_left', {
         user: { id: user.id, name: user.name, avatar: user.avatar },
         channel: user.currentChannel,
       })
 
-      // Update connected users list
       const usersList = Array.from(connectedUsers.values()).map((u) => ({
         id: u.id,
         name: u.name,
         avatar: u.avatar,
       }))
       io.emit('connected_users', { users: usersList })
-
-      console.log(`[Chat] ${user.name} disconnected`)
-    } else {
-      console.log(`[Chat] User disconnected: ${socket.id}`)
     }
   })
 
@@ -196,24 +198,15 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = 3003
+const PORT = Number(process.env.CHAT_SOCKET_PORT || 3003)
 httpServer.listen(PORT, () => {
   console.log(`[Chat] WebSocket chat service running on port ${PORT}`)
 })
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('[Chat] Received SIGTERM signal, shutting down...')
-  httpServer.close(() => {
-    console.log('[Chat] Chat service closed')
-    process.exit(0)
-  })
+  httpServer.close(() => process.exit(0))
 })
 
 process.on('SIGINT', () => {
-  console.log('[Chat] Received SIGINT signal, shutting down...')
-  httpServer.close(() => {
-    console.log('[Chat] Chat service closed')
-    process.exit(0)
-  })
+  httpServer.close(() => process.exit(0))
 })

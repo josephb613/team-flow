@@ -135,7 +135,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ── Sprint Card ───────────────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ function SprintCard({
   sprint: Sprint;
   dragHandleProps?: {
     attributes: React.HTMLAttributes<HTMLButtonElement>;
-    listeners: React.HTMLAttributes<HTMLButtonElement>;
+    listeners?: React.HTMLAttributes<HTMLButtonElement>;
   };
 }) {
   const { t } = useTranslation();
@@ -239,7 +239,7 @@ function SprintCard({
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${stats.progress}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
+                transition={{ duration: 0.8, ease: 'easeOut' as const }}
                 className="h-full rounded-full"
                 style={{
                   background: `linear-gradient(90deg, ${project?.color || '#10b981'}, ${project?.color || '#10b981'}dd)`,

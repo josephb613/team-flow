@@ -1,5 +1,6 @@
 import { isEmbedConfigured } from '../config';
 import { semanticSearch } from '../embeddings/semantic-retriever';
+import { sanitizePromptContent, wrapUserContentForPrompt } from '../sanitize-prompt-content';
 
 const DEFAULT_TOP_K = 8;
 
@@ -21,11 +22,13 @@ export async function buildRagContext(
 
     const sections = chunks.map((chunk, index) => {
       const sourceLabel = formatSourceLabel(chunk.sourceType);
-      return `[${index + 1}] ${chunk.title} (${sourceLabel}, id: ${chunk.sourceId})
-${chunk.content}`;
+      const title = sanitizePromptContent(chunk.title);
+      const content = sanitizePromptContent(chunk.content);
+      return `[${index + 1}] ${title} (${sourceLabel}, id: ${chunk.sourceId})
+${content}`;
     });
 
-    return `## Documents pertinents\n\n${sections.join('\n\n')}`;
+    return wrapUserContentForPrompt('rag_documents', `## Documents pertinents\n\n${sections.join('\n\n')}`);
   } catch (error) {
     console.error('RAG retrieval failed:', error);
     return '';

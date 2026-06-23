@@ -4,6 +4,7 @@ import { summarizeTasks } from './summarize-tasks';
 import { summarizeProjects } from './summarize-projects';
 import { summarizeSprints } from './summarize-sprints';
 import { summarizeRisks } from './summarize-risks';
+import { summarizeStakeholders } from './summarize-stakeholders';
 import { truncateToTokenBudget } from './token-budget';
 
 export async function validateWorkspace(workspaceId: string): Promise<{ id: string; name: string }> {
@@ -13,6 +14,7 @@ export async function validateWorkspace(workspaceId: string): Promise<{ id: stri
   });
 
   if (!workspace) {
+    console.error('[ai/chat] Workspace not found:', workspaceId);
     throw new Error('Workspace not found');
   }
 
@@ -22,7 +24,7 @@ export async function validateWorkspace(workspaceId: string): Promise<{ id: stri
 export async function buildWorkspaceContext(options: ContextBuilderOptions): Promise<string> {
   await validateWorkspace(options.workspaceId);
 
-  const [workspace, tasks, projects, sprints, risks] = await Promise.all([
+  const [workspace, tasks, projects, sprints, risks, stakeholders] = await Promise.all([
     db.workspace.findUnique({
       where: { id: options.workspaceId },
       select: { name: true },
@@ -31,6 +33,7 @@ export async function buildWorkspaceContext(options: ContextBuilderOptions): Pro
     summarizeProjects(options),
     summarizeSprints(options),
     summarizeRisks(options),
+    summarizeStakeholders(options),
   ]);
 
   const sections = [
@@ -48,6 +51,9 @@ export async function buildWorkspaceContext(options: ContextBuilderOptions): Pro
     '',
     '--- Risks ---',
     risks,
+    '',
+    '--- Stakeholders ---',
+    stakeholders,
   ].filter((line, i, arr) => line !== '' || (i > 0 && arr[i - 1] !== ''));
 
   return truncateToTokenBudget(sections.join('\n'));

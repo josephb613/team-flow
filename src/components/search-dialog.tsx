@@ -38,6 +38,7 @@ import {
   Sun,
   Keyboard,
   Search,
+  Brain,
 } from 'lucide-react';
 import type { PageId, TaskStatus, TaskPriority } from '@/lib/types';
 import { useAppData } from '@/hooks/use-app-data';
@@ -56,6 +57,7 @@ const pages: { icon: React.ReactNode; label: string; pageId: PageId }[] = [
   { icon: <Activity className="h-4 w-4" />, label: 'Activity', pageId: 'activity' },
   { icon: <Users className="h-4 w-4" />, label: 'Members', pageId: 'members' },
   { icon: <UserCircle className="h-4 w-4" />, label: 'Teams', pageId: 'teams' },
+  { icon: <Brain className="h-4 w-4" />, label: 'Skills', pageId: 'skills' },
   { icon: <BarChart3 className="h-4 w-4" />, label: 'Reports', pageId: 'reports' },
   { icon: <Zap className="h-4 w-4" />, label: 'Automations', pageId: 'automations' },
   { icon: <Settings className="h-4 w-4" />, label: 'Settings', pageId: 'settings' },

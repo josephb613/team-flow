@@ -24,7 +24,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  TodayIcon,
 } from 'lucide-react';
 import { useAppData } from '@/hooks/use-app-data';
 import { useTranslation } from '@/lib/i18n';
@@ -63,7 +62,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ── Main Planning View ────────────────────────────────────────────────────────

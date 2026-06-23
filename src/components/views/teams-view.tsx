@@ -64,6 +64,7 @@ const avatarGradients = [
 // ─── Role Config ─────────────────────────────────────────────────────────────
 const roleConfig: Record<MemberRole, { color: string; bg: string; border: string; icon: React.ElementType }> = {
   admin: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Crown },
+  lead: { color: 'text-violet-700', bg: 'bg-violet-500/10', border: 'border-violet-500/20', icon: TrendingUp },
   member: { color: 'text-blue-700', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Users },
   guest: { color: 'text-amber-700', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Activity },
 };
@@ -83,7 +84,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ─── Circular Progress ───────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#3b82f6'
       <motion.circle
         cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
         strokeLinecap="round" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }}
-        animate={{ strokeDashoffset: offset }} transition={{ duration: 1, ease: 'easeOut' }}
+        animate={{ strokeDashoffset: offset }} transition={{ duration: 1, ease: 'easeOut' as const }}
       />
       <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central"
         className="fill-foreground text-[10px] font-bold" transform={`rotate(90, ${size / 2}, ${size / 2})`}>
@@ -168,7 +169,7 @@ function TeamDetailPanel({ teamId }: { teamId: string }) {
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: 'auto', opacity: 1 }}
       exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const }}
       className="overflow-hidden"
     >
       <div className="px-5 pb-5 pt-2 space-y-5 border-t border-dashed mt-3">

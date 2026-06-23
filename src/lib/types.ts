@@ -16,9 +16,14 @@ export type PageId =
   // Communication
   | 'messages'
   | 'meetings'
+  | 'files'
+  // Knowledge
+  | 'wiki'
   // Équipe
   | 'members'
   | 'teams'
+  // Compétences
+  | 'skills'
   // Analyse
   | 'statistics'
   | 'reports'
@@ -39,6 +44,8 @@ export type PageId =
   | 'stakeholders'
   | 'change-requests'
   | 'workload';
+
+export type MemberRole = 'admin' | 'member' | 'guest' | 'lead';
 
 // ─── Task ────────────────────────────────────────────────────────────────
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
@@ -198,10 +205,55 @@ export interface Automation {
   organizationId: string;
 }
 
+// ─── Meeting ─────────────────────────────────────────────────────────────
+export type MeetingStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  duration: number;
+  status: MeetingStatus;
+  link?: string;
+  projectId?: string;
+  attendees: string[];
+  organizationId?: string;
+}
+
+export interface Message {
+  id: string;
+  content: string;
+  senderId: string;
+  channelId: string;
+  timestamp: string;
+  reactions?: { emoji: string; users: string[] }[];
+}
+
 // ─── Notification ────────────────────────────────────────────────────────
+export type NotificationType =
+  | 'task_assigned'
+  | 'task_completed'
+  | 'sprint_started'
+  | 'deadline_approaching'
+  | 'mention'
+  | 'comment_added'
+  | 'meeting_reminder'
+  | 'system'
+  | 'validation_requested'
+  | 'content_approved'
+  | 'content_published'
+  | 'send_failed'
+  | 'new_assignment'
+  | 'comment_mention'
+  | 'assignment'
+  | 'comment'
+  | 'deadline'
+  | 'invitation';
+
 export interface Notification {
   id: string;
-  type: 'task_assigned' | 'task_completed' | 'sprint_started' | 'deadline_approaching' | 'mention' | 'comment_added' | 'meeting_reminder' | 'system';
+  type: NotificationType;
   title: string;
   message: string;
   read: boolean;

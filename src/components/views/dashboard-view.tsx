@@ -175,12 +175,12 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const cardHover = {
   rest: { scale: 1, y: 0 },
-  hover: { scale: 1.02, y: -4, transition: { duration: 0.25, ease: 'easeOut' } },
+  hover: { scale: 1.02, y: -4, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -906,7 +906,7 @@ export function DashboardView() {
                           style={{ backgroundColor: color }}
                           initial={{ width: 0 }}
                           animate={{ width: `${sprint.progress}%` }}
-                          transition={{ duration: 0.8, delay: 0.15, ease: 'easeOut' }}
+                          transition={{ duration: 0.8, delay: 0.15, ease: 'easeOut' as const }}
                         />
                       </div>
                     </div>

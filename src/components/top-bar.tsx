@@ -84,9 +84,13 @@ const PAGE_SECTION_MAP: Record<PageId, string> = {
   // Communication
   messages: 'communication',
   meetings: 'communication',
+  files: 'communication',
+  // Knowledge
+  wiki: 'knowledge',
   // Équipe
   members: 'team',
   teams: 'team',
+  skills: 'skills',
   // Analyse
   statistics: 'analysis',
   reports: 'analysis',
@@ -100,6 +104,13 @@ const PAGE_SECTION_MAP: Record<PageId, string> = {
   automations: 'projects',
   'time-tracking': 'projects',
   activity: 'analysis',
+  // PMP
+  dependencies: 'pmp',
+  costs: 'pmp',
+  risks: 'pmp',
+  stakeholders: 'pmp',
+  'change-requests': 'pmp',
+  workload: 'pmp',
 };
 
 const notificationTypeIcons: Record<string, React.ReactNode> = {
@@ -156,7 +167,6 @@ export function TopBar() {
 
   // Get section key for current page
   const sectionKey = PAGE_SECTION_MAP[activePage] || 'favorites';
-  // @ts-expect-error — dynamic section key access on topbar.sections
   const sectionName = t.topbar?.sections?.[sectionKey] || t.sidebar[sectionKey as keyof typeof t.sidebar] || sectionKey;
 
   // PM role labels
@@ -547,7 +557,7 @@ export function TopBar() {
                   duration: 0.8,
                   repeat: Infinity,
                   repeatDelay: 5,
-                  ease: 'easeInOut',
+                  ease: 'easeInOut' as const,
                 } : undefined}
               >
                 <Bell className="h-4 w-4" />

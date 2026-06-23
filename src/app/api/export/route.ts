@@ -1,20 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getWorkspaceIdFromRequest } from '@/lib/workspace-api';
+import { requireApiWorkspaceAuth } from '@/lib/auth/api-auth';
+import { assertProjectInWorkspace } from '@/lib/workspace-api';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireApiWorkspaceAuth(request);
+    if (!auth.ok) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'csv';
     const type = searchParams.get('type') || 'tasks';
-    const workspaceId = getWorkspaceIdFromRequest(request);
+    const projectId = searchParams.get('projectId');
+    const workspaceId = auth.workspaceId;
+
+    if (type === 'lessons' && format === 'md') {
+      if (!projectId) {
+        return NextResponse.json({ error: 'projectId is required for lessons export' }, { status: 400 });
+      }
+
+      const projectAccess = await assertProjectInWorkspace(projectId, workspaceId);
+      if (!projectAccess.ok) return projectAccess.response;
+
+      const page = await db.wikiPage.findFirst({
+        where: {
+          kind: 'lessons_index',
+          projectId,
+          workspaceId,
+        },
+        include: { project: { select: { name: true } } },
+      });
+
+      if (!page) {
+        return NextResponse.json({ error: 'No lessons page found for this project' }, { status: 404 });
+      }
+
+      const slug = (page.project?.name ?? 'project').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+      return new NextResponse(page.content, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown; charset=utf-8',
+          'Content-Disposition': `attachment; filename="LESSONS_LEARNED-${slug}.md"`,
+        },
+      });
+    }
 
     let data: Array<Record<string, unknown>> = [];
 
     switch (type) {
       case 'tasks': {
         const tasks = await db.task.findMany({
-          where: workspaceId ? { project: { workspaceId } } : undefined,
+          where: { project: { workspaceId } },
           include: {
             assignee: { select: { name: true } },
             project: { select: { name: true } },
@@ -33,7 +69,7 @@ export async function GET(request: NextRequest) {
       }
       case 'projects': {
         const projects = await db.project.findMany({
-          where: workspaceId ? { workspaceId } : undefined,
+          where: { workspaceId },
           include: {
             tasks: true,
           },
@@ -52,15 +88,13 @@ export async function GET(request: NextRequest) {
       }
       case 'workload': {
         const teams = await db.team.findMany({
-          where: workspaceId ? { workspaceId } : undefined,
+          where: { workspaceId },
           include: {
             teamMembers: {
               include: {
                 user: {
                   include: {
-                    assignedTasks: workspaceId
-                      ? { where: { project: { workspaceId } } }
-                      : true,
+                    assignedTasks: { where: { project: { workspaceId } } },
                   },
                 },
               },
@@ -129,7 +163,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Export API error:', error);
+    console.error('Export API error');
     return NextResponse.json(
       { error: 'Failed to export data' },
       { status: 500 }

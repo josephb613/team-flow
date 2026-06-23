@@ -51,16 +51,16 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 // ─── Role label map ──────────────────────────────────────────────────────────
 const roleLabelKeys: Record<UserRole, string> = {
   super_admin: 'superAdmin',
-  tenant_admin: 'tenantAdmin',
-  editor: 'editor',
-  contributor: 'contributor',
-  reader: 'reader',
+  org_admin: 'orgAdmin',
+  project_manager: 'projectManager',
+  member: 'member',
+  viewer: 'viewer',
 };
 
 // ─── Status config ───────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export function UsersView() {
     },
   ];
 
-  const roles: UserRole[] = ['super_admin', 'tenant_admin', 'editor', 'contributor', 'reader'];
+  const roles: UserRole[] = ['super_admin', 'org_admin', 'project_manager', 'member', 'viewer'];
   const statuses: UserStatus[] = ['online', 'away', 'busy', 'offline'];
 
   return (
@@ -413,7 +413,7 @@ export function UsersView() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <FileText className="h-2.5 w-2.5" /> {user.contentCount}
+                          <FileText className="h-2.5 w-2.5" /> {user.taskCount}
                         </span>
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock className="h-2.5 w-2.5" /> {getRelativeTime(user.lastActive)}
@@ -486,7 +486,7 @@ export function UsersView() {
 
                     {/* Content count */}
                     <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground w-16">
-                      <FileText className="h-3 w-3" /> {user.contentCount}
+                      <FileText className="h-3 w-3" /> {user.taskCount}
                     </div>
 
                     {/* Last active */}

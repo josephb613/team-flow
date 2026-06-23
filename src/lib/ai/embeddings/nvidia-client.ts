@@ -1,4 +1,6 @@
-﻿import OpenAI from 'openai';
+﻿import 'server-only';
+
+import OpenAI from 'openai';
 import { getAiConfig, assertEmbedConfigured } from '../config';
 
 let client: OpenAI | null = null;

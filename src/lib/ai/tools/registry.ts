@@ -275,6 +275,74 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
+    name: 'list_stakeholders',
+    kind: 'read',
+    description:
+      'List stakeholders in the stakeholder register. Filter by project or engagement level.',
+    parameters: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string', description: 'Filter by project ID' },
+        engagement: {
+          type: 'string',
+          enum: ['unaware', 'resistant', 'neutral', 'supportive', 'leading'],
+          description: 'Filter by engagement level',
+        },
+        limit: { type: 'number', description: 'Max stakeholders to return (default 20)' },
+      },
+    },
+  },
+  {
+    name: 'create_stakeholder',
+    kind: 'write',
+    description:
+      'Propose creating a new stakeholder. Returns a preview for user confirmation — does NOT create immediately.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Stakeholder name (required)' },
+        projectId: { type: 'string', description: 'Target project ID' },
+        organization: { type: 'string', description: 'Organization name' },
+        role: { type: 'string', description: 'Role or title' },
+        email: { type: 'string', description: 'Email address' },
+        influence: { type: 'number', description: 'Influence level 1-5 (default 3)' },
+        interest: { type: 'number', description: 'Interest level 1-5 (default 3)' },
+        engagement: {
+          type: 'string',
+          enum: ['unaware', 'resistant', 'neutral', 'supportive', 'leading'],
+          description: 'Engagement level (default neutral)',
+        },
+        strategy: { type: 'string', description: 'Engagement strategy' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'update_stakeholder',
+    kind: 'write',
+    description:
+      'Propose updating an existing stakeholder. Returns a preview for user confirmation — does NOT update immediately.',
+    parameters: {
+      type: 'object',
+      properties: {
+        stakeholderId: { type: 'string', description: 'Stakeholder ID to update' },
+        name: { type: 'string', description: 'New name' },
+        organization: { type: 'string', description: 'New organization' },
+        role: { type: 'string', description: 'New role' },
+        email: { type: 'string', description: 'New email' },
+        influence: { type: 'number', description: 'Influence level 1-5' },
+        interest: { type: 'number', description: 'Interest level 1-5' },
+        engagement: {
+          type: 'string',
+          enum: ['unaware', 'resistant', 'neutral', 'supportive', 'leading'],
+          description: 'New engagement level',
+        },
+        strategy: { type: 'string', description: 'New engagement strategy' },
+      },
+      required: ['stakeholderId'],
+    },
+  },
+  {
     name: 'get_evm_summary',
     kind: 'read',
     description:
