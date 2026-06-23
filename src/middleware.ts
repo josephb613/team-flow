@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth/server';
 import { validateCsrfOrigin } from '@/lib/auth/csrf';
 
 function isPublicApiPath(pathname: string): boolean {
+  if (pathname === '/api/health') {
+    return true;
+  }
   if (pathname === '/api/auth/sync') {
     return false;
   }

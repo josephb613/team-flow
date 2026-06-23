@@ -109,16 +109,35 @@ function normalizeFavorites(favorites: string[]): string[] {
   return isLegacyAutoDefault ? [] : favorites;
 }
 
-function readStoredFavorites(): string[] {
+// Favorites are stored per-user so they persist across logout/login and don't
+// leak between accounts on a shared browser. Falls back to a global key when no
+// user id is available (e.g. before auth hydration completes).
+function favoritesKey(userId?: string | null): string {
+  return userId ? `${FAVORITES_STORAGE_KEY}:${userId}` : FAVORITES_STORAGE_KEY;
+}
+
+function readStoredFavorites(userId?: string | null): string[] {
   if (typeof window === 'undefined') return DEFAULT_FAVORITES;
   try {
-    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    const key = favoritesKey(userId);
+    let raw = localStorage.getItem(key);
+
+    // One-time migration of legacy global favorites to the per-user key.
+    if (!raw && userId) {
+      const legacy = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (legacy) {
+        localStorage.setItem(key, legacy);
+        localStorage.removeItem(FAVORITES_STORAGE_KEY);
+        raw = legacy;
+      }
+    }
+
     if (!raw) return DEFAULT_FAVORITES;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_FAVORITES;
     const normalized = normalizeFavorites(parsed);
     if (JSON.stringify(normalized) !== JSON.stringify(parsed)) {
-      writeStoredFavorites(normalized);
+      writeStoredFavorites(normalized, userId);
     }
     return normalized;
   } catch {
@@ -126,10 +145,10 @@ function readStoredFavorites(): string[] {
   }
 }
 
-function writeStoredFavorites(favorites: string[]) {
+function writeStoredFavorites(favorites: string[], userId?: string | null) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+    localStorage.setItem(favoritesKey(userId), JSON.stringify(favorites));
   } catch {
     // ignore quota / private mode errors
   }
@@ -470,13 +489,14 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Favorites
   favorites: DEFAULT_FAVORITES,
-  hydrateFavorites: () => set({ favorites: readStoredFavorites() }),
+  hydrateFavorites: () =>
+    set((s) => ({ favorites: readStoredFavorites(s.currentUser?.id) })),
   toggleFavorite: (pageId) =>
     set((s) => {
       const favorites = s.favorites.includes(pageId)
         ? s.favorites.filter((f) => f !== pageId)
         : [...s.favorites, pageId];
-      writeStoredFavorites(favorites);
+      writeStoredFavorites(favorites, s.currentUser?.id);
       return { favorites };
     }),
 
@@ -895,11 +915,12 @@ export const useAppStore = create<AppState>((set) => ({
     }
     if (typeof window !== 'undefined') {
       try {
-        // Clear all cached app data from localStorage on logout
+        // Clear cached app data on logout, but keep per-user favorites
+        // (teamflow-favorites:<userId>) so they are restored on next login.
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key && (key.startsWith('teamflow-app-data-') || key === 'teamflow-favorites')) {
+          if (key && key.startsWith('teamflow-app-data-')) {
             keysToRemove.push(key);
           }
         }
@@ -915,6 +936,9 @@ export const useAppStore = create<AppState>((set) => ({
       tenants: [],
       activeOrganizationId: '',
       activeTenantId: '',
+      // Reset in-memory favorites so the next user doesn't briefly see the
+      // previous user's pinned pages; their own are re-hydrated on login.
+      favorites: DEFAULT_FAVORITES,
     });
   },
 }));
