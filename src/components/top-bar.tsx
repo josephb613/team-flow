@@ -212,7 +212,7 @@ export function TopBar() {
       </AnimatePresence>
 
       {/* Mobile page title — centered in header, independent of toolbar button count */}
-      <div className="sm:hidden pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-center z-0 px-14">
+      <div className="sm:hidden pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-center z-0 pl-14 pr-48">
         <AnimatePresence mode="wait">
           <motion.h1
             key={activePage}

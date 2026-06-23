@@ -248,23 +248,25 @@ export function DraggableQuickAction() {
   if (!mounted) return null;
 
   return (
-    <div data-quick-action-fab className="fixed inset-0 pointer-events-none z-60">
+    <>
       <AnimatePresence>
         {aiChatOpen && (
           <AiChatPanel
             key="ai-chat-panel"
             style={chatPanelStyle}
             onClose={() => setAiChatOpen(false)}
+            data-quick-action-fab
           />
         )}
       </AnimatePresence>
 
       <motion.div
+        data-quick-action-fab
         drag
         dragMomentum={false}
         dragElastic={0}
         dragConstraints={dragConstraints}
-        style={{ x, y, position: 'fixed', top: 0, left: 0 }}
+        style={{ x, y, position: 'fixed', top: 0, left: 0, zIndex: 60 }}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
@@ -357,6 +359,6 @@ export function DraggableQuickAction() {
         </AnimatePresence>
         <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-background" />
       </motion.div>
-    </div>
+    </>
   );
 }

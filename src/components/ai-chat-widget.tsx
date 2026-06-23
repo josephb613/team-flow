@@ -34,6 +34,7 @@ interface AiChatPanelProps {
   onClose: () => void;
   className?: string;
   style?: React.CSSProperties;
+  'data-quick-action-fab'?: boolean;
 }
 
 interface SseEvent {
@@ -160,7 +161,7 @@ function ChatHistoryList({
   );
 }
 
-export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
+export function AiChatPanel({ onClose, className, style, 'data-quick-action-fab': dataQuickActionFab }: AiChatPanelProps) {
   const { t, locale } = useTranslation();
   const { refetch } = useAppData();
   const workspaceId = useAppStore((s) => s.activeOrganizationId);
@@ -522,6 +523,7 @@ export function AiChatPanel({ onClose, className, style }: AiChatPanelProps) {
 
   return (
     <motion.div
+      data-quick-action-fab={dataQuickActionFab}
       initial={{ opacity: 0, scale: 0.97, y: 8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97, y: 8 }}
