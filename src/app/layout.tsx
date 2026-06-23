@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PWARegister } from "@/components/pwa-register";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -19,10 +20,32 @@ export const metadata: Metadata = {
   description: "The all-in-one workspace for teams that ship. Plan, track, and collaborate — all in one place.",
   keywords: ["TeamFlow", "Project Management", "Collaboration", "Tasks", "Kanban", "Team"],
   authors: [{ name: "TeamFlow" }],
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+  applicationName: "TeamFlow",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "TeamFlow",
   },
+  icons: {
+    icon: [
+      { url: "/logo.png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c111b" },
+  ],
 };
 
 export default function RootLayout({
@@ -83,6 +106,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <PWARegister />
         </ThemeProvider>
       </body>
     </html>

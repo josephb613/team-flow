@@ -534,7 +534,7 @@ export const useAppStore = create<AppState>((set) => ({
     }),
 
   // Task view mode
-  taskViewMode: 'my-tasks',
+  taskViewMode: 'kanban',
   setTaskViewMode: (mode) => set({ taskViewMode: mode }),
 
   // Sprint view mode
@@ -892,6 +892,21 @@ export const useAppStore = create<AppState>((set) => ({
       await authClient.signOut();
     } catch {
       // Clear local state even if sign-out request fails
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        // Clear all cached app data from localStorage on logout
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('teamflow-app-data-') || key === 'teamflow-favorites')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      } catch (e) {
+        console.error('Failed to clear local storage on logout:', e);
+      }
     }
     set({
       isAuthenticated: false,

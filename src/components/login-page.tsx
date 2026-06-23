@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Star } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { authClient } from '@/lib/auth/client';
 
@@ -349,39 +349,6 @@ export function LoginPage() {
               ))}
             </motion.div>
 
-            {/* Floating Testimonial Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
-              className="mt-8"
-            >
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' as const }}
-                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4"
-              >
-                <p className="text-sm text-white/70 italic leading-relaxed mb-3">
-                  &ldquo;{t.login.testimonialText}&rdquo;
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] flex items-center justify-center text-white text-xs font-bold shadow-md">
-                      {t.login.testimonialName.split(' ').map((n: string) => n[0]).join('')}
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-white/90">{t.login.testimonialName}</div>
-                      <div className="text-[10px] text-white/50">{t.login.testimonialRole}</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
           </motion.div>
         </div>
       </div>

@@ -41,10 +41,12 @@ export async function syncAppUser(params: {
   const email = params.email.trim().toLowerCase();
   const displayName = params.name.trim() || email.split('@')[0];
 
-  let user = await db.user.findFirst({
-    where: { neonAuthUserId: params.neonAuthUserId },
-    include: userInclude,
-  });
+  let user = params.neonAuthUserId
+    ? await db.user.findUnique({
+        where: { neonAuthUserId: params.neonAuthUserId },
+        include: userInclude,
+      })
+    : null;
 
   if (!user) {
     user = await db.user.findFirst({

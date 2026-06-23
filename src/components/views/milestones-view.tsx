@@ -91,6 +91,16 @@ const milestoneStatusConfig: Record<MilestoneStatus, {
   },
 };
 
+const FILTER_SELECT_TRIGGER_CLASS = (isActive: boolean) =>
+  cn(
+    'h-8 w-auto min-w-[140px] max-w-[170px] text-xs px-3 rounded-lg gap-2 border shadow-none transition-all duration-200',
+    '[&_svg:not([class*="size-"])]:size-3.5',
+    'focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+    isActive
+      ? 'bg-[oklch(0.55_0.15_160)]/5 border-[oklch(0.55_0.15_160)]/30 text-[oklch(0.55_0.15_160)] font-medium'
+      : 'bg-background hover:bg-muted/50 border-border text-muted-foreground hover:text-foreground'
+  );
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string): string {
@@ -353,21 +363,32 @@ export function MilestonesView() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">{t.milestones.title}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{stats.total}</span> {t.milestones.title.toLowerCase()} ·{' '}
-            <span className="font-semibold text-amber-600 dark:text-amber-400">{stats.inProgress}</span> {t.milestones.inProgress.toLowerCase()}
-            {stats.overdue > 0 && (
-              <> · <span className="font-semibold text-rose-600 dark:text-rose-400">{stats.overdue}</span> {t.milestones.overdue.toLowerCase()}</>
-            )}
-          </p>
+      {/* Sleek, Modern Tier 1 Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Title and Badges */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">{t.milestones.title}</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-muted border border-border/80 text-muted-foreground">
+                {stats.total} {t.milestones.title.toLowerCase()}
+              </span>
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                {stats.inProgress} {t.milestones.inProgress.toLowerCase()}
+              </span>
+              {stats.overdue > 0 && (
+                <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                  {stats.overdue} {t.milestones.overdue.toLowerCase()}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Main Action Button */}
         <Button
           size="sm"
-          className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm"
+          className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-[oklch(0.55_0.15_160)] to-[oklch(0.48_0.15_160)] hover:from-[oklch(0.48_0.15_160)] hover:to-[oklch(0.42_0.15_160)] text-white shadow-sm font-medium"
           onClick={() => setCreateMilestoneDialogOpen(true)}
         >
           <Sparkles className="h-3.5 w-3.5" /> {t.milestones.newMilestone}
@@ -411,40 +432,77 @@ export function MilestonesView() {
         />
       </motion.div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Sleek Tier 2: Search and Contextual Filters Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-muted/15 dark:bg-muted/5 rounded-xl border border-border/60">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Projects Select */}
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger
+              size="sm"
+              className={FILTER_SELECT_TRIGGER_CLASS(projectFilter !== 'all')}
+            >
+              <SelectValue placeholder={t.milestones.project} />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg">
+              <SelectItem value="all">{t.sprints.all} {t.milestones.project}s</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Status Select */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger
+              size="sm"
+              className={FILTER_SELECT_TRIGGER_CLASS(statusFilter !== 'all')}
+            >
+              <SelectValue placeholder={t.milestones.status} />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg">
+              <SelectItem value="all">{t.milestones.all}</SelectItem>
+              <SelectItem value="upcoming">{t.milestones.upcoming}</SelectItem>
+              <SelectItem value="in_progress">{t.milestones.inProgress}</SelectItem>
+              <SelectItem value="completed">{t.milestones.completed}</SelectItem>
+              <SelectItem value="overdue">{t.milestones.overdue}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Reset Filter Button */}
+          {(projectFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim() !== '') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setProjectFilter('all');
+                setStatusFilter('all');
+                setSearchQuery('');
+              }}
+              className="h-8 text-xs hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg px-2.5 gap-1.5"
+            >
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+
+        {/* Inline Search Bar */}
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder={t.milestones.search}
-            className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.15_160)]/30"
+            className="pl-9 pr-8 h-8 bg-background border-border hover:border-muted-foreground/30 text-xs rounded-lg transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery.trim() !== '' && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-1"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="h-9 w-[180px] text-xs bg-muted/30 border-transparent">
-            <SelectValue placeholder={t.milestones.project} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.sprints.all} {t.milestones.project}s</SelectItem>
-            {projects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.icon} {p.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-[140px] text-xs bg-muted/30 border-transparent">
-            <SelectValue placeholder={t.milestones.status} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.milestones.all}</SelectItem>
-            <SelectItem value="upcoming">{t.milestones.upcoming}</SelectItem>
-            <SelectItem value="in_progress">{t.milestones.inProgress}</SelectItem>
-            <SelectItem value="completed">{t.milestones.completed}</SelectItem>
-            <SelectItem value="overdue">{t.milestones.overdue}</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Grouped milestone cards */}

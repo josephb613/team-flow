@@ -53,12 +53,94 @@ const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const activeOrganizationId = useAppStore((s) => s.activeOrganizationId);
-  const [rawData, setRawData] = useState<AppDataPayload>(emptyData);
-  const [loading, setLoading] = useState(true);
+
+  // Lazy state initialization to load cached data synchronously on mount
+  const [rawData, setRawData] = useState<AppDataPayload>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const activeOrgId = useAppStore.getState().activeOrganizationId;
+        const cacheKey = activeOrgId
+          ? `teamflow-app-data-${activeOrgId}`
+          : 'teamflow-app-data-global';
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as AppDataPayload;
+          if (parsed && Array.isArray(parsed.tasks) && Array.isArray(parsed.projects)) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse cached app data on mount:', e);
+      }
+    }
+    return emptyData;
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const activeOrgId = useAppStore.getState().activeOrganizationId;
+        const cacheKey = activeOrgId
+          ? `teamflow-app-data-${activeOrgId}`
+          : 'teamflow-app-data-global';
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+            return false; // Skip showing global loader since we have cached tasks
+          }
+        }
+      } catch {}
+    }
+    return true; // No cached data, show initial spinner
+  });
+
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
+  // Synchronously load cache when active organization changes to make workspace switching instant
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cacheKey = activeOrganizationId
+          ? `teamflow-app-data-${activeOrganizationId}`
+          : 'teamflow-app-data-global';
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as AppDataPayload;
+          if (parsed && Array.isArray(parsed.tasks) && Array.isArray(parsed.projects)) {
+            setRawData(parsed);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load cache on organization change:', e);
+      }
+    }
+    setRawData(emptyData);
     setLoading(true);
+  }, [activeOrganizationId]);
+
+  const refetch = useCallback(async () => {
+    let hasData = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const cacheKey = activeOrganizationId
+          ? `teamflow-app-data-${activeOrganizationId}`
+          : 'teamflow-app-data-global';
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+            hasData = true;
+          }
+        }
+      } catch {}
+    }
+
+    if (!hasData) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const params = activeOrganizationId
@@ -68,9 +150,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as AppDataPayload;
       setRawData(json);
+
+      if (typeof window !== 'undefined') {
+        const cacheKey = activeOrganizationId
+          ? `teamflow-app-data-${activeOrganizationId}`
+          : 'teamflow-app-data-global';
+        localStorage.setItem(cacheKey, JSON.stringify(json));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
-      setRawData(emptyData);
+      if (!hasData) {
+        setRawData(emptyData);
+      }
     } finally {
       setLoading(false);
     }

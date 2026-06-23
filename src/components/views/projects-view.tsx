@@ -45,6 +45,16 @@ import { cn } from '@/lib/utils';
 
 // ── Status Configuration ─────────────────────────────────────────────────────
 
+const FILTER_SELECT_TRIGGER_CLASS = (isActive: boolean) =>
+  cn(
+    'h-8 w-auto min-w-[140px] max-w-[170px] text-xs px-3 rounded-lg gap-2 border shadow-none transition-all duration-200',
+    '[&_svg:not([class*="size-"])]:size-3.5',
+    'focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+    isActive
+      ? 'bg-[oklch(0.55_0.18_250)]/5 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)] font-medium'
+      : 'bg-background hover:bg-muted/50 border-border text-muted-foreground hover:text-foreground'
+  );
+
 const statusConfig: Record<ProjectStatus, { color: string; bg: string; icon: React.ReactNode; dotColor: string; solidBg: string; solidText: string }> = {
   active: {
     color: 'text-blue-600 dark:text-blue-400',
@@ -474,17 +484,27 @@ export function ProjectsView() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">{t.projects.title}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{totalCount}</span> {t.projects.title} · <span className="font-semibold text-blue-600 dark:text-blue-400">{activeCount}</span> {t.projects.active}
-          </p>
+      {/* Sleek, Modern Two-Tier Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Tier 1 Left: Title and Status Badges */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">{t.projects.title}</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-muted border border-border/80 text-muted-foreground">
+                {totalCount} {t.projects.title.toLowerCase()}
+              </span>
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400">
+                {activeCount} {t.projects.active.toLowerCase()}
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+
+        {/* Tier 1 Right: View Toggle Tabs & Main Action */}
+        <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'list')}>
-            <TabsList className="h-8 bg-muted/50 p-0.5">
+            <TabsList className="h-8 bg-muted/50 p-0.5 rounded-lg border border-border/60">
               <TabsTrigger
                 value="grid"
                 className="text-xs px-2.5 h-7 rounded-md gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -503,35 +523,32 @@ export function ProjectsView() {
           <Button
             size="sm"
             onClick={() => setCreateProjectDialogOpen(true)}
-            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
+            className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20 font-medium"
           >
             <Sparkles className="h-3.5 w-3.5" /> {t.projects.newProject}
           </Button>
         </div>
       </div>
 
-      {/* Filters bar */}
-      <div className="flex flex-col gap-3">
-        {/* Status filter tabs */}
-        <StatusFilterTabs statusFilter={statusFilter} setStatusFilter={setStatusFilter} projects={projects} />
+      {/* Tier 2: Status, Search and Team Filters Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3 bg-muted/15 dark:bg-muted/5 rounded-xl border border-border/60">
+        {/* Status Tabs Left */}
+        <div className="flex-1 overflow-x-auto scrollbar-none py-0.5">
+          <StatusFilterTabs statusFilter={statusFilter} setStatusFilter={setStatusFilter} projects={projects} />
+        </div>
 
-        {/* Search + team filter */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative flex-1 max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t.projects.search}
-              className="pl-9 h-9 bg-muted/30 border-transparent focus:border-[oklch(0.55_0.18_250)]/30"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        {/* Right side: Search and Team dropdown */}
+        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+          {/* Team Filter */}
           <Select value={teamFilter} onValueChange={setTeamFilter}>
-            <SelectTrigger className="h-9 w-[150px] text-xs bg-muted/30 border-transparent">
-              <Users className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectTrigger
+              size="sm"
+              className={FILTER_SELECT_TRIGGER_CLASS(teamFilter !== 'all')}
+            >
+              <Users className="h-3.5 w-3.5 shrink-0" />
               <SelectValue placeholder={t.projects.team} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-lg">
               <SelectItem value="all">{t.projects.all} {t.projects.team}s</SelectItem>
               {teams.map((team) => (
                 <SelectItem key={team.id} value={team.id}>
@@ -540,6 +557,41 @@ export function ProjectsView() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Search bar */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder={t.projects.search}
+              className="pl-9 pr-8 h-8 bg-background border-border hover:border-muted-foreground/30 text-xs rounded-lg transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery.trim() !== '' && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-1"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Reset button */}
+          {(statusFilter !== 'all' || teamFilter !== 'all' || searchQuery.trim() !== '') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('all');
+                setTeamFilter('all');
+                setSearchQuery('');
+              }}
+              className="h-8 text-xs hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg px-2.5 gap-1.5"
+            >
+              Réinitialiser
+            </Button>
+          )}
         </div>
       </div>
 

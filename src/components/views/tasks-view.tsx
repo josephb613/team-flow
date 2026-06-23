@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -183,12 +183,12 @@ const VIEW_TAB_TRIGGER_CLASS =
 
 const FILTER_SELECT_TRIGGER_CLASS = (isActive: boolean) =>
   cn(
-    'h-7 w-auto min-w-[140px] max-w-[170px] text-xs px-2.5 rounded-md gap-1 border-transparent shadow-none',
+    'h-8 w-auto min-w-[140px] max-w-[170px] text-xs px-3 rounded-lg gap-2 border shadow-none transition-all duration-200',
     '[&_svg:not([class*="size-"])]:size-3.5',
     'focus-visible:ring-ring/50 focus-visible:ring-[3px]',
     isActive
-      ? 'bg-background shadow-sm text-foreground'
-      : 'bg-transparent text-muted-foreground hover:text-foreground'
+      ? 'bg-[oklch(0.55_0.18_250)]/5 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)] font-medium'
+      : 'bg-background hover:bg-muted/50 border-border text-muted-foreground hover:text-foreground'
   );
 
 // ── Sort types ───────────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ function TaskCardContent({
     <div
       onClick={onClick}
       className={cn(
-        'group relative rounded-xl border shadow-sm transition-all duration-200 cursor-pointer overflow-hidden',
+        'group relative rounded-xl border shadow-sm transition duration-200 cursor-pointer overflow-hidden',
         'border-l-[3px]',
         isClosed
           ? 'bg-muted/50 border-border/60 border-l-slate-300 dark:border-l-slate-600 hover:shadow-md opacity-90'
@@ -393,6 +393,24 @@ function TaskCardContent({
   );
 }
 
+const MemoizedTaskCardContent = memo(
+  TaskCardContent,
+  (prevProps, nextProps) => {
+    return (
+      prevProps.task.id === nextProps.task.id &&
+      prevProps.task.status === nextProps.task.status &&
+      prevProps.task.priority === nextProps.task.priority &&
+      prevProps.task.title === nextProps.task.title &&
+      prevProps.task.description === nextProps.task.description &&
+      prevProps.task.dueDate === nextProps.task.dueDate &&
+      prevProps.task.assigneeId === nextProps.task.assigneeId &&
+      prevProps.task.subtasks.length === nextProps.task.subtasks.length &&
+      prevProps.task.subtasks.every((s, i) => s.completed === nextProps.task.subtasks[i]?.completed) &&
+      prevProps.task.tags.join(',') === nextProps.task.tags.join(',')
+    );
+  }
+);
+
 // ── Sortable Task Card (wraps TaskCardContent with useSortable) ──────────────
 
 function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
@@ -414,7 +432,7 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
 
   return (
     <div ref={setNodeRef} style={style}>
-      <TaskCardContent
+      <MemoizedTaskCardContent
         task={task}
         onClick={onClick}
         dragHandleProps={{ attributes, listeners }}
@@ -448,7 +466,7 @@ function DroppableKanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex-shrink-0 w-[280px] sm:w-[300px] transition-all duration-200',
+        'flex-shrink-0 w-[280px] sm:w-[300px] transition-shadow duration-200',
         isOver && 'ring-2 ring-[oklch(0.55_0.18_250)]/40 ring-offset-2 ring-offset-background rounded-2xl'
       )}
     >
@@ -553,24 +571,38 @@ function KanbanView({
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
-
-    const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over.id as string);
-
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      setOverColumn(null);
+    if (!over) {
+      if (overColumn !== null) setOverColumn(null);
       return;
     }
 
-    // Set over column for visual feedback
-    setOverColumn(overContainer);
+    const activeId = active.id as string;
+    const overId = over.id as string;
 
-    setDragTasks((prev) =>
-      (prev ?? filteredTasks).map((task) =>
-        task.id === active.id ? { ...task, status: overContainer } : task
-      )
-    );
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+
+    if (!activeContainer || !overContainer) {
+      if (overColumn !== null) setOverColumn(null);
+      return;
+    }
+
+    if (activeContainer !== overContainer) {
+      // Set over column for visual feedback
+      setOverColumn(overContainer);
+
+      setDragTasks((prev) => {
+        const list = prev ?? filteredTasks;
+        return list.map((task) =>
+          task.id === activeId ? { ...task, status: overContainer } : task
+        );
+      });
+    } else {
+      // Dragging inside same column: maintain the highlight
+      if (overColumn !== overContainer) {
+        setOverColumn(overContainer);
+      }
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -592,9 +624,9 @@ function KanbanView({
     void updateTaskStatus(taskId, overContainer);
   }
 
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task as unknown as Record<string, unknown>);
-  };
+  }, [setSelectedTask]);
 
   if (filteredTasks.length === 0) {
     return (
@@ -646,7 +678,7 @@ function KanbanView({
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => openCreateTaskDialog({ status })}
-                className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.18_250)]/40 hover:bg-[oklch(0.55_0.18_250)]/5 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 font-medium"
+                className="w-full p-3 text-xs text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/20 hover:border-[oklch(0.55_0.18_250)]/40 hover:bg-[oklch(0.55_0.18_250)]/5 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 font-medium"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t.tasks.addTask}
@@ -660,7 +692,7 @@ function KanbanView({
       <DragOverlay>
         {activeTask ? (
           <div className="w-[280px] sm:w-[300px] rotate-2 opacity-90 shadow-2xl">
-            <TaskCardContent task={activeTask} />
+            <MemoizedTaskCardContent task={activeTask} />
           </div>
         ) : null}
       </DragOverlay>
@@ -1177,112 +1209,125 @@ export function TasksView() {
   }, [activeMilestoneId, setActiveMilestoneId]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">{t.tasks.title}</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            <span className="font-semibold text-foreground">{appTasks.length}</span> {t.dashboard.tasks} · <span className="font-semibold text-blue-600 dark:text-blue-400">{appTasks.filter((task) => task.status === 'done').length}</span> {t.tasks.tasksCompleted}
-          </p>
+    <div className="space-y-5">
+      {/* Sleek, Modern Two-Tier Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Tier 1 Left: Title and Status Badges */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">{t.tasks.title}</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-muted border border-border/80 text-muted-foreground">
+                {appTasks.length} {t.dashboard.tasks.toLowerCase()}
+              </span>
+              {appTasks.filter((task) => task.status === 'done').length > 0 && (
+                <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  {appTasks.filter((task) => task.status === 'done').length} {t.tasks.tasksCompleted.toLowerCase()}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+
+        {/* Tier 1 Right: View Toggle Tabs & Main Action */}
+        <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
           <Tabs value={taskViewMode} onValueChange={(v) => setTaskViewMode(v as typeof taskViewMode)}>
-            <TabsList className="h-8 bg-muted/50 p-0.5">
-              <TabsTrigger value="kanban" className={VIEW_TAB_TRIGGER_CLASS}>
+            <TabsList className="h-8 bg-muted/50 p-0.5 rounded-lg border border-border/60">
+              <TabsTrigger value="kanban" className={cn(VIEW_TAB_TRIGGER_CLASS, "rounded-md")}>
                 <Columns3 className="h-3.5 w-3.5" /> {t.tasks.kanban}
               </TabsTrigger>
-              <TabsTrigger value="list" className={VIEW_TAB_TRIGGER_CLASS}>
+              <TabsTrigger value="list" className={cn(VIEW_TAB_TRIGGER_CLASS, "rounded-md")}>
                 <List className="h-3.5 w-3.5" /> {t.tasks.list}
               </TabsTrigger>
-              <TabsTrigger value="my-tasks" className={VIEW_TAB_TRIGGER_CLASS}>
+              <TabsTrigger value="my-tasks" className={cn(VIEW_TAB_TRIGGER_CLASS, "rounded-md")}>
                 <User className="h-3.5 w-3.5" /> {t.tasks.myTasks}
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          {taskViewMode === 'kanban' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFilterOpen(!filterOpen)}
-              className={cn(
-                'h-8 text-xs gap-1.5',
-                (filterOpen || searchQuery.trim()) && 'bg-[oklch(0.55_0.18_250)]/10 border-[oklch(0.55_0.18_250)]/30 text-[oklch(0.55_0.18_250)]'
-              )}
-            >
-              <Filter className="h-3.5 w-3.5" />
-              {t.tasks.filter}
-            </Button>
-          )}
-
-          <div className="inline-flex h-8 items-center justify-center rounded-lg bg-muted/50 p-0.5 gap-0.5">
-            <Select value={sprintFilter} onValueChange={setSprintFilter}>
-              <SelectTrigger
-                size="sm"
-                className={FILTER_SELECT_TRIGGER_CLASS(sprintFilter !== 'all')}
-              >
-                <Zap className="h-3.5 w-3.5 shrink-0" />
-                <SelectValue placeholder={t.nav.sprints} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.myTasks.allSprints}</SelectItem>
-                {sprints.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={milestoneFilter} onValueChange={setMilestoneFilter}>
-              <SelectTrigger
-                size="sm"
-                className={FILTER_SELECT_TRIGGER_CLASS(milestoneFilter !== 'all')}
-              >
-                <Flag className="h-3.5 w-3.5 shrink-0" />
-                <SelectValue placeholder={t.nav.milestones} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t.myTasks.allMilestones}</SelectItem>
-                {milestones.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <Button
             size="sm"
             onClick={() => openCreateTaskDialog()}
-            className="h-8 gap-1.5 bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20"
+            className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-[oklch(0.55_0.18_250)] to-[oklch(0.48_0.18_250)] hover:from-[oklch(0.48_0.18_250)] hover:to-[oklch(0.42_0.18_250)] text-white shadow-sm shadow-[oklch(0.55_0.18_250)]/20 font-medium"
           >
             <Plus className="h-3.5 w-3.5" /> {t.tasks.newTask}
           </Button>
         </div>
       </div>
 
-      {/* Filter bar (collapsible) */}
-      <AnimatePresence>
-        {filterOpen && taskViewMode === 'kanban' && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t.tasks.searchTasks}
-                  className="pl-9 h-8 bg-background border-transparent text-xs"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Tier 2: Search and Contextual Filters Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-muted/15 dark:bg-muted/5 rounded-xl border border-border/60">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Sprints Select */}
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger
+              size="sm"
+              className={FILTER_SELECT_TRIGGER_CLASS(sprintFilter !== 'all')}
+            >
+              <Zap className="h-3.5 w-3.5 shrink-0" />
+              <SelectValue placeholder={t.nav.sprints} />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg">
+              <SelectItem value="all">{t.myTasks.allSprints}</SelectItem>
+              {sprints.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Milestones Select */}
+          <Select value={milestoneFilter} onValueChange={setMilestoneFilter}>
+            <SelectTrigger
+              size="sm"
+              className={FILTER_SELECT_TRIGGER_CLASS(milestoneFilter !== 'all')}
+            >
+              <Flag className="h-3.5 w-3.5 shrink-0" />
+              <SelectValue placeholder={t.nav.milestones} />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg">
+              <SelectItem value="all">{t.myTasks.allMilestones}</SelectItem>
+              {milestones.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Dynamic Reset Filter Button */}
+          {(sprintFilter !== 'all' || milestoneFilter !== 'all' || searchQuery.trim() !== '') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSprintFilter('all');
+                setMilestoneFilter('all');
+                setSearchQuery('');
+              }}
+              className="h-8 text-xs hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg px-2.5 gap-1.5"
+            >
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+
+        {/* Inline Search Bar */}
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder={t.tasks.searchTasks}
+            className="pl-9 pr-8 h-8 bg-background border-border hover:border-muted-foreground/30 text-xs rounded-lg transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery.trim() !== '' && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-1"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Views */}
       <AnimatePresence mode="wait">
