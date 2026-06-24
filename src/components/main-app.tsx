@@ -220,7 +220,7 @@ function BackToTopButton() {
             'hover:shadow-xl hover:bg-[oklch(0.50_0.18_250)] hover:scale-105',
             'active:scale-95 transition-all flex items-center justify-center',
             'border border-white/20 backdrop-blur-sm',
-            'bottom-24 right-5 lg:bottom-8 lg:right-8'
+            'bottom-24 left-5 lg:bottom-8 lg:right-8'
           )}
           aria-label={t.footer.backToTop}
         >

@@ -99,6 +99,7 @@ export function DraggableQuickAction() {
   const [menuAlign, setMenuAlign] = useState<'left' | 'right'>('right');
   const wasDragged = useRef(false);
   const positionHydrated = useRef(false);
+  const tapHandled = useRef(false);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -135,15 +136,15 @@ export function DraggableQuickAction() {
 
   useEffect(() => {
     if (!open && !aiChatOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('[data-quick-action-fab]')) {
         setOpen(false);
         setAiChatOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, [open, aiChatOpen, setAiChatOpen]);
 
   const handleDragStart = () => {
@@ -168,15 +169,22 @@ export function DraggableQuickAction() {
   };
 
   const handleTap = () => {
-    if (wasDragged.current) return;
+    if (wasDragged.current || tapHandled.current) return;
+    tapHandled.current = true;
     if (aiChatOpen) {
       setAiChatOpen(false);
+      requestAnimationFrame(() => {
+        tapHandled.current = false;
+      });
       return;
     }
     setOpen((prev) => {
       const next = !prev;
       if (next) syncMenuPlacement();
       return next;
+    });
+    requestAnimationFrame(() => {
+      tapHandled.current = false;
     });
   };
 
@@ -271,13 +279,14 @@ export function DraggableQuickAction() {
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
         onTap={handleTap}
+        onClick={handleTap}
         role="button"
         tabIndex={0}
         title={t.sidebar.quickActionDragHint}
         aria-label={aiChatOpen ? t.sidebar.quickActionAiAssistant : t.sidebar.quickActions}
         aria-expanded={open || aiChatOpen}
         className={cn(
-          'pointer-events-auto touch-none select-none relative h-14 w-14 rounded-full shadow-xl flex items-center justify-center',
+          'pointer-events-auto select-none relative h-14 w-14 rounded-full shadow-xl flex items-center justify-center',
           'bg-linear-to-br from-[oklch(0.55_0.18_250)] to-[oklch(0.45_0.18_250)] text-white',
           'hover:shadow-2xl hover:shadow-blue-500/20 transition-shadow cursor-grab active:cursor-grabbing',
           'border border-white/20',
@@ -293,13 +302,13 @@ export function DraggableQuickAction() {
               exit={{ opacity: 0, scale: 0.85, y: menuPlacement === 'top' ? 8 : -8 }}
               transition={{ duration: 0.15 }}
               className={cn(
-                'absolute flex flex-col gap-2 min-w-[180px]',
+                'absolute flex flex-col gap-2',
                 menuPlacement === 'top' ? 'bottom-[calc(100%+12px)]' : 'top-[calc(100%+12px)]',
                 menuAlign === 'right' ? 'right-0 items-end' : 'left-0 items-start'
               )}
             >
               <div
-                className="rounded-2xl border border-border/60 bg-background/95 backdrop-blur-md shadow-xl p-2 flex flex-col gap-1 text-foreground"
+                className="rounded-2xl border border-border/60 bg-background/95 backdrop-blur-md shadow-xl p-2 flex flex-col gap-1 text-foreground w-[min(200px,calc(100vw-4rem))]"
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -312,10 +321,10 @@ export function DraggableQuickAction() {
                     )}
                     <button
                       onClick={() => runAction(action.onClick)}
-                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium hover:bg-muted transition-colors text-left"
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-medium hover:bg-muted transition-colors text-left active:scale-[0.98]"
                     >
                       <action.icon className={cn('h-4 w-4 shrink-0', action.color)} />
-                      <span>{action.label}</span>
+                      <span className="truncate">{action.label}</span>
                     </button>
                   </div>
                 ))}
